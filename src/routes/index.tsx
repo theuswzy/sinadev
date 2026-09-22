@@ -104,7 +104,6 @@ function Painel() {
   const frequenciaGeral = todosAlunos.reduce((t, a) => t + a.frequencia, 0) / todosAlunos.length;
   const emRisco = todosAlunos.filter((a) => situacaoDe(a) !== "aprovado").length;
   const turmas = new Set(todosAlunos.map((a) => a.turma)).size;
-  const maxBim = Math.max(...bimestresTurma.map((b) => b.valor));
 
   return (
     <div className="min-h-screen bg-background">
@@ -184,7 +183,7 @@ function Painel() {
                   <div className="flex w-full flex-1 items-end rounded-md bg-secondary">
                     <div
                       className="w-full rounded-md bg-primary transition-[height] duration-700"
-                      style={{ height: `${(b.valor / maxBim) * 100}%` }}
+                      style={{ height: `${b.valor * 10}%` }}
                     />
                   </div>
                   <span className="tabular text-[11px] text-muted-foreground">{b.rotulo}</span>
