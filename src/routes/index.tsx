@@ -174,14 +174,14 @@ function Painel() {
         </section>
 
         <section className="mt-4 grid gap-4 lg:grid-cols-12">
-          <div className="rounded-lg border border-border bg-card p-6 lg:col-span-7">
+          <div className="flex flex-col rounded-lg border border-border bg-card p-6 lg:col-span-7">
             <h2 className="text-lg font-semibold">Evolução do desempenho</h2>
             <p className="mt-1 text-xs text-muted-foreground">Média da escola por bimestre</p>
-            <div className="mt-6 flex h-44 items-end gap-4">
+            <div className="mt-6 flex min-h-44 flex-1 items-end gap-4">
               {bimestresTurma.map((b) => (
-                <div key={b.rotulo} className="flex flex-1 flex-col items-center gap-2">
+                <div key={b.rotulo} className="flex h-full flex-1 flex-col items-center gap-2">
                   <span className="tabular text-xs font-medium">{n1(b.valor)}</span>
-                  <div className="flex h-32 w-full items-end rounded-md bg-secondary">
+                  <div className="flex w-full flex-1 items-end rounded-md bg-secondary">
                     <div
                       className="w-full rounded-md bg-primary transition-[height] duration-700"
                       style={{ height: `${(b.valor / maxBim) * 100}%` }}
@@ -192,6 +192,7 @@ function Painel() {
               ))}
             </div>
           </div>
+
 
           <aside className="rounded-lg border border-border bg-card p-6 lg:col-span-5">
             <div className="flex items-center justify-between">
