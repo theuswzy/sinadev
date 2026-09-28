@@ -80,11 +80,7 @@ function Circuitos() {
 }
 
 function Painel() {
-  const [selecionado, setSelecionado] = useState<Aluno>(() => {
-    const aluno = todosAlunos[2] ?? todosAlunos[0];
-    if (!aluno) throw new Error("Nenhum aluno disponível para o boletim.");
-    return aluno;
-  });
+  const [selecionado, setSelecionado] = useState<Aluno | null>(null);
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"todos" | Situacao>("todos");
 
@@ -96,8 +92,9 @@ function Painel() {
     [busca, filtro],
   );
 
-  const mediaGeral = todosAlunos.reduce((t, a) => t + media(a), 0) / todosAlunos.length;
-  const frequenciaGeral = todosAlunos.reduce((t, a) => t + a.frequencia, 0) / todosAlunos.length;
+  const temDados = todosAlunos.length > 0;
+  const mediaGeral = temDados ? todosAlunos.reduce((t, a) => t + media(a), 0) / todosAlunos.length : 0;
+  const frequenciaGeral = temDados ? todosAlunos.reduce((t, a) => t + a.frequencia, 0) / todosAlunos.length : 0;
   const emRisco = todosAlunos.filter((a) => situacaoDe(a) !== "aprovado").length;
   const turmas = new Set(todosAlunos.map((a) => a.turma)).size;
 
