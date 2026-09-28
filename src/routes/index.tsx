@@ -1,7 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { GraduationCap, Search, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { getRole } from "@/lib/sina-data";
 import {
   alunos as todosAlunos,
   bimestresTurma,
@@ -80,6 +83,7 @@ function Circuitos() {
 }
 
 function Painel() {
+  const account = useQuery({ queryKey: ["sina-account"], queryFn: async () => { const { data } = await supabase.auth.getUser(); return data.user ? getRole() : null; } });
   const [selecionado, setSelecionado] = useState<Aluno | null>(null);
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"todos" | Situacao>("todos");
@@ -119,7 +123,7 @@ function Painel() {
             <a className="border-b-2 border-primary pb-1 text-brand-foreground" href="#inicio">Início</a>
             <a className="pb-1 transition-colors hover:text-brand-foreground" href="#desempenho">Desempenho</a>
             <a className="pb-1 transition-colors hover:text-brand-foreground" href="#alunos">Alunos</a>
-            <UserRound aria-hidden="true" className="ml-auto size-5 text-brand-foreground sm:ml-0" />
+            <Link to={account.data === "teacher" ? "/professor" : account.data === "student" ? "/aluno" : "/auth"} className="ml-auto flex items-center gap-2 border-b-2 border-transparent pb-1 text-brand-foreground hover:border-primary sm:ml-0"><UserRound aria-hidden="true" className="size-5" /><span>{account.data ? "Minha área" : "Acesso"}</span></Link>
           </nav>
         </div>
       </header>
