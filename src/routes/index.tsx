@@ -28,11 +28,11 @@ function PresentationPage() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="relative z-20 border-b border-brand-border bg-brand text-brand-foreground">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8 lg:px-10">
-          <Link to="/" aria-label="SINA — ir para o painel" className="flex shrink-0 items-center gap-2 font-display text-2xl font-bold">
+          <Link to="/" aria-label="SINA — início" className="flex shrink-0 items-center gap-2 font-display text-2xl font-bold">
             <GraduationCap aria-hidden="true" className="size-8 stroke-[1.5]" /> SINA
           </Link>
           <nav aria-label="Navegação" className="flex items-center gap-4 text-sm sm:gap-7">
-            <Link to="/" className="hidden text-brand-foreground/75 transition-colors hover:text-brand-foreground sm:inline">Painel</Link>
+            <a href="#sobre" className="hidden text-brand-foreground/75 transition-colors hover:text-brand-foreground sm:inline">Sobre</a>
             <Link to="/auth" className="inline-flex items-center gap-2 border-b border-primary pb-1 font-semibold text-brand-foreground transition-colors hover:text-brand-muted">Acessar <ArrowRight aria-hidden="true" className="size-4" /></Link>
           </nav>
         </div>
@@ -50,13 +50,13 @@ function PresentationPage() {
               <p className="mt-5 max-w-lg text-sm leading-7 text-brand-foreground/85 sm:text-base">Um espaço para reunir notas, frequência e informações acadêmicas, aproximando alunos e professores do que importa.</p>
               <div className="mt-9 flex flex-wrap gap-3">
                 <Button asChild size="lg" className="h-11 px-6 font-semibold"><Link to="/auth">Acessar o SINA <ArrowRight aria-hidden="true" /></Link></Button>
-                <Button asChild size="lg" variant="outline" className="h-11 border-brand-foreground/60 bg-brand/20 px-6 text-brand-foreground hover:bg-brand-panel hover:text-brand-foreground"><Link to="/">Ver painel</Link></Button>
+                <Button asChild size="lg" variant="outline" className="h-11 border-brand-foreground/60 bg-brand/20 px-6 text-brand-foreground hover:bg-brand-panel hover:text-brand-foreground"><a href="#sobre">Conheça o sistema</a></Button>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="border-b border-border bg-card py-16 sm:py-20">
+        <section id="sobre" className="border-b border-border bg-card py-16 sm:py-20">
           <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
             <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:gap-16">
               <div><p className="text-xs font-bold uppercase text-success">Sobre o SINA</p><h2 className="mt-3 max-w-md font-display text-3xl font-semibold leading-tight sm:text-4xl">Informação acadêmica com clareza e propósito.</h2></div>

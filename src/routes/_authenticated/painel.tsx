@@ -109,7 +109,7 @@ function Painel() {
       <header className="relative overflow-hidden border-b border-brand-border bg-brand text-brand-foreground">
         <Circuitos />
         <div className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-6 py-5 lg:px-8">
-          <a href="#inicio" className="flex min-w-0 items-center gap-4" aria-label="SINA — início">
+          <Link to="/painel" className="flex min-w-0 items-center gap-4" aria-label="SINA — painel">
             <div className="flex shrink-0 items-center gap-2.5">
               <GraduationCap aria-hidden="true" className="size-10 stroke-[1.4]" />
               <span className="font-display text-3xl font-bold leading-none">SINA</span>
@@ -118,12 +118,12 @@ function Painel() {
             <span className="hidden max-w-[278px] text-[11px] font-medium leading-snug text-brand-muted sm:block">
               Sistema Digital para Acompanhamento de Dados Acadêmicos
             </span>
-          </a>
+          </Link>
           <nav aria-label="Navegação principal" className="flex w-full items-center gap-6 text-sm font-medium text-brand-muted sm:w-auto lg:gap-8">
             <a className="border-b-2 border-primary pb-1 text-brand-foreground" href="#inicio">Início</a>
             <a className="pb-1 transition-colors hover:text-brand-foreground" href="#desempenho">Desempenho</a>
             <a className="pb-1 transition-colors hover:text-brand-foreground" href="#alunos">Alunos</a>
-            <Link to="/apresentacao" className="pb-1 transition-colors hover:text-brand-foreground">Sobre</Link>
+            <Link to="/" className="pb-1 transition-colors hover:text-brand-foreground">Sobre</Link>
             <Link to={account.data === "teacher" ? "/professor" : account.data === "student" ? "/aluno" : "/auth"} className="ml-auto flex items-center gap-2 border-b-2 border-transparent pb-1 text-brand-foreground hover:border-primary sm:ml-0"><UserRound aria-hidden="true" className="size-5" /><span>{account.data ? "Minha área" : "Acesso"}</span></Link>
           </nav>
         </div>
