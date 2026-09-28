@@ -16,10 +16,13 @@ export type Aluno = {
   bimestres: number[];
 };
 
-export const media = (aluno: Aluno) =>
-  aluno.disciplinas.reduce((t, d) => t + d.nota, 0) / aluno.disciplinas.length;
+export const media = (aluno: Aluno | null | undefined) => {
+  if (!aluno?.disciplinas?.length) return 0;
+  return aluno.disciplinas.reduce((t, d) => t + d.nota, 0) / aluno.disciplinas.length;
+};
 
-export const situacaoDe = (aluno: Aluno): Situacao => {
+export const situacaoDe = (aluno: Aluno | null | undefined): Situacao => {
+  if (!aluno?.disciplinas?.length) return "reprovado";
   const m = media(aluno);
   if (m < 5 || aluno.frequencia < 70) return "reprovado";
   if (m < 7 || aluno.frequencia < 80) return "recuperacao";
@@ -34,7 +37,9 @@ export const rotuloSituacao: Record<Situacao, string> = {
 
 export const alunos: Aluno[] = [];
 
+const alunosComNotas = alunos.filter((aluno) => aluno && Array.isArray(aluno.disciplinas) && aluno.disciplinas.length > 0);
+
 export const bimestresTurma = [0, 1, 2, 3].map((i) => ({
   rotulo: `${i + 1}º bim.`,
-  valor: alunos.length === 0 ? 0 : alunos.reduce((t, a) => t + (a.bimestres[i] ?? 0), 0) / alunos.length,
+  valor: alunosComNotas.length === 0 ? 0 : alunosComNotas.reduce((t, a) => t + (a.bimestres?.[i] ?? 0), 0) / alunosComNotas.length,
 }));
