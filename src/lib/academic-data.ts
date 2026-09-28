@@ -16,8 +16,10 @@ export type Aluno = {
   bimestres: number[];
 };
 
-export const media = (aluno: Aluno) =>
-  aluno.disciplinas.reduce((t, d) => t + d.nota, 0) / aluno.disciplinas.length;
+export const media = (aluno: Aluno | null | undefined) => {
+  if (!aluno?.disciplinas?.length) return 0;
+  return aluno.disciplinas.reduce((t, d) => t + d.nota, 0) / aluno.disciplinas.length;
+};
 
 export const situacaoDe = (aluno: Aluno): Situacao => {
   const m = media(aluno);

@@ -83,20 +83,22 @@ function Painel() {
   const [selecionado, setSelecionado] = useState<Aluno | null>(null);
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"todos" | Situacao>("todos");
+  const alunosValidos = todosAlunos.filter((a) => a && Array.isArray(a.disciplinas) && a.disciplinas.length > 0);
+  const alunoSelecionado = selecionado?.disciplinas?.length ? selecionado : null;
 
   const lista = useMemo(
-    () => todosAlunos
+    () => alunosValidos
       .filter((a) => a.nome.toLowerCase().includes(busca.trim().toLowerCase()))
       .filter((a) => filtro === "todos" || situacaoDe(a) === filtro)
       .sort((a, b) => media(b) - media(a)),
-    [busca, filtro],
+    [alunosValidos, busca, filtro],
   );
 
-  const temDados = todosAlunos.length > 0;
-  const mediaGeral = temDados ? todosAlunos.reduce((t, a) => t + media(a), 0) / todosAlunos.length : 0;
-  const frequenciaGeral = temDados ? todosAlunos.reduce((t, a) => t + a.frequencia, 0) / todosAlunos.length : 0;
-  const emRisco = todosAlunos.filter((a) => situacaoDe(a) !== "aprovado").length;
-  const turmas = new Set(todosAlunos.map((a) => a.turma)).size;
+  const temDados = alunosValidos.length > 0;
+  const mediaGeral = temDados ? alunosValidos.reduce((t, a) => t + media(a), 0) / alunosValidos.length : 0;
+  const frequenciaGeral = temDados ? alunosValidos.reduce((t, a) => t + a.frequencia, 0) / alunosValidos.length : 0;
+  const emRisco = alunosValidos.filter((a) => situacaoDe(a) !== "aprovado").length;
+  const turmas = new Set(alunosValidos.map((a) => a.turma)).size;
 
   return (
     <div className="min-h-screen bg-background">
@@ -128,13 +130,13 @@ function Painel() {
             <p className="text-xs font-bold uppercase text-primary">Acompanhamento acadêmico</p>
             <h1 className="mt-2 text-2xl font-semibold md:text-3xl">Visão geral da escola</h1>
           </div>
-          <p className="text-xs text-muted-foreground">{temDados ? `${todosAlunos.length} alunos · ${turmas} turmas` : "Nenhum dado acadêmico cadastrado"}</p>
+           <p className="text-xs text-muted-foreground">{temDados ? `${alunosValidos.length} alunos · ${turmas} turmas` : "Nenhum dado acadêmico cadastrado"}</p>
         </div>
 
         <section aria-label="Indicadores acadêmicos" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Indicador rotulo="Média geral" valor={temDados ? n1(mediaGeral) : "—"} nota={temDados ? "Escala de 0 a 10" : "Sem dados"} progresso={mediaGeral * 10} />
           <Indicador rotulo="Frequência média" valor={temDados ? `${Math.round(frequenciaGeral)}%` : "—"} nota={temDados ? "Frequência dos alunos" : "Sem dados"} progresso={frequenciaGeral} tom="success" />
-          <Indicador rotulo="Alunos em atenção" valor={temDados ? String(emRisco) : "—"} nota={temDados ? "Recuperação ou reprovação" : "Sem dados"} progresso={temDados ? (emRisco / todosAlunos.length) * 100 : 0} tom="destructive" />
+           <Indicador rotulo="Alunos em atenção" valor={temDados ? String(emRisco) : "—"} nota={temDados ? "Recuperação ou reprovação" : "Sem dados"} progresso={temDados ? (emRisco / alunosValidos.length) * 100 : 0} tom="destructive" />
           <Indicador rotulo="Turmas monitoradas" valor={temDados ? String(turmas) : "—"} nota={temDados ? "Turmas com alunos" : "Sem dados"} progresso={temDados ? 100 : 0} tom="warning" />
         </section>
 
@@ -163,18 +165,18 @@ function Painel() {
           <aside className="rounded-md border border-brand-border bg-brand-panel p-6 text-brand-foreground">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <h2 className="flex items-center gap-2 font-display text-lg font-semibold"><span className="size-2 rounded-full bg-primary" />Boletim individual</h2>
-              {selecionado && <Selo s={situacaoDe(selecionado)} />}
+               {alunoSelecionado && <Selo s={situacaoDe(alunoSelecionado)} />}
             </div>
-            {selecionado ? <>
-            <p className="mt-5 font-display text-xl font-semibold">{selecionado.nome}</p>
-            <p className="mt-1 text-xs text-brand-muted">Turma {selecionado.turma} · Matrícula {selecionado.matricula}</p>
+             {alunoSelecionado ? <>
+             <p className="mt-5 font-display text-xl font-semibold">{alunoSelecionado.nome}</p>
+             <p className="mt-1 text-xs text-brand-muted">Turma {alunoSelecionado.turma} · Matrícula {alunoSelecionado.matricula}</p>
             <div className="mt-5 grid grid-cols-3 gap-2 border-y border-brand-border py-4">
-              <div><p className="text-xs text-brand-muted">Média</p><p className="mt-1 text-lg font-semibold tabular-nums">{n1(media(selecionado))}</p></div>
-              <div><p className="text-xs text-brand-muted">Frequência</p><p className="mt-1 text-lg font-semibold tabular-nums">{selecionado.frequencia}%</p></div>
-              <div><p className="text-xs text-brand-muted">Faltas</p><p className="mt-1 text-lg font-semibold tabular-nums">{selecionado.disciplinas.reduce((t, d) => t + d.faltas, 0)}</p></div>
+               <div><p className="text-xs text-brand-muted">Média</p><p className="mt-1 text-lg font-semibold tabular-nums">{n1(media(alunoSelecionado))}</p></div>
+               <div><p className="text-xs text-brand-muted">Frequência</p><p className="mt-1 text-lg font-semibold tabular-nums">{alunoSelecionado.frequencia}%</p></div>
+               <div><p className="text-xs text-brand-muted">Faltas</p><p className="mt-1 text-lg font-semibold tabular-nums">{alunoSelecionado.disciplinas.reduce((t, d) => t + d.faltas, 0)}</p></div>
             </div>
             <div className="mt-4 space-y-3">
-              {selecionado.disciplinas.map((d) => {
+               {alunoSelecionado.disciplinas.map((d) => {
                 const cor = d.nota >= 7 ? "bg-primary" : d.nota >= 5 ? "bg-warning" : "bg-destructive";
                 const texto = d.nota >= 7 ? "text-brand-muted" : d.nota >= 5 ? "text-warning" : "text-destructive";
                 return (
