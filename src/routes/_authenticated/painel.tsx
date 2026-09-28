@@ -15,7 +15,7 @@ import {
   type Situacao,
 } from "@/lib/academic-data";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/painel")({
   head: () => ({
     meta: [
       { title: "SINA — Acompanhamento Acadêmico PROSUB" },

@@ -3,7 +3,7 @@ import { ArrowRight, BookOpen, ChartNoAxesCombined, ClipboardList, GraduationCap
 import { Button } from "@/components/ui/button";
 import learningImage from "@/assets/sina-learning.jpg";
 
-export const Route = createFileRoute("/apresentacao")({
+export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Conheça o SINA — Acompanhamento acadêmico" },
