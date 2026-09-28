@@ -128,14 +128,14 @@ function Painel() {
             <p className="text-xs font-bold uppercase text-primary">Acompanhamento acadêmico</p>
             <h1 className="mt-2 text-2xl font-semibold md:text-3xl">Visão geral da escola</h1>
           </div>
-          <p className="text-xs text-muted-foreground">Ano letivo 2026 · 4º bimestre · {todosAlunos.length} alunos · {turmas} turmas</p>
+          <p className="text-xs text-muted-foreground">{temDados ? `${todosAlunos.length} alunos · ${turmas} turmas` : "Nenhum dado acadêmico cadastrado"}</p>
         </div>
 
         <section aria-label="Indicadores acadêmicos" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Indicador rotulo="Média geral" valor={n1(mediaGeral)} nota="Escala de 0 a 10" progresso={mediaGeral * 10} />
-          <Indicador rotulo="Frequência média" valor={`${Math.round(frequenciaGeral)}%`} nota="Meta institucional: 85%" progresso={frequenciaGeral} tom="success" />
-          <Indicador rotulo="Alunos em atenção" valor={String(emRisco)} nota="Recuperação ou reprovação" progresso={(emRisco / todosAlunos.length) * 100} tom="destructive" />
-          <Indicador rotulo="Turmas monitoradas" valor={String(turmas)} nota="Dados de demonstração" progresso={100} tom="warning" />
+          <Indicador rotulo="Média geral" valor={temDados ? n1(mediaGeral) : "—"} nota={temDados ? "Escala de 0 a 10" : "Sem dados"} progresso={mediaGeral * 10} />
+          <Indicador rotulo="Frequência média" valor={temDados ? `${Math.round(frequenciaGeral)}%` : "—"} nota={temDados ? "Frequência dos alunos" : "Sem dados"} progresso={frequenciaGeral} tom="success" />
+          <Indicador rotulo="Alunos em atenção" valor={temDados ? String(emRisco) : "—"} nota={temDados ? "Recuperação ou reprovação" : "Sem dados"} progresso={temDados ? (emRisco / todosAlunos.length) * 100 : 0} tom="destructive" />
+          <Indicador rotulo="Turmas monitoradas" valor={temDados ? String(turmas) : "—"} nota={temDados ? "Turmas com alunos" : "Sem dados"} progresso={temDados ? 100 : 0} tom="warning" />
         </section>
 
         <section id="desempenho" className="mt-5 grid gap-5 lg:grid-cols-3">
@@ -147,7 +147,7 @@ function Painel() {
               </div>
               <div className="flex gap-1.5 pt-1" aria-hidden="true"><span className="size-2 rounded-full bg-primary" /><span className="size-2 rounded-full bg-brand-border" /></div>
             </div>
-            <div className="mt-7 flex h-64 items-end gap-3 sm:gap-5">
+            {temDados ? <div className="mt-7 flex h-64 items-end gap-3 sm:gap-5">
               {bimestresTurma.map((b) => (
                 <div key={b.rotulo} className="flex h-full min-w-0 flex-1 flex-col items-center gap-2">
                   <span className="text-xs font-semibold tabular-nums">{n1(b.valor)}</span>
@@ -157,14 +157,15 @@ function Painel() {
                   <span className="text-center text-[11px] text-muted-foreground">{b.rotulo}</span>
                 </div>
               ))}
-            </div>
+            </div> : <div className="mt-7 flex h-64 items-center justify-center border-t border-border text-sm text-muted-foreground">Sem dados para exibir o desempenho.</div>}
           </div>
 
           <aside className="rounded-md border border-brand-border bg-brand-panel p-6 text-brand-foreground">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <h2 className="flex items-center gap-2 font-display text-lg font-semibold"><span className="size-2 rounded-full bg-primary" />Boletim individual</h2>
-              <Selo s={situacaoDe(selecionado)} />
+              {selecionado && <Selo s={situacaoDe(selecionado)} />}
             </div>
+            {selecionado ? <>
             <p className="mt-5 font-display text-xl font-semibold">{selecionado.nome}</p>
             <p className="mt-1 text-xs text-brand-muted">Turma {selecionado.turma} · Matrícula {selecionado.matricula}</p>
             <div className="mt-5 grid grid-cols-3 gap-2 border-y border-brand-border py-4">
@@ -185,13 +186,14 @@ function Painel() {
                 );
               })}
             </div>
+            </> : <p className="mt-8 text-sm text-brand-muted">Nenhum boletim disponível.</p>}
           </aside>
         </section>
 
         <section id="alunos" className="mt-5 overflow-hidden rounded-md border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-5">
-            <div><h2 className="text-lg font-semibold">Alunos cadastrados</h2><p className="mt-0.5 text-xs text-muted-foreground">{lista.length} registro{lista.length === 1 ? "" : "s"} · ordenados por média</p></div>
-            <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+            <div><h2 className="text-lg font-semibold">Alunos cadastrados</h2><p className="mt-0.5 text-xs text-muted-foreground">{lista.length} registro{lista.length === 1 ? "" : "s"}{temDados ? " · ordenados por média" : ""}</p></div>
+            {temDados && <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
               <label className="relative w-full sm:w-52">
                 <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <span className="sr-only">Buscar aluno</span>
@@ -204,7 +206,7 @@ function Painel() {
                   </Button>
                 ))}
               </div>
-            </div>
+            </div>}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] text-sm">
@@ -213,7 +215,7 @@ function Painel() {
               </tr></thead>
               <tbody className="divide-y divide-border">
                 {lista.map((a) => (
-                  <tr key={a.id} tabIndex={0} role="button" aria-label={`Ver boletim de ${a.nome}`} aria-selected={a.id === selecionado.id} onClick={() => setSelecionado(a)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelecionado(a); } }} className={`cursor-pointer transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-primary ${a.id === selecionado.id ? "bg-accent/50" : ""}`}>
+                  <tr key={a.id} tabIndex={0} role="button" aria-label={`Ver boletim de ${a.nome}`} aria-selected={a.id === selecionado?.id} onClick={() => setSelecionado(a)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelecionado(a); } }} className={`cursor-pointer transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-primary ${a.id === selecionado?.id ? "bg-accent/50" : ""}`}>
                     <td className="px-6 py-3.5"><p className="font-semibold">{a.nome}</p><p className="mt-0.5 text-[11px] text-muted-foreground">Mat. {a.matricula}</p></td>
                     <td className="px-4 py-3.5 text-xs text-muted-foreground">{a.turma}</td>
                     <td className="px-4 py-3.5 text-right font-semibold tabular-nums">{n1(media(a))}</td>
@@ -221,12 +223,12 @@ function Painel() {
                     <td className="px-6 py-3.5 text-right"><Selo s={situacaoDe(a)} /></td>
                   </tr>
                 ))}
-                {lista.length === 0 && <tr><td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">Nenhum aluno encontrado com esses filtros.</td></tr>}
+                {lista.length === 0 && <tr><td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">{temDados ? "Nenhum aluno encontrado com esses filtros." : "Nenhum aluno cadastrado."}</td></tr>}
               </tbody>
             </table>
           </div>
         </section>
-        <footer className="mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-5 text-xs text-muted-foreground"><span>SINA · dados de demonstração</span><span>Atualizado em 22 de setembro de 2026</span></footer>
+        <footer className="mt-8 border-t border-border pt-5 text-xs text-muted-foreground">SINA</footer>
       </main>
     </div>
   );
