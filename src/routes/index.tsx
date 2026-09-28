@@ -80,7 +80,11 @@ function Circuitos() {
 }
 
 function Painel() {
-  const [selecionado, setSelecionado] = useState<Aluno>(todosAlunos[2] ?? todosAlunos[0]);
+  const [selecionado, setSelecionado] = useState<Aluno>(() => {
+    const aluno = todosAlunos[2] ?? todosAlunos[0];
+    if (!aluno) throw new Error("Nenhum aluno disponível para o boletim.");
+    return aluno;
+  });
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"todos" | Situacao>("todos");
 
