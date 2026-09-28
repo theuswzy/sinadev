@@ -1,3 +1,5 @@
-# SINA visual identity
-- [x] Apply selected SINA palette, typography, branding, and compact dashboard layout.
-- [x] Verify desktop/mobile appearance and working student selection, search, and filters.
+# SINA
+- [x] Preserve charcoal/sage dashboard as first screen.
+- [ ] Add account creation/sign-in, recovery, and separate protected student/teacher areas.
+- [ ] Store profiles, enrollments, grades, and attendance with role-based permissions.
+- [ ] Verify account and grade flows in the preview.
