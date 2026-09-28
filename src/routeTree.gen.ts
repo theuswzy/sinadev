@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAlunoRouteImport } from './routes/_authenticated/aluno'
+import { Route as AuthenticatedProfessorRouteImport } from './routes/_authenticated/professor'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,18 +40,25 @@ const AuthenticatedAlunoRoute = AuthenticatedAlunoRouteImport.update({
   path: '/aluno',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProfessorRoute = AuthenticatedProfessorRouteImport.update({
+  id: '/professor',
+  path: '/professor',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/aluno': typeof AuthenticatedAlunoRoute
+  '/professor': typeof AuthenticatedProfessorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/aluno': typeof AuthenticatedAlunoRoute
+  '/professor': typeof AuthenticatedProfessorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +67,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/aluno': typeof AuthenticatedAlunoRoute
+  '/_authenticated/professor': typeof AuthenticatedProfessorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/reset-password' | '/aluno'
+  fullPaths: '/' | '/auth' | '/reset-password' | '/aluno' | '/professor'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/reset-password' | '/aluno'
+  to: '/' | '/auth' | '/reset-password' | '/aluno' | '/professor'
   id:
     | '__root__'
     | '/'
@@ -72,6 +81,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/aluno'
+    | '/_authenticated/professor'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,15 +128,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlunoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/professor': {
+      id: '/_authenticated/professor'
+      path: '/professor'
+      fullPath: '/professor'
+      preLoaderRoute: typeof AuthenticatedProfessorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlunoRoute: typeof AuthenticatedAlunoRoute
+  AuthenticatedProfessorRoute: typeof AuthenticatedProfessorRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAlunoRoute: AuthenticatedAlunoRoute,
+  AuthenticatedProfessorRoute: AuthenticatedProfessorRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
