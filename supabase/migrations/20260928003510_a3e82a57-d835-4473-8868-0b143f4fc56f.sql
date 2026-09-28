@@ -1,0 +1,1 @@
+ALTER TABLE public.students ALTER COLUMN attendance DROP DEFAULT; ALTER TABLE public.students ALTER COLUMN attendance DROP NOT NULL;

@@ -78,7 +78,7 @@ export type Database = {
       }
       students: {
         Row: {
-          attendance: number
+          attendance: number | null
           claim_code: string
           classroom: string
           created_at: string
@@ -90,7 +90,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          attendance?: number
+          attendance?: number | null
           claim_code?: string
           classroom: string
           created_at?: string
@@ -102,7 +102,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          attendance?: number
+          attendance?: number | null
           claim_code?: string
           classroom?: string
           created_at?: string
