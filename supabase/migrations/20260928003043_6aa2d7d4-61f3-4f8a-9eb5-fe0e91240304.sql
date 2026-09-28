@@ -1,0 +1,3 @@
+CREATE FUNCTION public.protect_student_link() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$ BEGIN IF current_user <> 'postgres' AND (NEW.user_id IS DISTINCT FROM OLD.user_id OR NEW.claim_code IS DISTINCT FROM OLD.claim_code) THEN RAISE EXCEPTION 'Vínculo e código da matrícula não podem ser alterados'; END IF; RETURN NEW; END $$;
+REVOKE ALL ON FUNCTION public.protect_student_link() FROM PUBLIC, anon, authenticated;
+CREATE TRIGGER protect_student_link BEFORE UPDATE ON public.students FOR EACH ROW EXECUTE FUNCTION public.protect_student_link();
