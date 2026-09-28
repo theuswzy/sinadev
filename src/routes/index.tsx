@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { GraduationCap, Search, UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   alunos as todosAlunos,
   bimestresTurma,
@@ -13,18 +15,10 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Painel Acadêmico — Acompanhamento de Dados Escolares" },
-      {
-        name: "description",
-        content:
-          "Sistema digital para acompanhar notas, frequência e situação acadêmica de alunos por turma e bimestre.",
-      },
-      { property: "og:title", content: "Painel Acadêmico — Acompanhamento de Dados Escolares" },
-      {
-        property: "og:description",
-        content:
-          "Indicadores de desempenho, lista de alunos e boletim individual em um único painel.",
-      },
+      { title: "SINA — Acompanhamento Acadêmico PROSUB" },
+      { name: "description", content: "Sistema Digital para Acompanhamento de Dados Acadêmicos de Alunos do PROSUB. Consulte indicadores, boletins e desempenho por bimestre." },
+      { property: "og:title", content: "SINA — Acompanhamento Acadêmico PROSUB" },
+      { property: "og:description", content: "Indicadores acadêmicos, evolução por bimestre e boletins individuais dos alunos do PROSUB." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -36,28 +30,20 @@ const n1 = (v: number) => v.toFixed(1).replace(".", ",");
 
 const corSituacao: Record<Situacao, string> = {
   aprovado: "bg-success/12 text-success ring-success/25",
-  recuperacao: "bg-warning/15 text-warning ring-warning/30",
+  recuperacao: "bg-warning/12 text-warning ring-warning/25",
   reprovado: "bg-destructive/12 text-destructive ring-destructive/25",
 };
 
 function Selo({ s }: { s: Situacao }) {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${corSituacao[s]}`}
-    >
+    <span className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-semibold ring-1 ${corSituacao[s]}`}>
       <span className="size-1.5 rounded-full bg-current" />
       {rotuloSituacao[s]}
     </span>
   );
 }
 
-function Indicador({
-  rotulo,
-  valor,
-  nota,
-  progresso,
-  tom = "primary",
-}: {
+function Indicador({ rotulo, valor, nota, progresso, tom = "primary" }: {
   rotulo: string;
   valor: string;
   nota: string;
@@ -70,15 +56,11 @@ function Indicador({
     warning: "bg-warning",
     destructive: "bg-destructive",
   }[tom];
-  const texto = tom === "destructive" ? "text-destructive" : "text-foreground";
-
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        {rotulo}
-      </p>
-      <p className={`tabular mt-3 text-3xl font-semibold leading-none ${texto}`}>{valor}</p>
-      <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary">
+    <div className="rounded-md border border-border bg-card p-5 transition-colors hover:border-primary/40">
+      <p className="text-[11px] font-bold uppercase text-muted-foreground">{rotulo}</p>
+      <p className="mt-3 font-display text-3xl font-semibold leading-none tabular-nums">{valor}</p>
+      <div className="mt-5 h-1 overflow-hidden rounded-full bg-secondary">
         <div className={`h-full rounded-full ${barra}`} style={{ width: `${progresso}%` }} />
       </div>
       <p className="mt-2.5 text-xs text-muted-foreground">{nota}</p>
@@ -86,17 +68,27 @@ function Indicador({
   );
 }
 
+function Circuitos() {
+  return (
+    <svg aria-hidden="true" className="pointer-events-none absolute left-0 top-0 h-28 w-44 text-primary/60" viewBox="0 0 180 115" fill="none">
+      <path d="M0 44H22L42 24H136M0 64H33L54 43H154M0 86H17L63 55H110" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="136" cy="24" r="3" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="154" cy="43" r="3" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="110" cy="55" r="3" stroke="currentColor" strokeWidth="1.3" />
+    </svg>
+  );
+}
+
 function Painel() {
-  const [selecionado, setSelecionado] = useState<Aluno>(todosAlunos[2]!);
+  const [selecionado, setSelecionado] = useState<Aluno>(todosAlunos[2] ?? todosAlunos[0]);
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"todos" | Situacao>("todos");
 
   const lista = useMemo(
-    () =>
-      todosAlunos
-        .filter((a) => a.nome.toLowerCase().includes(busca.trim().toLowerCase()))
-        .filter((a) => filtro === "todos" || situacaoDe(a) === filtro)
-        .sort((a, b) => media(b) - media(a)),
+    () => todosAlunos
+      .filter((a) => a.nome.toLowerCase().includes(busca.trim().toLowerCase()))
+      .filter((a) => filtro === "todos" || situacaoDe(a) === filtro)
+      .sort((a, b) => media(b) - media(a)),
     [busca, filtro],
   );
 
@@ -107,142 +99,87 @@ function Painel() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-6 py-4">
-          <div className="grid size-9 place-items-center rounded-md bg-primary font-display text-base font-semibold text-primary-foreground">
-            A
-          </div>
-          <div>
-            <p className="font-display text-[15px] font-semibold leading-none">Acadêmico</p>
-            <p className="tabular mt-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-              Escola Municipal Vila Nova
-            </p>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <span className="tabular rounded-md bg-secondary px-3 py-1.5 text-xs text-muted-foreground">
-              Ano letivo 2026
+      <header className="relative overflow-hidden border-b border-brand-border bg-brand text-brand-foreground">
+        <Circuitos />
+        <div className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-6 py-5 lg:px-8">
+          <a href="#inicio" className="flex min-w-0 items-center gap-4" aria-label="SINA — início">
+            <div className="flex shrink-0 items-center gap-2.5">
+              <GraduationCap aria-hidden="true" className="size-10 stroke-[1.4]" />
+              <span className="font-display text-3xl font-bold leading-none">SINA</span>
+            </div>
+            <span className="hidden h-9 w-px bg-brand-border sm:block" />
+            <span className="hidden max-w-[278px] text-[11px] font-medium leading-snug text-brand-muted sm:block">
+              Sistema Digital para Acompanhamento de Dados Acadêmicos de Alunos do PROSUB
             </span>
-            <span className="tabular rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-accent-foreground">
-              4º bimestre
-            </span>
-          </div>
+          </a>
+          <nav aria-label="Navegação principal" className="flex w-full items-center gap-6 text-sm font-medium text-brand-muted sm:w-auto lg:gap-8">
+            <a className="border-b-2 border-primary pb-1 text-brand-foreground" href="#inicio">Início</a>
+            <a className="pb-1 transition-colors hover:text-brand-foreground" href="#desempenho">Desempenho</a>
+            <a className="pb-1 transition-colors hover:text-brand-foreground" href="#alunos">Alunos</a>
+            <UserRound aria-hidden="true" className="ml-auto size-5 text-brand-foreground sm:ml-0" />
+          </nav>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+      <main id="inicio" className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-              Acompanhamento de dados acadêmicos
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold md:text-4xl">Visão geral da escola</h1>
+            <p className="text-xs font-bold uppercase text-primary">Acompanhamento acadêmico</p>
+            <h1 className="mt-2 text-2xl font-semibold md:text-3xl">Visão geral da escola</h1>
           </div>
-          <p className="tabular text-xs text-muted-foreground">
-            {todosAlunos.length} alunos · {turmas} turmas
-          </p>
+          <p className="text-xs text-muted-foreground">Ano letivo 2026 · 4º bimestre · {todosAlunos.length} alunos · {turmas} turmas</p>
         </div>
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Indicador
-            rotulo="Média geral"
-            valor={n1(mediaGeral)}
-            nota="Escala de 0 a 10"
-            progresso={mediaGeral * 10}
-          />
-          <Indicador
-            rotulo="Frequência média"
-            valor={`${Math.round(frequenciaGeral)}%`}
-            nota="Meta institucional: 85%"
-            progresso={frequenciaGeral}
-            tom="success"
-          />
-          <Indicador
-            rotulo="Alunos em atenção"
-            valor={String(emRisco)}
-            nota="Recuperação ou reprovação"
-            progresso={(emRisco / todosAlunos.length) * 100}
-            tom="destructive"
-          />
-          <Indicador
-            rotulo="Turmas monitoradas"
-            valor={String(turmas)}
-            nota="Todas com dados atualizados"
-            progresso={100}
-            tom="warning"
-          />
+        <section aria-label="Indicadores acadêmicos" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Indicador rotulo="Média geral" valor={n1(mediaGeral)} nota="Escala de 0 a 10" progresso={mediaGeral * 10} />
+          <Indicador rotulo="Frequência média" valor={`${Math.round(frequenciaGeral)}%`} nota="Meta institucional: 85%" progresso={frequenciaGeral} tom="success" />
+          <Indicador rotulo="Alunos em atenção" valor={String(emRisco)} nota="Recuperação ou reprovação" progresso={(emRisco / todosAlunos.length) * 100} tom="destructive" />
+          <Indicador rotulo="Turmas monitoradas" valor={String(turmas)} nota="Dados de demonstração" progresso={100} tom="warning" />
         </section>
 
-        <section className="mt-4 grid gap-4 lg:grid-cols-12">
-          <div className="flex flex-col rounded-lg border border-border bg-card p-6 lg:col-span-7">
-            <h2 className="text-lg font-semibold">Evolução do desempenho</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Média da escola por bimestre</p>
-            <div className="mt-6 flex min-h-44 flex-1 items-end gap-4">
+        <section id="desempenho" className="mt-5 grid gap-5 lg:grid-cols-3">
+          <div className="flex flex-col rounded-md border border-border bg-card p-6 lg:col-span-2">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">Desempenho por bimestre</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Média da escola em cada período</p>
+              </div>
+              <div className="flex gap-1.5 pt-1" aria-hidden="true"><span className="size-2 rounded-full bg-primary" /><span className="size-2 rounded-full bg-brand-border" /></div>
+            </div>
+            <div className="mt-7 flex h-64 items-end gap-3 sm:gap-5">
               {bimestresTurma.map((b) => (
-                <div key={b.rotulo} className="flex h-full flex-1 flex-col items-center gap-2">
-                  <span className="tabular text-xs font-medium">{n1(b.valor)}</span>
-                  <div className="flex w-full flex-1 items-end rounded-md bg-secondary">
-                    <div
-                      className="w-full rounded-md bg-primary transition-[height] duration-700"
-                      style={{ height: `${b.valor * 10}%` }}
-                    />
+                <div key={b.rotulo} className="flex h-full min-w-0 flex-1 flex-col items-center gap-2">
+                  <span className="text-xs font-semibold tabular-nums">{n1(b.valor)}</span>
+                  <div className="flex w-full flex-1 items-end overflow-hidden rounded-t bg-secondary">
+                    <div className="w-full rounded-t bg-primary transition-[height] duration-700" style={{ height: `${b.valor * 10}%` }} />
                   </div>
-                  <span className="tabular text-[11px] text-muted-foreground">{b.rotulo}</span>
+                  <span className="text-center text-[11px] text-muted-foreground">{b.rotulo}</span>
                 </div>
               ))}
             </div>
           </div>
 
-
-          <aside className="rounded-lg border border-border bg-card p-6 lg:col-span-5">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Boletim individual
-              </p>
+          <aside className="rounded-md border border-brand-border bg-brand-panel p-6 text-brand-foreground">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <h2 className="flex items-center gap-2 font-display text-lg font-semibold"><span className="size-2 rounded-full bg-primary" />Boletim individual</h2>
               <Selo s={situacaoDe(selecionado)} />
             </div>
-            <h2 className="mt-3 text-xl font-semibold">{selecionado.nome}</h2>
-            <p className="tabular mt-1 text-xs text-muted-foreground">
-              Turma {selecionado.turma} · Matrícula {selecionado.matricula}
-            </p>
-
-            <div className="mt-4 flex gap-6 border-y border-border py-3">
-              <div>
-                <p className="text-[11px] text-muted-foreground">Média</p>
-                <p className="tabular text-lg font-semibold">{n1(media(selecionado))}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground">Frequência</p>
-                <p className="tabular text-lg font-semibold">{selecionado.frequencia}%</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground">Faltas</p>
-                <p className="tabular text-lg font-semibold">
-                  {selecionado.disciplinas.reduce((t, d) => t + d.faltas, 0)}
-                </p>
-              </div>
+            <p className="mt-5 font-display text-xl font-semibold">{selecionado.nome}</p>
+            <p className="mt-1 text-xs text-brand-muted">Turma {selecionado.turma} · Matrícula {selecionado.matricula}</p>
+            <div className="mt-5 grid grid-cols-3 gap-2 border-y border-brand-border py-4">
+              <div><p className="text-xs text-brand-muted">Média</p><p className="mt-1 text-lg font-semibold tabular-nums">{n1(media(selecionado))}</p></div>
+              <div><p className="text-xs text-brand-muted">Frequência</p><p className="mt-1 text-lg font-semibold tabular-nums">{selecionado.frequencia}%</p></div>
+              <div><p className="text-xs text-brand-muted">Faltas</p><p className="mt-1 text-lg font-semibold tabular-nums">{selecionado.disciplinas.reduce((t, d) => t + d.faltas, 0)}</p></div>
             </div>
-
             <div className="mt-4 space-y-3">
               {selecionado.disciplinas.map((d) => {
-                const cor =
-                  d.nota >= 7 ? "bg-success" : d.nota >= 5 ? "bg-warning" : "bg-destructive";
-                const texto =
-                  d.nota >= 7 ? "text-success" : d.nota >= 5 ? "text-warning" : "text-destructive";
+                const cor = d.nota >= 7 ? "bg-primary" : d.nota >= 5 ? "bg-warning" : "bg-destructive";
+                const texto = d.nota >= 7 ? "text-brand-muted" : d.nota >= 5 ? "text-warning" : "text-destructive";
                 return (
                   <div key={d.nome}>
-                    <div className="flex items-baseline justify-between text-sm">
-                      <span className="font-medium">{d.nome}</span>
-                      <span className={`tabular text-sm font-medium ${texto}`}>{n1(d.nota)}</span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-                      <div
-                        className={`h-full rounded-full ${cor}`}
-                        style={{ width: `${d.nota * 10}%` }}
-                      />
-                    </div>
-                    <p className="tabular mt-1 text-[11px] text-muted-foreground">
-                      {d.faltas} falta{d.faltas === 1 ? "" : "s"}
-                    </p>
+                    <div className="flex items-baseline justify-between gap-3 text-sm"><span>{d.nome}</span><span className={`font-semibold tabular-nums ${texto}`}>{n1(d.nota)}</span></div>
+                    <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-brand-border"><div className={`h-full rounded-full ${cor}`} style={{ width: `${d.nota * 10}%` }} /></div>
+                    <p className="mt-1 text-[11px] text-brand-muted">{d.faltas} falta{d.faltas === 1 ? "" : "s"}</p>
                   </div>
                 );
               })}
@@ -250,87 +187,45 @@ function Painel() {
           </aside>
         </section>
 
-        <section className="mt-4 overflow-hidden rounded-lg border border-border bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
-            <div>
-              <h2 className="text-lg font-semibold">Alunos</h2>
-              <p className="tabular mt-0.5 text-xs text-muted-foreground">
-                {lista.length} registro{lista.length === 1 ? "" : "s"} · ordenado por média
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar aluno…"
-                className="h-9 w-48 rounded-md border border-input bg-background px-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40"
-              />
-              {(["todos", "aprovado", "recuperacao", "reprovado"] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFiltro(f)}
-                  className={`h-9 rounded-md px-3 text-xs font-medium transition-colors ${
-                    filtro === f
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`}
-                >
-                  {f === "todos" ? "Todos" : rotuloSituacao[f]}
-                </button>
-              ))}
+        <section id="alunos" className="mt-5 overflow-hidden rounded-md border border-border bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-5">
+            <div><h2 className="text-lg font-semibold">Alunos cadastrados</h2><p className="mt-0.5 text-xs text-muted-foreground">{lista.length} registro{lista.length === 1 ? "" : "s"} · ordenados por média</p></div>
+            <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+              <label className="relative w-full sm:w-52">
+                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <span className="sr-only">Buscar aluno</span>
+                <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar aluno…" className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/40" />
+              </label>
+              <div role="group" aria-label="Filtrar por situação" className="flex flex-wrap gap-1 rounded-md bg-secondary p-1">
+                {(["todos", "aprovado", "recuperacao", "reprovado"] as const).map((f) => (
+                  <Button key={f} type="button" size="sm" variant={filtro === f ? "default" : "ghost"} aria-pressed={filtro === f} onClick={() => setFiltro(f)} className="h-7 px-2.5 text-xs shadow-none">
+                    {f === "todos" ? "Todos" : rotuloSituacao[f]}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
-
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                  <th className="px-6 py-3 font-medium">Aluno</th>
-                  <th className="px-4 py-3 font-medium">Turma</th>
-                  <th className="px-4 py-3 text-right font-medium">Média</th>
-                  <th className="px-4 py-3 text-right font-medium">Frequência</th>
-                  <th className="px-6 py-3 text-right font-medium">Situação</th>
-                </tr>
-              </thead>
+              <thead className="bg-secondary/40"><tr className="border-b border-border text-left text-[11px] font-semibold uppercase text-muted-foreground">
+                <th className="px-6 py-3 font-semibold">Aluno</th><th className="px-4 py-3 font-semibold">Turma</th><th className="px-4 py-3 text-right font-semibold">Média</th><th className="px-4 py-3 text-right font-semibold">Frequência</th><th className="px-6 py-3 text-right font-semibold">Situação</th>
+              </tr></thead>
               <tbody className="divide-y divide-border">
                 {lista.map((a) => (
-                  <tr
-                    key={a.id}
-                    onClick={() => setSelecionado(a)}
-                    className={`cursor-pointer transition-colors hover:bg-accent/40 ${
-                      a.id === selecionado.id ? "bg-accent/50" : ""
-                    }`}
-                  >
-                    <td className="px-6 py-3.5">
-                      <p className="font-medium">{a.nome}</p>
-                      <p className="tabular text-[11px] text-muted-foreground">
-                        Mat. {a.matricula}
-                      </p>
-                    </td>
-                    <td className="tabular px-4 py-3.5 text-xs text-muted-foreground">{a.turma}</td>
-                    <td className="tabular px-4 py-3.5 text-right font-medium">{n1(media(a))}</td>
-                    <td className="tabular px-4 py-3.5 text-right">{a.frequencia}%</td>
-                    <td className="px-6 py-3.5 text-right">
-                      <Selo s={situacaoDe(a)} />
-                    </td>
+                  <tr key={a.id} tabIndex={0} role="button" aria-label={`Ver boletim de ${a.nome}`} aria-selected={a.id === selecionado.id} onClick={() => setSelecionado(a)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelecionado(a); } }} className={`cursor-pointer transition-colors hover:bg-accent/40 focus-visible:outline-2 focus-visible:outline-primary ${a.id === selecionado.id ? "bg-accent/50" : ""}`}>
+                    <td className="px-6 py-3.5"><p className="font-semibold">{a.nome}</p><p className="mt-0.5 text-[11px] text-muted-foreground">Mat. {a.matricula}</p></td>
+                    <td className="px-4 py-3.5 text-xs text-muted-foreground">{a.turma}</td>
+                    <td className="px-4 py-3.5 text-right font-semibold tabular-nums">{n1(media(a))}</td>
+                    <td className="px-4 py-3.5 text-right tabular-nums">{a.frequencia}%</td>
+                    <td className="px-6 py-3.5 text-right"><Selo s={situacaoDe(a)} /></td>
                   </tr>
                 ))}
-                {lista.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
-                      Nenhum aluno encontrado com esses filtros.
-                    </td>
-                  </tr>
-                )}
+                {lista.length === 0 && <tr><td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">Nenhum aluno encontrado com esses filtros.</td></tr>}
               </tbody>
             </table>
           </div>
         </section>
-
-        <footer className="tabular mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-5 text-[11px] text-muted-foreground">
-          <span>Painel Acadêmico · dados de demonstração</span>
-          <span>Atualizado em 22 de setembro de 2026</span>
-        </footer>
+        <footer className="mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-5 text-xs text-muted-foreground"><span>SINA · dados de demonstração</span><span>Atualizado em 22 de setembro de 2026</span></footer>
       </main>
     </div>
   );
