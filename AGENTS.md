@@ -10,5 +10,6 @@
 <!-- LOVABLE:END -->
 
 - Keep the SINA dashboard as the first screen and use semantic CSS tokens for its charcoal/sage identity; this preserves the user's chosen visual direction while allowing theme-safe styling.
+- Keep the public presentation at /apresentacao and the dashboard at /; this adds an introduction without displacing the chosen first screen.
 - Keep academic records in Lovable Cloud with separate user_roles and row-level access; students must only see their own record and teachers only their assigned records.
 - New accounts default to student; teacher access is granted administratively, never by selecting a role in the browser, to prevent self-promotion.

@@ -123,6 +123,7 @@ function Painel() {
             <a className="border-b-2 border-primary pb-1 text-brand-foreground" href="#inicio">Início</a>
             <a className="pb-1 transition-colors hover:text-brand-foreground" href="#desempenho">Desempenho</a>
             <a className="pb-1 transition-colors hover:text-brand-foreground" href="#alunos">Alunos</a>
+            <Link to="/apresentacao" className="pb-1 transition-colors hover:text-brand-foreground">Sobre</Link>
             <Link to={account.data === "teacher" ? "/professor" : account.data === "student" ? "/aluno" : "/auth"} className="ml-auto flex items-center gap-2 border-b-2 border-transparent pb-1 text-brand-foreground hover:border-primary sm:ml-0"><UserRound aria-hidden="true" className="size-5" /><span>{account.data ? "Minha área" : "Acesso"}</span></Link>
           </nav>
         </div>
