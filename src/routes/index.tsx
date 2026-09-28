@@ -113,7 +113,7 @@ function Painel() {
             </div>
             <span className="hidden h-9 w-px bg-brand-border sm:block" />
             <span className="hidden max-w-[278px] text-[11px] font-medium leading-snug text-brand-muted sm:block">
-              {"Sistema Digital para Acompanhamento de Dados Acadêmicos de Alunos\n\n"}
+              Sistema Digital para Acompanhamento de Dados Acadêmicos
             </span>
           </a>
           <nav aria-label="Navegação principal" className="flex w-full items-center gap-6 text-sm font-medium text-brand-muted sm:w-auto lg:gap-8">
