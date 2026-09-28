@@ -15,6 +15,7 @@ import { Route as ApresentacaoRouteImport } from './routes/apresentacao'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAlunoRouteImport } from './routes/_authenticated/aluno'
+import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedProfessorRouteImport } from './routes/_authenticated/professor'
 
 const IndexRoute = IndexRouteImport.update({
@@ -46,6 +47,11 @@ const AuthenticatedAlunoRoute = AuthenticatedAlunoRouteImport.update({
   path: '/aluno',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
+  id: '/painel',
+  path: '/painel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProfessorRoute = AuthenticatedProfessorRouteImport.update({
   id: '/professor',
   path: '/professor',
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/aluno': typeof AuthenticatedAlunoRoute
+  '/painel': typeof AuthenticatedPainelRoute
   '/professor': typeof AuthenticatedProfessorRoute
 }
 export interface FileRoutesByTo {
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/aluno': typeof AuthenticatedAlunoRoute
+  '/painel': typeof AuthenticatedPainelRoute
   '/professor': typeof AuthenticatedProfessorRoute
 }
 export interface FileRoutesById {
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/aluno': typeof AuthenticatedAlunoRoute
+  '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/professor': typeof AuthenticatedProfessorRoute
 }
 export interface FileRouteTypes {
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/aluno'
+    | '/painel'
     | '/professor'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -94,6 +104,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/aluno'
+    | '/painel'
     | '/professor'
   id:
     | '__root__'
@@ -103,6 +114,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/aluno'
+    | '/_authenticated/painel'
     | '/_authenticated/professor'
   fileRoutesById: FileRoutesById
 }
@@ -158,6 +170,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlunoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/painel': {
+      id: '/_authenticated/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof AuthenticatedPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/professor': {
       id: '/_authenticated/professor'
       path: '/professor'
@@ -170,11 +189,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlunoRoute: typeof AuthenticatedAlunoRoute
+  AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedProfessorRoute: typeof AuthenticatedProfessorRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAlunoRoute: AuthenticatedAlunoRoute,
+  AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedProfessorRoute: AuthenticatedProfessorRoute,
 }
 

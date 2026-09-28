@@ -54,7 +54,7 @@ function AuthPage() {
     if (!result.redirected) void navigate({ to: await destination(), replace: true });
   }
   return <div className="min-h-screen bg-background">
-    <header className="bg-brand text-brand-foreground"><div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5"><Link to="/" className="flex items-center gap-2 font-display text-2xl font-bold"><GraduationCap className="size-8" /> SINA</Link><Link to="/apresentacao" className="text-sm text-brand-muted hover:text-brand-foreground">Conheça o SINA</Link></div></header>
+    <header className="bg-brand text-brand-foreground"><div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5"><Link to="/" className="flex items-center gap-2 font-display text-2xl font-bold"><GraduationCap className="size-8" /> SINA</Link><Link to="/" className="text-sm text-brand-muted hover:text-brand-foreground">Conheça o SINA</Link></div></header>
     <main className="mx-auto max-w-md px-6 py-16"><p className="text-xs font-bold uppercase text-primary">Acesso acadêmico</p><h1 className="mt-2 font-display text-3xl font-semibold">{mode === "login" ? "Entrar no SINA" : mode === "signup" ? "Criar conta" : "Recuperar senha"}</h1>
       <form onSubmit={submit} className="mt-8 space-y-5">
         {mode === "signup" && <label className="block text-sm font-medium">Nome completo<Input required value={name} onChange={e => setName(e.target.value)} className="mt-2" autoComplete="name" /></label>}
