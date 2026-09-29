@@ -22,6 +22,7 @@ async function destination(): Promise<"/aluno" | "/professor" | "/admin"> {
 
 async function navigateAfterAuth(navigate: ReturnType<typeof useNavigate>) {
   try {
+    await supabase.rpc("ensure_student_profile");
     await navigate({ to: await destination(), replace: true });
   } catch {
     // Authentication succeeded; if role lookup/navigation fails, keep the
