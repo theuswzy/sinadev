@@ -85,7 +85,7 @@ export type Database = {
           enrollment: string
           full_name: string
           id: string
-          teacher_id: string
+          teacher_id: string | null
           updated_at: string
           user_id: string | null
         }
@@ -97,7 +97,7 @@ export type Database = {
           enrollment: string
           full_name: string
           id?: string
-          teacher_id: string
+          teacher_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -142,6 +142,30 @@ export type Database = {
         Args: { _code: string; _enrollment: string }
         Returns: boolean
       }
+      ensure_student_profile: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      student_get_profile: {
+        Args: Record<string, never>
+        Returns: Database["public"]["Tables"]["students"]["Row"][]
+      }
+      teacher_list_students: {
+        Args: Record<string, never>
+        Returns: Database["public"]["Tables"]["students"]["Row"][]
+      }
+      teacher_link_student: {
+        Args: { _student_id: string; _enrollment: string; _classroom: string }
+        Returns: Database["public"]["Tables"]["students"]["Row"]
+      }
+      teacher_update_attendance: {
+        Args: { _student_id: string; _attendance: number }
+        Returns: boolean
+      }
+      teacher_upsert_grade: {
+        Args: { _student_id: string; _subject: string; _period: number; _score: number; _absences: number }
+        Returns: Database["public"]["Tables"]["grades"]["Row"]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -151,7 +175,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "student" | "teacher"
+      app_role: "student" | "teacher" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -279,7 +303,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["student", "teacher"],
+      app_role: ["student", "teacher", "admin"],
     },
   },
 } as const
