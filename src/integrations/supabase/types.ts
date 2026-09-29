@@ -109,7 +109,7 @@ export type Database = {
           enrollment?: string
           full_name?: string
           id?: string
-          teacher_id?: string
+          teacher_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
