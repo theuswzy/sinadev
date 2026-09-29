@@ -124,6 +124,7 @@ function StudentArea() {
             <p className="text-xs text-brand-muted">Situação</p>
             <p className="mt-1 font-semibold">{linked ? "Vinculado à turma" : "Aguardando professor"}</p>
           </div>
+          </div>
         </div>
       </section>
 
