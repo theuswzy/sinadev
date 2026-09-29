@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { errorText, formatScore, getRole, loadGrades, loadMyStudent } from "@/lib/sina-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({
@@ -51,7 +51,7 @@ function StudentArea() {
     setProfileOpen(true);
   }
 
-  function handleAvatar(event: React.ChangeEvent<HTMLInputElement>) {
+  function handleAvatar(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     if (file.size > 1.5 * 1024 * 1024) {
