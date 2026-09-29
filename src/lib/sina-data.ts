@@ -10,9 +10,15 @@ export async function getRole(): Promise<"teacher" | "student" | "admin"> {
   return data?.role === "admin" ? "admin" : data?.role === "teacher" ? "teacher" : "student";
 }
 export async function loadStudents(): Promise<Student[]> {
-  const { data, error } = await supabase.from("students").select("*").order("full_name");
+  const { data, error } = await supabase.rpc("teacher_list_students");
   if (error) throw error;
   return data ?? [];
+}
+
+export async function loadMyStudent(): Promise<Student | null> {
+  const { data, error } = await supabase.rpc("student_get_profile");
+  if (error) throw error;
+  return data?.[0] ?? null;
 }
 export async function loadGrades(studentId: string): Promise<Grade[]> {
   const { data, error } = await supabase.from("grades").select("*").eq("student_id", studentId).order("subject").order("period");
