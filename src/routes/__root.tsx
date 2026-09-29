@@ -122,6 +122,10 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => {
+    const saved = localStorage.getItem("sina-theme");
+    document.documentElement.classList.toggle("dark", saved === "dark");
+  }, []);
   const router = useRouter();
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
