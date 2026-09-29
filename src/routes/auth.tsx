@@ -11,11 +11,13 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-async function destination(): Promise<"/aluno" | "/professor"> {
+async function destination(): Promise<"/aluno" | "/professor" | "/admin"> {
   const { data } = await supabase.auth.getUser();
   if (!data.user) return "/aluno";
-  const { data: role } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id).eq("role", "teacher").maybeSingle();
-  return role ? "/professor" : "/aluno";
+  const { data: admin } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id).eq("role", "admin").maybeSingle();
+  if (admin) return "/admin";
+  const { data: teacher } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id).eq("role", "teacher").maybeSingle();
+  return teacher ? "/professor" : "/aluno";
 }
 
 async function navigateAfterAuth(navigate: ReturnType<typeof useNavigate>) {
