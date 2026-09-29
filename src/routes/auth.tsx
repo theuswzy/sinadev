@@ -18,6 +18,16 @@ async function destination(): Promise<"/aluno" | "/professor"> {
   return role ? "/professor" : "/aluno";
 }
 
+async function navigateAfterAuth(navigate: ReturnType<typeof useNavigate>) {
+  try {
+    await navigate({ to: await destination(), replace: true });
+  } catch {
+    // Authentication succeeded; if role lookup/navigation fails, keep the
+    // authenticated user out of the login error state and use the safe area.
+    await navigate({ to: "/aluno", replace: true });
+  }
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
@@ -26,9 +36,17 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  useEffect(() => { void supabase.auth.getUser().then(async ({ data }) => { if (data.user) void navigate({ to: await destination(), replace: true }); }); }, [navigate]);
+
+  useEffect(() => {
+    void supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user) await navigateAfterAuth(navigate);
+    });
+  }, [navigate]);
+
   async function submit(event: FormEvent) {
-    event.preventDefault(); setMessage(""); setBusy(true);
+    event.preventDefault();
+    setMessage("");
+    setBusy(true);
     try {
       if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
@@ -37,22 +55,32 @@ function AuthPage() {
       } else if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin, data: { display_name: name.trim() } } });
         if (error) throw error;
-        if (data.session) void navigate({ to: await destination(), replace: true });
+        if (data.session) await navigateAfterAuth(navigate);
         else setMessage("Confira seu e-mail para confirmar sua conta antes de entrar.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        void navigate({ to: await destination(), replace: true });
+        await navigateAfterAuth(navigate);
       }
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível continuar."); }
-    finally { setBusy(false); }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Não foi possível continuar.");
+    } finally {
+      setBusy(false);
+    }
   }
+
   async function google() {
-    setMessage(""); setBusy(true);
+    setMessage("");
+    setBusy(true);
     const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (result.error) { setMessage(result.error.message); setBusy(false); return; }
-    if (!result.redirected) void navigate({ to: await destination(), replace: true });
+    if (result.error) {
+      setMessage(result.error.message);
+      setBusy(false);
+      return;
+    }
+    if (!result.redirected) await navigateAfterAuth(navigate);
   }
+
   return <div className="min-h-screen bg-background">
     <header className="bg-brand text-brand-foreground"><div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5"><Link to="/" className="flex items-center gap-2 font-display text-2xl font-bold"><GraduationCap className="size-8" /> SINA</Link><Link to="/" className="text-sm text-brand-muted hover:text-brand-foreground">Conheça o SINA</Link></div></header>
     <main className="mx-auto max-w-md px-6 py-16"><p className="text-xs font-bold uppercase text-primary">Acesso acadêmico</p><h1 className="mt-2 font-display text-3xl font-semibold">{mode === "login" ? "Entrar no SINA" : mode === "signup" ? "Criar conta" : "Recuperar senha"}</h1>
