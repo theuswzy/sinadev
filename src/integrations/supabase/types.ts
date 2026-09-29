@@ -79,6 +79,7 @@ export type Database = {
       students: {
         Row: {
           attendance: number | null
+          avatar_url: string | null
           claim_code: string
           classroom: string
           created_at: string
@@ -91,6 +92,7 @@ export type Database = {
         }
         Insert: {
           attendance?: number | null
+          avatar_url?: string | null
           claim_code?: string
           classroom: string
           created_at?: string
@@ -103,6 +105,7 @@ export type Database = {
         }
         Update: {
           attendance?: number | null
+          avatar_url?: string | null
           claim_code?: string
           classroom?: string
           created_at?: string
@@ -161,6 +164,10 @@ export type Database = {
       teacher_update_attendance: {
         Args: { _student_id: string; _attendance: number }
         Returns: boolean
+      }
+      student_update_profile: {
+        Args: { _avatar_url?: string | null; _full_name: string }
+        Returns: Database["public"]["Tables"]["students"]["Row"]
       }
       teacher_upsert_grade: {
         Args: { _student_id: string; _subject: string; _period: number; _score: number; _absences: number }
