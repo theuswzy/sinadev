@@ -128,22 +128,22 @@ function TeacherArea() {
 
   return <AcademicShell title="Área do professor" subtitle="Turmas e acompanhamento acadêmico">
     {role.isPending ? <p className="mt-8 text-muted-foreground">Verificando acesso…</p> : role.error ? <p role="alert" className="mt-8 text-destructive">{errorText(role.error)}</p> : role.data !== "teacher" ? (
-      <div className="mt-8 rounded-2xl border border-border bg-card p-6">
+      <div className="mt-8 sina-card sina-card-hover p-6">
         <ShieldCheck className="size-6 text-primary" /><p className="mt-3 font-semibold">Acesso reservado a professores autorizados.</p><p className="mt-1 text-sm text-muted-foreground">Sua conta não possui autorização de professor. O painel do aluno continua disponível normalmente.</p><Link to="/aluno" className="mt-4 inline-block text-sm text-primary underline">Voltar para minha área</Link>
       </div>
     ) : <>
       <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-border bg-card p-5"><UserRoundPlus className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Aguardando vínculo</p><p className="mt-1 font-display text-3xl font-semibold">{unlinked.length}</p><p className="mt-1 text-xs text-muted-foreground">Alunos que já criaram conta</p></div>
-        <div className="rounded-2xl border border-border bg-card p-5"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Meus alunos</p><p className="mt-1 font-display text-3xl font-semibold">{linked.length}</p><p className="mt-1 text-xs text-muted-foreground">Vinculados às minhas turmas</p></div>
-        <div className="rounded-2xl border border-border bg-card p-5"><ClipboardList className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Fluxo</p><p className="mt-1 text-sm font-semibold">Conta → turma → matrícula</p><p className="mt-1 text-xs text-muted-foreground">O aluno cria a conta; o professor completa o vínculo.</p></div>
-        <div className="rounded-2xl border border-border bg-card p-5"><BarChart3 className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Acompanhamento</p><p className="mt-1 font-display text-3xl font-semibold">{linked.filter(s => s.attendance !== null).length}</p><p className="mt-1 text-xs text-muted-foreground">Alunos com frequência registrada</p></div>
+        <div className="sina-card sina-card-hover sina-interactive p-5"><UserRoundPlus className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Aguardando vínculo</p><p className="mt-1 font-display text-3xl font-semibold">{unlinked.length}</p><p className="mt-1 text-xs text-muted-foreground">Alunos que já criaram conta</p></div>
+        <div className="sina-card sina-card-hover sina-interactive p-5"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Meus alunos</p><p className="mt-1 font-display text-3xl font-semibold">{linked.length}</p><p className="mt-1 text-xs text-muted-foreground">Vinculados às minhas turmas</p></div>
+        <div className="sina-card sina-card-hover sina-interactive p-5"><ClipboardList className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Fluxo</p><p className="mt-1 text-sm font-semibold">Conta → turma → matrícula</p><p className="mt-1 text-xs text-muted-foreground">O aluno cria a conta; o professor completa o vínculo.</p></div>
+        <div className="sina-card sina-card-hover sina-interactive p-5"><BarChart3 className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Acompanhamento</p><p className="mt-1 font-display text-3xl font-semibold">{linked.filter(s => s.attendance !== null).length}</p><p className="mt-1 text-xs text-muted-foreground">Alunos com frequência registrada</p></div>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-border bg-card shadow-sm">
+      <section className="mt-6 sina-card sina-card-hover">
         <div className="border-b border-border p-6"><div className="flex items-center gap-3"><Link2 className="size-5 text-primary" /><div><h2 className="font-semibold">Alunos aguardando vínculo</h2><p className="mt-1 text-sm text-muted-foreground">Selecione um aluno que já possui conta e informe a turma e a matrícula.</p></div></div></div>
         <div className="border-b border-border p-4"><div className="relative max-w-md"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={studentSearch} onChange={e => setStudentSearch(e.target.value)} placeholder="Buscar aluno pelo nome…" className="pl-9" /></div></div>
         <div className="p-6">
-          {students.isPending ? <p className="text-sm text-muted-foreground">Carregando…</p> : filteredUnlinked.length ? <div className="grid gap-3 md:grid-cols-2">{filteredUnlinked.map(s => <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setMessage(""); }} className={`rounded-xl border p-4 text-left transition-colors hover:border-primary ${selectedId === s.id ? "border-primary bg-primary/5" : "border-border"}`}><p className="font-semibold">{s.full_name}</p><p className="mt-1 text-xs text-muted-foreground">Conta criada · aguardando turma e matrícula</p></button>)}</div> : <div className="rounded-xl bg-secondary/50 p-5 text-sm text-muted-foreground">Não há alunos aguardando vínculo.</div>}
+          {students.isPending ? <p className="text-sm text-muted-foreground">Carregando…</p> : filteredUnlinked.length ? <div className="grid gap-3 md:grid-cols-2">{filteredUnlinked.map(s => <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setMessage(""); }} className={`sina-interactive rounded-2xl border p-4 text-left hover:border-primary hover:shadow-sm ${selectedId === s.id ? "border-primary bg-primary/5" : "border-border"}`}><p className="font-semibold">{s.full_name}</p><p className="mt-1 text-xs text-muted-foreground">Conta criada · aguardando turma e matrícula</p></button>)}</div> : <div className="rounded-xl bg-secondary/50 p-5 text-sm text-muted-foreground">Não há alunos aguardando vínculo.</div>}
         </div>
       </section>
 
@@ -156,17 +156,17 @@ function TeacherArea() {
         </form>
       </section>}
 
-      <section className="mt-6 rounded-2xl border border-border bg-card shadow-sm">
+      <section className="mt-6 sina-card sina-card-hover">
         <div className="border-b border-border p-6"><h2 className="font-semibold">Meus alunos</h2><p className="mt-1 text-sm text-muted-foreground">Somente alunos vinculados a você aparecem nesta lista.</p></div>
-        {filteredLinked.length ? <div className="divide-y divide-border">{filteredLinked.map(s => <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setAttendance(s.attendance === null ? "" : String(s.attendance)); setMessage(""); }} className={`flex w-full items-center justify-between gap-4 p-5 text-left hover:bg-accent/40 ${selectedId === s.id ? "bg-accent/50" : ""}`}><span><strong>{s.full_name}</strong><small className="mt-1 block text-muted-foreground">Turma {s.classroom} · Matrícula {s.enrollment}</small></span><span className="text-xs text-muted-foreground">{s.attendance === null ? "Freq. —" : `Freq. ${formatScore(s.attendance)}%`}</span></button>)}</div> : <p className="p-6 text-sm text-muted-foreground">Nenhum aluno vinculado ainda.</p>}
+        {filteredLinked.length ? <div className="divide-y divide-border">{filteredLinked.map(s => <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setAttendance(s.attendance === null ? "" : String(s.attendance)); setMessage(""); }} className={`flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-accent/50 ${selectedId === s.id ? "bg-accent/50" : ""}`}><span><strong>{s.full_name}</strong><small className="mt-1 block text-muted-foreground">Turma {s.classroom} · Matrícula {s.enrollment}</small></span><span className="text-xs text-muted-foreground">{s.attendance === null ? "Freq. —" : `Freq. ${formatScore(s.attendance)}%`}</span></button>)}</div> : <p className="p-6 text-sm text-muted-foreground">Nenhum aluno vinculado ainda.</p>}
       </section>
 
       {selected?.teacher_id && <section className="mt-5 grid gap-5 lg:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="sina-card sina-card-hover p-6">
           <h2 className="font-semibold">Frequência de {selected.full_name}</h2>
           <form onSubmit={saveAttendance} className="mt-4 flex gap-3"><Input type="number" min="0" max="100" step="0.01" required value={attendance} onChange={e => setAttendance(e.target.value)} placeholder="0 a 100%" /><Button type="submit" disabled={busy}><Save className="mr-2 size-4" />{busy ? "Salvando…" : "Salvar"}</Button></form>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="sina-card sina-card-hover p-6">
           <h2 className="font-semibold">Lançar nota</h2>
           <form onSubmit={saveGrade} className="mt-4 grid gap-3 sm:grid-cols-2">
             <Input required placeholder="Disciplina" value={subject} onChange={e => setSubject(e.target.value)} />
@@ -179,7 +179,7 @@ function TeacherArea() {
         </div>
       </section>}
       <section className="mt-6 grid gap-5 lg:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="sina-card sina-card-hover p-6 shadow-sm">
           <div className="flex items-center gap-3"><Megaphone className="size-5 text-primary" /><div><h2 className="font-semibold">Quadro de avisos</h2><p className="mt-1 text-sm text-muted-foreground">Publique um comunicado para uma das suas turmas.</p></div></div>
           <form onSubmit={createAnnouncement} className="mt-5 space-y-3">
             <Input required value={noticeClassroom} onChange={e => setNoticeClassroom(e.target.value)} placeholder="Turma (ex.: Turma A)" />
@@ -188,7 +188,7 @@ function TeacherArea() {
             <Button type="submit" disabled={busy}><Megaphone className="mr-2 size-4" />Publicar aviso</Button>
           </form>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="sina-card sina-card-hover p-6 shadow-sm">
           <div className="flex items-center gap-3"><ClipboardCheck className="size-5 text-primary" /><div><h2 className="font-semibold">Nova tarefa</h2><p className="mt-1 text-sm text-muted-foreground">Crie uma atividade com disciplina e prazo.</p></div></div>
           <form onSubmit={createTask} className="mt-5 space-y-3">
             <Input required value={taskClassroom} onChange={e => setTaskClassroom(e.target.value)} placeholder="Turma (ex.: Turma A)" />
