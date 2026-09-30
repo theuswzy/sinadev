@@ -44,7 +44,7 @@ function TeacherArea() {
     });
     setBusy(false);
     if (error) { setMessageType("error"); setMessage(errorText(error)); return; }
-    if (!data) { setMessage("Não foi possível vincular o aluno."); return; }
+    if (!data) { setMessageType("error"); setMessage("Não foi possível vincular o aluno."); return; }
     setEnrollment(""); setClassroom("");
     setMessage("Aluno vinculado à turma e à matrícula.");
     await queryClient.invalidateQueries({ queryKey: ["teacher-students"] });
