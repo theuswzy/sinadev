@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { errorText, formatScore, getRole, loadGrades, loadMyStudent } from "@/lib/sina-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({
@@ -42,6 +42,42 @@ function StudentArea() {
     enabled: !!student.data?.id,
     refetchOnWindowFocus: true,
   });
+
+  useEffect(() => {
+    if (!student.data?.id) return;
+
+    const channel = supabase
+      .channel(`student-academic-${student.data.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "students",
+          filter: `id=eq.${student.data.id}`,
+        },
+        () => {
+          void student.refetch();
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "grades",
+          filter: `student_id=eq.${student.data.id}`,
+        },
+        () => {
+          void grades.refetch();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [student.data?.id, student.refetch, grades.refetch]);
 
   const average = grades.data?.length
     ? grades.data.reduce((sum, grade) => sum + grade.score, 0) / grades.data.length
