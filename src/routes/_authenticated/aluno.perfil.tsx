@@ -21,7 +21,15 @@ export const Route = createFileRoute("/_authenticated/aluno/perfil")({
 
 function StudentProfile() {
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
-  const student = useQuery({ queryKey: ["my-student"], queryFn: loadMyStudent, enabled: role.data === "student" });
+  const student = useQuery({ queryKey: ["my-student"], queryFn: loadMyStudent });
+  const account = useQuery({
+    queryKey: ["auth-user-profile"],
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return data.user;
+    },
+  });
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -30,15 +38,21 @@ function StudentProfile() {
   const [darkPreview, setDarkPreview] = useState(false);
 
   const currentStudent = student.data;
-  const displayName = name || currentStudent?.full_name || "";
+  const accountName =
+    account.data?.user_metadata?.display_name ||
+    account.data?.email?.split("@")[0] ||
+    "Aluno";
+  const displayName = name || currentStudent?.full_name || accountName;
   const displayAvatar = avatar ?? currentStudent?.avatar_url ?? null;
 
   useEffect(() => {
-    if (currentStudent) {
+    if (currentStudent?.id) {
       setName(currentStudent.full_name ?? "");
       setAvatar(currentStudent.avatar_url ?? null);
+    } else if (account.data?.id && !name) {
+      setName(accountName);
     }
-  }, [currentStudent?.id]);
+  }, [currentStudent?.id, account.data?.id]);
 
   async function handleAvatar(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -85,6 +99,14 @@ function StudentProfile() {
 
     setSaving(true);
     setMessage(null);
+
+    const { error: ensureError } = await supabase.rpc("ensure_student_profile");
+    if (ensureError) {
+      setMessage(ensureError.message);
+      setSaving(false);
+      return;
+    }
+
     const { data, error } = await supabase.rpc("student_update_profile", {
       _full_name: displayName.trim(),
       _avatar_url: displayAvatar,
@@ -99,7 +121,7 @@ function StudentProfile() {
     setSaving(false);
   }
 
-  if (role.isPending || student.isPending) {
+  if (role.isPending || student.isPending || account.isPending) {
     return (
       <AcademicShell title="Meu perfil" subtitle="Personalize sua conta">
         <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -111,14 +133,6 @@ function StudentProfile() {
 
   if (role.error || student.error) {
     return <AcademicShell title="Meu perfil" subtitle="Personalize sua conta"><p role="alert" className="mt-8 text-destructive">{errorText(role.error ?? student.error)}</p></AcademicShell>;
-  }
-
-  if (role.data !== "student") {
-    return <AcademicShell title="Meu perfil" subtitle="Personalize sua conta"><p className="mt-8">Esta área é exclusiva para alunos.</p></AcademicShell>;
-  }
-
-  if (!currentStudent) {
-    return <AcademicShell title="Meu perfil" subtitle="Personalize sua conta"><p className="mt-8">Seu perfil acadêmico ainda não foi criado.</p></AcademicShell>;
   }
 
   return (
@@ -138,7 +152,7 @@ function StudentProfile() {
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-muted">Meu perfil</p>
               <h2 className="mt-1 font-display text-2xl font-bold">{displayName}</h2>
-              <p className="mt-1 text-sm text-brand-muted">Aluno · {currentStudent.classroom ? `Turma ${currentStudent.classroom}` : "Aguardando vínculo"}</p>
+              <p className="mt-1 text-sm text-brand-muted">Aluno · {currentStudent?.classroom ? `Turma ${currentStudent.classroom}` : "Aguardando vínculo"}</p>
             </div>
           </div>
           <Link to="/aluno" className="rounded-xl border border-brand-border bg-brand-panel px-4 py-2 text-sm font-semibold text-brand-foreground transition-colors hover:bg-brand-panel/80">Ver dashboard</Link>
@@ -149,8 +163,8 @@ function StudentProfile() {
         <section className="sina-card p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold">Informações pessoais</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Atualize as informações que aparecem no seu perfil.</p>
+              <h2 className="text-lg font-semibold">Editar perfil</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Edite seu nome e sua foto. As alterações ficam salvas na sua conta do SINA.</p>
             </div>
             <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><UserRound className="size-5" /></div>
           </div>
@@ -181,11 +195,11 @@ function StudentProfile() {
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl bg-secondary/60 p-4">
               <p className="text-xs text-muted-foreground">Matrícula</p>
-              <p className="mt-1 font-semibold">{currentStudent.enrollment || "Ainda não vinculada"}</p>
+              <p className="mt-1 font-semibold">{currentStudent?.enrollment || "Ainda não vinculada"}</p>
             </div>
             <div className="rounded-2xl bg-secondary/60 p-4">
               <p className="text-xs text-muted-foreground">Turma</p>
-              <p className="mt-1 font-semibold">{currentStudent.classroom || "Ainda não vinculada"}</p>
+              <p className="mt-1 font-semibold">{currentStudent?.classroom || "Ainda não vinculada"}</p>
             </div>
           </div>
 
