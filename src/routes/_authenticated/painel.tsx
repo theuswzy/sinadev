@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { GraduationCap, Search, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,7 +83,14 @@ function Circuitos() {
 }
 
 function Painel() {
+  const navigate = useNavigate();
   const account = useQuery({ queryKey: ["sina-account"], queryFn: async () => { const { data } = await supabase.auth.getUser(); return data.user ? getRole() : null; } });
+  useEffect(() => {
+    if (account.data === "student") {
+      void navigate({ to: "/aluno", replace: true });
+    }
+  }, [account.data, navigate]);
+
   const [selecionado, setSelecionado] = useState<Aluno | null>(null);
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"todos" | Situacao>("todos");
@@ -103,6 +110,14 @@ function Painel() {
   const frequenciaGeral = temDados ? alunosValidos.reduce((t, a) => t + a.frequencia, 0) / alunosValidos.length : 0;
   const emRisco = alunosValidos.filter((a) => situacaoDe(a) !== "aprovado").length;
   const turmas = new Set(alunosValidos.map((a) => a.turma)).size;
+
+  if (account.isPending) {
+    return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">Carregando área acadêmica…</div>;
+  }
+
+  if (account.error) {
+    return <div className="flex min-h-screen items-center justify-center bg-background p-6"><div className="max-w-md rounded-2xl border border-border bg-card p-6 text-center"><h1 className="font-semibold">Não foi possível carregar sua área</h1><p className="mt-2 text-sm text-muted-foreground">Sua sessão pode ter expirado. Entre novamente para continuar.</p><Link to="/auth" className="mt-5 inline-block text-sm font-semibold text-primary hover:underline">Ir para o acesso</Link></div></div>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
