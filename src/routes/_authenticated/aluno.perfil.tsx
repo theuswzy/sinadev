@@ -52,7 +52,7 @@ function StudentProfile() {
     } else if (account.data?.id && !name) {
       setName(accountName);
     }
-  }, [currentStudent?.id, account.data?.id]);
+  }, [currentStudent?.id, account.data?.id, accountName, name]);
 
   async function handleAvatar(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -131,8 +131,8 @@ function StudentProfile() {
     );
   }
 
-  if (role.error || student.error) {
-    return <AcademicShell title="Meu perfil" subtitle="Personalize sua conta"><p role="alert" className="mt-8 text-destructive">{errorText(role.error ?? student.error)}</p></AcademicShell>;
+  if (role.error || student.error || account.error) {
+    return <AcademicShell title="Meu perfil" subtitle="Personalize sua conta"><p role="alert" className="mt-8 text-destructive">{errorText(role.error ?? student.error ?? account.error)}</p></AcademicShell>;
   }
 
   return (
