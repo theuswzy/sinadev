@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { GraduationCap, BookOpen, CalendarDays, CircleAlert, TrendingUp, Camera, UserRound, Save, X } from "lucide-react";
+import { GraduationCap, BookOpen, CalendarDays, CircleAlert, TrendingUp, Camera, UserRound, Save, X, Megaphone, ClipboardCheck, Clock3, CheckCircle2 } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { supabase } from "@/integrations/supabase/client";
-import { errorText, formatScore, getRole, loadGrades, loadMyStudent } from "@/lib/sina-data";
+import { errorText, formatScore, getRole, loadGrades, loadMyStudent, loadAnnouncements, loadTasks, setTaskCompleted } from "@/lib/sina-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState, type ChangeEvent } from "react";
@@ -36,6 +36,18 @@ function StudentArea() {
     refetchOnWindowFocus: true,
   });
   const queryClient = useQueryClient();
+  const announcements = useQuery({
+    queryKey: ["my-announcements", student.data?.classroom],
+    queryFn: loadAnnouncements,
+    enabled: Boolean(student.data?.teacher_id && student.data?.enrollment && student.data?.classroom),
+    refetchOnWindowFocus: true,
+  });
+  const tasks = useQuery({
+    queryKey: ["my-tasks", student.data?.classroom],
+    queryFn: loadTasks,
+    enabled: Boolean(student.data?.teacher_id && student.data?.enrollment && student.data?.classroom),
+    refetchOnWindowFocus: true,
+  });
   const grades = useQuery({
     queryKey: ["my-grades", student.data?.id],
     queryFn: () => loadGrades(student.data?.id ?? ""),
@@ -85,6 +97,18 @@ function StudentArea() {
   const totalAbsences = grades.data?.reduce((sum, grade) => sum + grade.absences, 0) ?? 0;
   const completed = grades.data?.filter((grade) => grade.score >= 7).length ?? 0;
   const linked = Boolean(student.data?.teacher_id && student.data?.enrollment && student.data?.classroom);
+  const pendingTasks = tasks.data?.filter(task => !task.completed).length ?? 0;
+  const recentAnnouncements = announcements.data?.slice(0, 3) ?? [];
+  const recentTasks = tasks.data?.filter(task => !task.completed).slice(0, 4) ?? [];
+
+  async function toggleTask(taskId: string) {
+    try {
+      await setTaskCompleted(taskId, true);
+      await tasks.refetch();
+    } catch (error) {
+      setProfileMessage(errorText(error));
+    }
+  }
 
   function openProfile() {
     setProfileName(student.data?.full_name ?? "");
@@ -218,6 +242,31 @@ function StudentArea() {
         </section>
       ) : (
         <>
+          <section className="mt-5 grid gap-4 lg:grid-cols-3">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+              <div className="flex items-center gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><Megaphone className="size-5" /></div><div><p className="text-xs font-bold uppercase text-muted-foreground">Avisos</p><p className="text-lg font-semibold">{recentAnnouncements.length ? "Novidades da turma" : "Nenhum aviso novo"}</p></div></div>
+              {recentAnnouncements.length ? <div className="mt-4 space-y-3">{recentAnnouncements.map(a => <div key={a.id} className="rounded-xl bg-secondary/50 p-3"><p className="text-sm font-semibold">{a.title}</p><p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{a.content}</p></div>)}</div> : <p className="mt-4 text-sm text-muted-foreground">Os avisos publicados pelos professores aparecerão aqui.</p>}
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+              <div className="flex items-center gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><ClipboardCheck className="size-5" /></div><div><p className="text-xs font-bold uppercase text-muted-foreground">Tarefas pendentes</p><p className="text-lg font-semibold">{pendingTasks ? pendingTasks + " pendente" + (pendingTasks === 1 ? "" : "s") : "Tudo em dia"}</p></div></div>
+              {recentTasks.length ? <div className="mt-4 space-y-3">{recentTasks.map(task => <div key={task.id} className="flex items-start justify-between gap-3 rounded-xl bg-secondary/50 p-3"><div><p className="text-sm font-semibold">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject}{task.due_at ? " · Entrega " + new Date(task.due_at).toLocaleDateString("pt-BR") : ""}</p></div><Button type="button" size="sm" variant="outline" onClick={() => void toggleTask(task.id)}>Concluir</Button></div>)}</div> : <p className="mt-4 text-sm text-muted-foreground">As tarefas recebidas dos professores aparecerão aqui.</p>}
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+              <div className="flex items-center gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><Clock3 className="size-5" /></div><div><p className="text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="text-lg font-semibold">{totalAbsences} {totalAbsences === 1 ? "falta registrada" : "faltas registradas"}</p></div></div>
+              <p className="mt-4 text-sm text-muted-foreground">Total de faltas somadas nos lançamentos das suas disciplinas.</p>
+              <div className="mt-4 flex items-center gap-2 text-xs font-medium text-primary"><CheckCircle2 className="size-4" /> Frequência geral: {student.data.attendance === null ? "não informada" : formatScore(student.data.attendance) + "%"}</div>
+            </div>
+          </section>
+
+          <section className="mt-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Central acadêmica</h2><p className="mt-1 text-sm text-muted-foreground">Tudo que precisa da sua atenção em um só lugar.</p></div><div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{pendingTasks} pendência{pendingTasks === 1 ? "" : "s"}</div></div>
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <div className="rounded-xl border border-border p-4"><Megaphone className="size-5 text-primary" /><p className="mt-3 font-semibold">Quadro de avisos</p><p className="mt-1 text-xs text-muted-foreground">Comunicados publicados pelos professores da sua turma.</p></div>
+              <div className="rounded-xl border border-border p-4"><ClipboardCheck className="size-5 text-primary" /><p className="mt-3 font-semibold">Tarefas</p><p className="mt-1 text-xs text-muted-foreground">Acompanhe prazos e marque atividades concluídas.</p></div>
+              <div className="rounded-xl border border-border p-4"><CalendarDays className="size-5 text-primary" /><p className="mt-3 font-semibold">Frequência</p><p className="mt-1 text-xs text-muted-foreground">Veja sua frequência e as faltas registradas por disciplina.</p></div>
+            </div>
+          </section>
+
           <section aria-label="Indicadores acadêmicos" className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { label: "Média geral", value: average ? formatScore(average) : "—", note: "Escala de 0 a 10", Icon: TrendingUp },
