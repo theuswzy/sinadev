@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 import { UserRoundPlus, Link2, Users, ClipboardList, Save, ShieldCheck, Search, CheckCircle2, AlertCircle, BarChart3, Megaphone, ClipboardCheck } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ function TeacherArea() {
     if (!data) { setMessageType("error"); setMessage("Não foi possível vincular o aluno."); return; }
     setEnrollment(""); setClassroom("");
     setMessage("Aluno vinculado à turma e à matrícula.");
+    toast.success("Aluno vinculado com sucesso.");
     await queryClient.invalidateQueries({ queryKey: ["teacher-students"] });
     setSelectedId(selected.id);
   }
@@ -68,6 +70,7 @@ function TeacherArea() {
     setBusy(false);
     if (error) setMessageType("error");
     setMessage(error ? errorText(error) : "Frequência atualizada.");
+    if (error) toast.error(errorText(error)); else toast.success("Frequência atualizada.");
     if (!error) await queryClient.invalidateQueries({ queryKey: ["teacher-students"] });
   }
 
@@ -85,6 +88,7 @@ function TeacherArea() {
     setBusy(false);
     if (error) { setMessage(errorText(error)); return; }
     setMessage("Nota registrada.");
+    toast.success("Nota registrada com sucesso.");
     setSubject(""); setScore(""); setAbsences("0");
     await queryClient.invalidateQueries({ queryKey: ["grades", selected.id] });
   }
@@ -102,6 +106,7 @@ function TeacherArea() {
     if (error) { setMessageType("error"); setMessage(errorText(error)); return; }
     setNoticeTitle(""); setNoticeContent("");
     setMessage("Aviso publicado para a turma.");
+    toast.success("Aviso publicado para a turma.");
   }
 
   async function createTask(e: FormEvent) {
@@ -119,6 +124,7 @@ function TeacherArea() {
     if (error) { setMessageType("error"); setMessage(errorText(error)); return; }
     setTaskSubject(""); setTaskTitle(""); setTaskDescription(""); setTaskDueAt("");
     setMessage("Tarefa publicada para a turma.");
+    toast.success("Tarefa publicada para a turma.");
   }
 
   const unlinked = students.data?.filter(s => !s.teacher_id) ?? [];
@@ -132,6 +138,11 @@ function TeacherArea() {
         <ShieldCheck className="size-6 text-primary" /><p className="mt-3 font-semibold">Acesso reservado a professores autorizados.</p><p className="mt-1 text-sm text-muted-foreground">Sua conta não possui autorização de professor. O painel do aluno continua disponível normalmente.</p><Link to="/aluno" className="mt-4 inline-block text-sm text-primary underline">Voltar para minha área</Link>
       </div>
     ) : <>
+      {students.isPending && (
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Carregando dados">
+          {[1, 2, 3, 4].map((item) => <div key={item} className="sina-card p-5"><div className="sina-skeleton size-8" /><div className="sina-skeleton mt-5 h-3 w-28" /><div className="sina-skeleton mt-3 h-8 w-14" /></div>)}
+        </div>
+      )}
       <section id="inicio" className="mt-8 scroll-mt-28 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="sina-card sina-card-hover sina-interactive p-5"><UserRoundPlus className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Aguardando vínculo</p><p className="mt-1 font-display text-3xl font-semibold">{unlinked.length}</p><p className="mt-1 text-xs text-muted-foreground">Alunos que já criaram conta</p></div>
         <div className="sina-card sina-card-hover sina-interactive p-5"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Meus alunos</p><p className="mt-1 font-display text-3xl font-semibold">{linked.length}</p><p className="mt-1 text-xs text-muted-foreground">Vinculados às minhas turmas</p></div>
