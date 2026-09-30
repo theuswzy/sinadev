@@ -52,7 +52,7 @@ function StudentProfile() {
     } else if (account.data?.id && !name) {
       setName(accountName);
     }
-  }, [currentStudent?.id, account.data?.id, accountName, name]);
+  }, [currentStudent?.id, currentStudent?.full_name, currentStudent?.avatar_url, account.data?.id, accountName]);
 
   async function handleAvatar(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
