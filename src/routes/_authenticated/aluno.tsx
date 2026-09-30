@@ -108,7 +108,15 @@ function StudentArea() {
   }
 
   if (!student.data) {
-    return <AcademicShell title="Dashboard acadêmico" subtitle="Meu acompanhamento"><div className="mt-8 rounded-2xl border border-border bg-card p-6"><h2 className="text-lg font-semibold">Seu perfil acadêmico está sendo preparado</h2><p className="mt-2 text-sm text-muted-foreground">Entre novamente para criar seu perfil de aluno.</p></div></AcademicShell>;
+    return <AcademicShell title="Dashboard acadêmico" subtitle="Meu acompanhamento">
+      <div className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <h2 className="text-lg font-semibold">Não encontramos seu perfil de aluno</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Sua conta está autenticada, mas o perfil acadêmico ainda não foi criado. Tente atualizar agora.</p>
+        <Button type="button" className="mt-4" onClick={() => void student.refetch()} disabled={student.isFetching}>
+          {student.isFetching ? "Atualizando…" : "Tentar novamente"}
+        </Button>
+      </div>
+    </AcademicShell>;
   }
 
   return (
