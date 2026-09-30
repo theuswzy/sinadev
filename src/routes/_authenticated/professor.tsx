@@ -172,6 +172,10 @@ function TeacherArea() {
   const visibleLinked = classFilter === "all" ? linked : linked.filter(s => s.classroom === classFilter);
   const filteredLinked = visibleLinked.filter(s => s.full_name.toLowerCase().includes(studentSearch.toLowerCase()));
   const classStudents = linked.filter(s => s.classroom === bulkClassroom);
+  const selectedSubjects = selected?.teacher_id && grades.data ? Array.from(new Set(grades.data.map(g => g.subject))).map(subject => {
+    const items = grades.data?.filter(g => g.subject === subject) ?? [];
+    return { subject, average: items.reduce((sum, item) => sum + item.score, 0) / items.length, absences: items.reduce((sum, item) => sum + item.absences, 0), periods: items.length };
+  }) : [];
   const classWithAttendance = visibleLinked.filter(s => s.attendance !== null).length;
   const averageAttendance = classWithAttendance ? visibleLinked.reduce((sum, s) => sum + (s.attendance ?? 0), 0) / classWithAttendance : 0;
 
@@ -226,6 +230,11 @@ function TeacherArea() {
           {bulkClassroom && <div className="mt-5 overflow-x-auto rounded-xl border border-border"><table className="w-full min-w-[520px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-3 text-left">Aluno</th><th className="p-3 text-left">Matrícula</th><th className="w-40 p-3 text-left">Nota</th></tr></thead><tbody>{classStudents.map(s => <tr key={s.id} className="border-t border-border"><td className="p-3 font-medium">{s.full_name}</td><td className="p-3 text-muted-foreground">{s.enrollment}</td><td className="p-3"><Input type="number" min="0" max="10" step="0.01" value={bulkScores[s.id] ?? ""} onChange={e => setBulkScores(prev => ({ ...prev, [s.id]: e.target.value }))} placeholder="0–10" /></td></tr>)}</tbody></table></div>}
           <Button type="submit" disabled={busy || !bulkClassroom || !classStudents.length} className="mt-4"><Save className="mr-2 size-4" />{busy ? "Lançando…" : "Lançar notas preenchidas"}</Button>
         </form>
+      </section>}
+
+      {selected?.teacher_id && <section className="mt-5 sina-card sina-card-hover p-6">
+        <div className="flex items-center justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Acompanhamento</p><h2 className="mt-1 font-semibold">Desempenho por disciplina</h2><p className="mt-1 text-sm text-muted-foreground">{selected.full_name} · visão consolidada das disciplinas com notas lançadas.</p></div><BarChart3 className="size-5 text-primary" /></div>
+        {selectedSubjects.length ? <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{selectedSubjects.map(item => <div key={item.subject} className="rounded-2xl border border-border p-4"><div className="flex items-center justify-between gap-2"><p className="truncate font-semibold">{item.subject}</p><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">{formatScore(item.average)}</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, item.average * 10)}%` }} /></div><div className="mt-3 flex justify-between text-xs text-muted-foreground"><span>{item.periods} lançamento{item.periods === 1 ? "" : "s"}</span><span>{item.absences} falta{item.absences === 1 ? "" : "s"}</span></div></div>)}</div> : <div className="mt-5 rounded-xl bg-secondary/50 p-4 text-sm text-muted-foreground">Ainda não há notas lançadas para este aluno.</div>}
       </section>}
 
       {selected?.teacher_id && <section id="lancamentos" className="mt-5 scroll-mt-28 grid gap-5 lg:grid-cols-2">
