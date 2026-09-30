@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { CheckCircle2, GraduationCap, LogOut, ShieldCheck, UserPlus, UserRoundX, Users, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ function AdminArea() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [teacherSearch, setTeacherSearch] = useState("");
   const audit = useQuery({
     queryKey: ["admin-audit"],
     queryFn: async () => {
@@ -62,6 +64,7 @@ function AdminArea() {
     setBusy(false);
     if (error) {
       setMessage(errorText(error));
+      toast.error(errorText(error));
       return;
     }
     if (!data) {
@@ -70,8 +73,11 @@ function AdminArea() {
     }
     setEmail("");
     setMessage(enabled ? "Acesso de professor autorizado." : "Acesso de professor revogado.");
+    toast.success(enabled ? "Professor autorizado com sucesso." : "Acesso de professor revogado.");
     await queryClient.invalidateQueries({ queryKey: ["admin-teachers"] });
   }
+
+  const filteredTeachers = useMemo(() => teachers.data?.filter(teacher => `${teacher.display_name} ${teacher.email}`.toLowerCase().includes(teacherSearch.toLowerCase())) ?? [], [teachers.data, teacherSearch]);
 
   async function logout() {
     await supabase.auth.signOut();
@@ -184,7 +190,7 @@ function AdminArea() {
                 </div>
               ))}
             </div>
-          ) : <div className="p-8 text-center"><Users className="mx-auto size-8 text-muted-foreground" /><p className="mt-3 text-sm font-medium">Nenhum professor autorizado.</p><p className="mt-1 text-xs text-muted-foreground">Use o campo acima para liberar uma conta.</p></div>}
+          ) : <div className="p-8 text-center"><Users className="mx-auto size-8 text-muted-foreground" /><p className="mt-3 text-sm font-medium">{teachers.data?.length ? "Nenhum professor encontrado." : "Nenhum professor autorizado."}</p><p className="mt-1 text-xs text-muted-foreground">Use o campo acima para liberar uma conta.</p></div>}
         </section>
       </main>
     </div>
