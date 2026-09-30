@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { GraduationCap, LogOut, LayoutDashboard, ShieldCheck, UserRound, Users, BookOpen, ClipboardList, Megaphone } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode } from "react";
@@ -10,6 +10,7 @@ import { getRole } from "@/lib/sina-data";
 export function AcademicShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
 
   async function logout() {
@@ -35,6 +36,7 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
         { href: "#tarefas", label: "Tarefas", Icon: ClipboardList },
         { href: "#disciplinas", label: "Disciplinas", Icon: BookOpen },
         { href: "#notas", label: "Notas", Icon: BookOpen },
+        { href: "/aluno/perfil", label: "Perfil", Icon: UserRound, route: true },
       ];
 
   return (
@@ -49,24 +51,28 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
           </Link>
 
           <nav aria-label="Navegação principal" className="ml-2 hidden max-w-[680px] items-center gap-0.5 overflow-x-auto rounded-xl border border-brand-border/80 bg-brand-panel/60 p-1 sm:flex">
-            {sectionLinks.map(({ href, label, Icon }, index) => (
-              <a
-                key={href}
-                href={href}
-                aria-current={index === 0 ? "page" : undefined}
-                className={index === 0
-                  ? "flex shrink-0 items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-sm font-semibold text-brand-foreground shadow-sm ring-1 ring-brand-border/70"
-                  : "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-brand-muted transition-colors hover:bg-brand-panel hover:text-brand-foreground"}
-              >
-                <Icon className={index === 0 ? "size-4 text-primary" : "size-4"} />
-                <span>{label}</span>
-              </a>
-            ))}
+            {sectionLinks.map(({ href, label, Icon, route }, index) => {
+              const active = route ? location.pathname === href : index === 0 && location.pathname === "/aluno";
+              const className = active
+                ? "flex shrink-0 items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-sm font-semibold text-brand-foreground shadow-sm ring-1 ring-brand-border/70"
+                : "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-brand-muted transition-colors hover:bg-brand-panel hover:text-brand-foreground";
+
+              return route ? (
+                <Link key={href} to={href as "/aluno/perfil"} aria-current={active ? "page" : undefined} className={className}>
+                  <Icon className={active ? "size-4 text-primary" : "size-4"} />
+                  <span>{label}</span>
+                </Link>
+              ) : (
+                <a key={href} href={href} aria-current={active ? "page" : undefined} className={className}>
+                  <Icon className={active ? "size-4 text-primary" : "size-4"} />
+                  <span>{label}</span>
+                </a>
+              );
+            })}
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
             <span className="hidden rounded-full border border-brand-border bg-brand-panel/70 px-3 py-1.5 text-xs font-medium text-brand-muted lg:inline-flex">{title}</span>
-            {role.data === "student" && <Link to="/aluno/perfil" className="inline-flex items-center gap-2 rounded-xl border border-brand-border bg-brand-panel/70 px-3 py-2 text-xs font-semibold text-brand-foreground transition-colors hover:bg-brand-panel" aria-label="Abrir meu perfil"><UserRound className="size-4" /><span className="hidden md:inline">Meu perfil</span></Link>}
             <ThemeToggle />
             <Button type="button" size="sm" variant="outline" onClick={logout} className="border-brand-border bg-transparent text-brand-foreground shadow-none transition-colors hover:bg-brand-panel hover:text-brand-foreground">
               <LogOut />
@@ -76,18 +82,24 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
         </div>
 
         <nav aria-label="Navegação móvel" className="flex gap-1 overflow-x-auto border-t border-brand-border/60 px-4 py-2 sm:hidden">
-          {sectionLinks.map(({ href, label, Icon }, index) => (
-            <a
-              key={href}
-              href={href}
-              className={index === 0
-                ? "flex shrink-0 items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground"
-                : "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted transition-colors hover:bg-brand-panel hover:text-brand-foreground"}
-            >
-              <Icon className={index === 0 ? "size-4 text-primary" : "size-4"} />
-              {label}
-            </a>
-          ))}
+          {sectionLinks.map(({ href, label, Icon, route }, index) => {
+            const active = route ? location.pathname === href : index === 0 && location.pathname === "/aluno";
+            const className = active
+              ? "flex shrink-0 items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground"
+              : "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted transition-colors hover:bg-brand-panel hover:text-brand-foreground";
+
+            return route ? (
+              <Link key={href} to={href as "/aluno/perfil"} aria-current={active ? "page" : undefined} className={className}>
+                <Icon className={active ? "size-4 text-primary" : "size-4"} />
+                {label}
+              </Link>
+            ) : (
+              <a key={href} href={href} className={className}>
+                <Icon className={active ? "size-4 text-primary" : "size-4"} />
+                {label}
+              </a>
+            );
+          })}
         </nav>
       </header>
 
