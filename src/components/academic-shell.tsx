@@ -1,30 +1,16 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { GraduationCap, LogOut, Moon, Sun, LayoutDashboard, ShieldCheck, UserRound, Users } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
 import { getRole } from "@/lib/sina-data";
 
 export function AcademicShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [dark, setDark] = useState(false);
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
-
-  useEffect(() => {
-    const saved = localStorage.getItem("sina-theme");
-    const isDark = saved === "dark";
-    setDark(isDark);
-    document.documentElement.classList.toggle("dark", isDark);
-  }, []);
-
-  function toggleTheme() {
-    const next = !dark;
-    setDark(next);
-    localStorage.setItem("sina-theme", next ? "dark" : "light");
-    document.documentElement.classList.toggle("dark", next);
-  }
 
   async function logout() {
     await queryClient.cancelQueries();
@@ -54,9 +40,7 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
           </nav>
           <div className="flex items-center gap-2">
             <span className="hidden max-w-40 truncate text-sm text-brand-muted lg:inline">{title}</span>
-            <Button type="button" size="icon" variant="outline" onClick={toggleTheme} aria-label={dark ? "Ativar tema claro" : "Ativar tema escuro"} title={dark ? "Tema claro" : "Tema escuro"} className="border-brand-border bg-brand text-brand-foreground hover:bg-brand-panel hover:text-brand-foreground">
-              {dark ? <Sun /> : <Moon />}
-            </Button>
+            <ThemeToggle />
             <Button type="button" size="sm" variant="outline" onClick={logout} className="border-brand-border bg-brand text-brand-foreground hover:bg-brand-panel hover:text-brand-foreground">
               <LogOut /> <span className="hidden sm:inline">Sair</span>
             </Button>
