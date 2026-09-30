@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Camera, Palette, Save, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, Camera, Check, LockKeyhole, Palette, Pencil, Save, ShieldCheck, UserRound, X } from "lucide-react";
 import { useEffect, useState, type ChangeEvent } from "react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
 import { errorText, getRole, loadMyStudent } from "@/lib/sina-data";
 import { toast } from "sonner";
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/aluno/perfil")({
   head: () => ({
     meta: [
       { title: "Meu perfil — SINA" },
-      { name: "description", content: "Personalize seu perfil e sua experiência no SINA." },
+      { name: "description", content: "Edite seus dados pessoais e personalize sua experiência no SINA." },
     ],
   }),
   component: StudentProfile,
@@ -31,116 +32,212 @@ function StudentProfile() {
     },
   });
   const queryClient = useQueryClient();
+
+  const [editing, setEditing] = useState(true);
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [darkPreview, setDarkPreview] = useState(false);
 
   const currentStudent = student.data;
   const accountName =
     account.data?.user_metadata?.display_name ||
     account.data?.email?.split("@")[0] ||
     "Aluno";
-  const displayName = name || currentStudent?.full_name || accountName;
-  const displayAvatar = avatar ?? currentStudent?.avatar_url ?? null;
+  const currentName = currentStudent?.full_name || accountName;
+  const currentAvatar = currentStudent?.avatar_url ?? null;
+  const displayName = editing ? name : currentName;
+  const displayAvatar = editing ? avatar : currentAvatar;
 
   useEffect(() => {
-    if (currentStudent?.id) {
-      setName(currentStudent.full_name ?? "");
-      setAvatar(currentStudent.avatar_url ?? null);
-    } else if (account.data?.id && !name) {
-      setName(accountName);
+    if (!editing) {
+      setName(currentName);
+      setAvatar(currentAvatar);
+      return;
     }
-  }, [currentStudent?.id, currentStudent?.full_name, currentStudent?.avatar_url, account.data?.id, accountName]);
+
+    if (!name && (currentStudent?.id || account.data?.id)) {
+      setName(currentName);
+      setAvatar(currentAvatar);
+    }
+  }, [currentStudent?.id, currentStudent?.full_name, currentStudent?.avatar_url, account.data?.id, accountName, editing]);
+
+  function beginEditing() {
+    setName(currentName);
+    setAvatar(currentAvatar);
+    setMessage(null);
+    setEditing(true);
+  }
+
+  function cancelEditing() {
+    setName(currentName);
+    setAvatar(currentAvatar);
+    setMessage(null);
+    setEditing(false);
+  }
 
   async function handleAvatar(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
+    event.target.value = "";
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setMessage("Escolha uma imagem válida.");
-      return;
-    }
-    if (file.size > 6 * 1024 * 1024) {
-      setMessage("Escolha uma foto de até 6 MB.");
+
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setMessage("Escolha uma imagem PNG, JPG ou WebP.");
       return;
     }
 
-    setMessage("Enviando foto…");
+    if (file.size > 6 * 1024 * 1024) {
+      setMessage("A foto precisa ter no máximo 6 MB.");
+      return;
+    }
+
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) {
       setMessage("Sua sessão expirou. Entre novamente.");
       return;
     }
 
-    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const path = auth.user.id + "/avatar-" + Date.now() + "." + extension;
-    const { error } = await supabase.storage.from("avatars").upload(path, file, {
-      contentType: file.type,
-      cacheControl: "3600",
-      upsert: false,
-    });
-
-    if (error) {
-      setMessage("Não foi possível enviar a foto. Tente novamente.");
-      return;
-    }
-
-    const { data: publicUrl } = supabase.storage.from("avatars").getPublicUrl(path);
-    setAvatar(publicUrl.publicUrl);
+    setUploading(true);
     setMessage(null);
+
+    try {
+      const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+      const path = `${auth.user.id}/avatar-${Date.now()}.${extension}`;
+
+      const { error } = await supabase.storage.from("avatars").upload(path, file, {
+        contentType: file.type,
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+      if (error) throw error;
+
+      const { data: publicUrl } = supabase.storage.from("avatars").getPublicUrl(path);
+      setAvatar(publicUrl.publicUrl);
+      toast.success("Foto carregada. Clique em salvar para concluir.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Não foi possível enviar a foto.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function saveProfile() {
-    if (!displayName.trim()) {
-      setMessage("Informe seu nome.");
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      setMessage("Informe seu nome completo.");
+      return;
+    }
+
+    if (trimmedName.length < 2) {
+      setMessage("Informe um nome válido.");
       return;
     }
 
     setSaving(true);
     setMessage(null);
 
-    const { error: ensureError } = await supabase.rpc("ensure_student_profile");
-    if (ensureError) {
-      setMessage(ensureError.message);
+    try {
+      const { error: ensureError } = await supabase.rpc("ensure_student_profile");
+      if (ensureError) throw ensureError;
+
+      const { data, error } = await supabase.rpc("student_update_profile", {
+        _full_name: trimmedName,
+        _avatar_url: avatar,
+      });
+
+      if (error) throw error;
+
+      await supabase.auth.updateUser({
+        data: { display_name: trimmedName },
+      });
+
+      queryClient.setQueryData(["my-student"], data);
+      await queryClient.invalidateQueries({ queryKey: ["my-student"] });
+      await queryClient.invalidateQueries({ queryKey: ["auth-user-profile"] });
+
+      setEditing(false);
+      setName(trimmedName);
+      setAvatar(data?.avatar_url ?? avatar);
+      toast.success("Perfil atualizado com sucesso.");
+    } catch (error) {
+      const text = errorText(error);
+      setMessage(text);
+      toast.error(text);
+    } finally {
       setSaving(false);
+    }
+  }
+
+  async function sendPasswordReset() {
+    const email = account.data?.email;
+    if (!email) {
+      toast.error("Não encontramos o e-mail da sua conta.");
       return;
     }
 
-    const { data, error } = await supabase.rpc("student_update_profile", {
-      _full_name: displayName.trim(),
-      _avatar_url: displayAvatar,
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/reset-password",
     });
 
     if (error) {
-      setMessage(error.message);
-    } else {
-      queryClient.setQueryData(["my-student"], data);
-      toast.success("Perfil atualizado com sucesso.");
+      toast.error(error.message);
+      return;
     }
-    setSaving(false);
+
+    toast.success("Enviamos um link para alterar sua senha.");
   }
 
   if (role.isPending || student.isPending || account.isPending) {
     return (
-      <AcademicShell title="Meu perfil" subtitle="Personalize sua conta">
+      <AcademicShell title="Meu perfil" subtitle="Edite seus dados e personalize sua experiência">
         <div className="mt-8 grid gap-4 md:grid-cols-2">
-          {[1, 2].map((item) => <div key={item} className="sina-card p-6"><div className="sina-skeleton h-5 w-32" /><div className="sina-skeleton mt-4 h-4 w-full" /><div className="sina-skeleton mt-8 h-12 w-full" /></div>)}
+          {[1, 2].map((item) => (
+            <div key={item} className="sina-card p-6">
+              <div className="sina-skeleton h-5 w-32" />
+              <div className="sina-skeleton mt-4 h-4 w-full" />
+              <div className="sina-skeleton mt-8 h-12 w-full" />
+            </div>
+          ))}
         </div>
       </AcademicShell>
     );
   }
 
   if (role.error || student.error || account.error) {
-    return <AcademicShell title="Meu perfil" subtitle="Personalize sua conta"><p role="alert" className="mt-8 text-destructive">{errorText(role.error ?? student.error ?? account.error)}</p></AcademicShell>;
+    return (
+      <AcademicShell title="Meu perfil" subtitle="Edite seus dados e personalize sua experiência">
+        <div className="mt-8 rounded-2xl border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive" role="alert">
+          {errorText(role.error ?? student.error ?? account.error)}
+        </div>
+      </AcademicShell>
+    );
+  }
+
+  if (role.data !== "student") {
+    return (
+      <AcademicShell title="Meu perfil" subtitle="Edite seus dados e personalize sua experiência">
+        <div className="mt-8 rounded-2xl border border-border bg-secondary/40 p-6">
+          <p className="font-semibold">Perfil de aluno</p>
+          <p className="mt-1 text-sm text-muted-foreground">Esta área é destinada aos alunos.</p>
+        </div>
+      </AcademicShell>
+    );
   }
 
   return (
-    <AcademicShell title="Meu perfil" subtitle="Personalize sua conta">
-      <div className="mt-8 flex items-center gap-3">
+    <AcademicShell title="Meu perfil" subtitle="Edite seus dados e personalize sua experiência">
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
         <Link to="/aluno" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="size-4" /> Voltar ao dashboard
         </Link>
+        {!editing && (
+          <Button type="button" onClick={beginEditing}>
+            <Pencil /> Editar perfil
+          </Button>
+        )}
       </div>
 
       <section className="mt-5 overflow-hidden rounded-3xl border border-brand-border bg-brand p-6 text-brand-foreground shadow-sm md:p-8">
@@ -150,12 +247,21 @@ function StudentProfile() {
               {displayAvatar ? <img src={displayAvatar} alt="" className="size-full object-cover" /> : <UserRound className="size-8 text-brand-muted" />}
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-muted">Meu perfil</p>
-              <h2 className="mt-1 font-display text-2xl font-bold">{displayName}</h2>
-              <p className="mt-1 text-sm text-brand-muted">Aluno · {currentStudent?.classroom ? `Turma ${currentStudent.classroom}` : "Aguardando vínculo"}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-muted">Perfil do aluno</p>
+              <h2 className="mt-1 font-display text-2xl font-bold">{currentName}</h2>
+              <p className="mt-1 text-sm text-brand-muted">
+                Aluno · {currentStudent?.classroom ? `Turma ${currentStudent.classroom}` : "Aguardando vínculo"}
+              </p>
             </div>
           </div>
-          <Link to="/aluno" className="rounded-xl border border-brand-border bg-brand-panel px-4 py-2 text-sm font-semibold text-brand-foreground transition-colors hover:bg-brand-panel/80">Ver dashboard</Link>
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-xl border border-brand-border bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground">
+              {currentStudent?.enrollment || "Matrícula pendente"}
+            </span>
+            <span className="rounded-xl border border-brand-border bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground">
+              {currentStudent?.classroom || "Turma pendente"}
+            </span>
+          </div>
         </div>
       </section>
 
@@ -163,53 +269,87 @@ function StudentProfile() {
         <section className="sina-card p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold">Editar perfil</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Edite seu nome e sua foto. As alterações ficam salvas na sua conta do SINA.</p>
+              <h2 className="text-lg font-semibold">Editar informações pessoais</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {editing ? "Faça as alterações e clique em salvar." : "Seus dados pessoais estão somente para leitura."}
+              </p>
             </div>
-            <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><UserRound className="size-5" /></div>
-          </div>
-
-          <div className="mt-6 flex flex-col items-center sm:flex-row sm:items-start">
-            <div className="relative flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary">
-              {displayAvatar ? <img src={displayAvatar} alt="Prévia do perfil" className="size-full object-cover" /> : <UserRound className="size-10 text-muted-foreground" />}
-              <label className="absolute bottom-1 right-1 flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105">
-                <Camera className="size-4" />
-                <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} />
-              </label>
-            </div>
-            <div className="mt-5 sm:ml-6 sm:mt-0">
-              <p className="font-semibold">Foto de perfil</p>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">Use uma imagem quadrada de até 6 MB. PNG, JPG ou WebP.</p>
-              <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary">
-                <Camera className="size-4" /> Alterar foto
-                <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} />
-              </label>
+            <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+              <UserRound className="size-5" />
             </div>
           </div>
 
-          <div className="mt-7">
-            <label className="text-sm font-medium" htmlFor="student-profile-name">Nome completo</label>
-            <Input id="student-profile-name" value={displayName} onChange={(event) => setName(event.target.value)} className="mt-2" />
-          </div>
-
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl bg-secondary/60 p-4">
-              <p className="text-xs text-muted-foreground">Matrícula</p>
-              <p className="mt-1 font-semibold">{currentStudent?.enrollment || "Ainda não vinculada"}</p>
+          <fieldset disabled={!editing || saving || uploading} className="mt-6">
+            <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
+              <div className="relative flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary">
+                {displayAvatar ? <img src={displayAvatar} alt="Prévia do perfil" className="size-full object-cover" /> : <UserRound className="size-10 text-muted-foreground" />}
+                <label className="absolute bottom-1 right-1 flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105">
+                  <Camera className="size-4" />
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} />
+                </label>
+              </div>
+              <div className="text-center sm:text-left">
+                <p className="font-semibold">Foto de perfil</p>
+                <p className="mt-1 max-w-md text-sm leading-6 text-muted-foreground">PNG, JPG ou WebP, até 6 MB.</p>
+                <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary">
+                  <Camera className="size-4" /> {uploading ? "Enviando…" : "Escolher foto"}
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} />
+                </label>
+              </div>
             </div>
-            <div className="rounded-2xl bg-secondary/60 p-4">
-              <p className="text-xs text-muted-foreground">Turma</p>
-              <p className="mt-1 font-semibold">{currentStudent?.classroom || "Ainda não vinculada"}</p>
+
+            <div className="mt-7">
+              <label className="text-sm font-medium" htmlFor="student-profile-name">Nome completo</label>
+              <Input
+                id="student-profile-name"
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Digite seu nome completo"
+                autoComplete="name"
+                className="mt-2 h-11"
+              />
             </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl bg-secondary/60 p-4">
+                <p className="text-xs text-muted-foreground">Matrícula</p>
+                <p className="mt-1 font-semibold">{currentStudent?.enrollment || "Ainda não vinculada"}</p>
+              </div>
+              <div className="rounded-2xl bg-secondary/60 p-4">
+                <p className="text-xs text-muted-foreground">Turma</p>
+                <p className="mt-1 font-semibold">{currentStudent?.classroom || "Ainda não vinculada"}</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <div className="mt-5 rounded-2xl border border-border bg-secondary/30 p-4">
+            <p className="text-xs text-muted-foreground">E-mail da conta</p>
+            <p className="mt-1 font-semibold break-all">{account.data?.email || "Não informado"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">O e-mail da conta é exibido aqui, mas a matrícula e a turma são gerenciadas academicamente.</p>
           </div>
 
-          {message && <p className="mt-4 text-sm text-destructive">{message}</p>}
+          {message && (
+            <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">
+              {message}
+            </div>
+          )}
 
-          <div className="mt-6 flex justify-end">
-            <Button type="button" onClick={() => void saveProfile()} disabled={saving}>
-              <Save /> {saving ? "Salvando…" : "Salvar alterações"}
-            </Button>
-          </div>
+          {editing ? (
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <Button type="button" variant="outline" onClick={cancelEditing} disabled={saving || uploading}>
+                <X /> Cancelar
+              </Button>
+              <Button type="button" onClick={() => void saveProfile()} disabled={saving || uploading}>
+                <Save /> {saving ? "Salvando…" : "Salvar perfil"}
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
+              <Check className="size-4 text-primary" />
+              Perfil salvo. Clique em <button type="button" onClick={beginEditing} className="font-semibold text-primary underline underline-offset-4">Editar perfil</button> para fazer novas alterações.
+            </div>
+          )}
         </section>
 
         <div className="space-y-5">
@@ -218,19 +358,16 @@ function StudentProfile() {
               <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><Palette className="size-5" /></div>
               <div>
                 <h2 className="text-lg font-semibold">Personalização</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Ajuste a experiência do SINA ao seu gosto.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Ajuste a aparência da sua experiência no SINA.</p>
               </div>
             </div>
             <div className="mt-5 flex items-center justify-between rounded-2xl border border-border p-4">
               <div>
-                <p className="text-sm font-semibold">Prévia escura</p>
-                <p className="mt-1 text-xs text-muted-foreground">Use o controle do topo para aplicar o tema.</p>
+                <p className="text-sm font-semibold">Aparência</p>
+                <p className="mt-1 text-xs text-muted-foreground">Alterne entre tema claro e escuro.</p>
               </div>
-              <button type="button" aria-label="Prévia de tema escuro" aria-pressed={darkPreview} onClick={() => setDarkPreview(!darkPreview)} className={`relative h-6 w-11 rounded-full transition-colors ${darkPreview ? "bg-primary" : "bg-border"}`}>
-                <span className={`absolute top-1 size-4 rounded-full bg-white transition-transform ${darkPreview ? "translate-x-6" : "translate-x-1"}`} />
-              </button>
+              <ThemeToggle />
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">A preferência de tema já pode ser alterada pelo botão de aparência no cabeçalho.</p>
           </section>
 
           <section className="sina-card p-6">
@@ -238,17 +375,16 @@ function StudentProfile() {
               <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><ShieldCheck className="size-5" /></div>
               <div>
                 <h2 className="text-lg font-semibold">Conta e segurança</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Informações de acesso da sua conta.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Controles da sua conta SINA.</p>
               </div>
             </div>
             <div className="mt-5 rounded-2xl bg-secondary/60 p-4">
-              <p className="text-xs text-muted-foreground">Identificação acadêmica</p>
-              <p className="mt-1 text-sm font-semibold">Conta de aluno SINA</p>
+              <p className="text-xs text-muted-foreground">Conta</p>
+              <p className="mt-1 text-sm font-semibold break-all">{account.data?.email || "Conta SINA"}</p>
             </div>
-            <div className="mt-3 rounded-2xl border border-border p-4">
-              <p className="text-sm font-semibold">Senha</p>
-              <p className="mt-1 text-xs text-muted-foreground">A alteração de senha pode ser adicionada nesta área.</p>
-            </div>
+            <Button type="button" variant="outline" className="mt-3 w-full" onClick={() => void sendPasswordReset()}>
+              <LockKeyhole /> Alterar senha
+            </Button>
           </section>
         </div>
       </div>
