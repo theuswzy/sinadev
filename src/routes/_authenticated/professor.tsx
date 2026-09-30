@@ -29,7 +29,9 @@ function TeacherArea() {
   const [absences, setAbsences] = useState("0");
   const [attendance, setAttendance] = useState("");
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);\n  const [studentSearch, setStudentSearch] = useState("");\n  const [messageType, setMessageType] = useState<"success" | "error">("success");
+  const [busy, setBusy] = useState(false);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error">("success");
 
   async function linkStudent(e: FormEvent) {
     e.preventDefault();
@@ -56,7 +58,8 @@ function TeacherArea() {
     setBusy(true); setMessage("");
     const { error } = await supabase.rpc("teacher_update_attendance", { _student_id: selected.id, _attendance: value });
     setBusy(false);
-    if (error) setMessageType("error");\n    setMessage(error ? errorText(error) : "Frequência atualizada.");
+    if (error) setMessageType("error");
+    setMessage(error ? errorText(error) : "Frequência atualizada.");
     if (!error) await queryClient.invalidateQueries({ queryKey: ["teacher-students"] });
   }
 
@@ -79,7 +82,9 @@ function TeacherArea() {
   }
 
   const unlinked = students.data?.filter(s => !s.teacher_id) ?? [];
-  const linked = students.data?.filter(s => s.teacher_id) ?? [];\n  const filteredUnlinked = unlinked.filter(s => s.full_name.toLowerCase().includes(studentSearch.toLowerCase()));\n  const filteredLinked = linked.filter(s => s.full_name.toLowerCase().includes(studentSearch.toLowerCase()));
+  const linked = students.data?.filter(s => s.teacher_id) ?? [];
+  const filteredUnlinked = unlinked.filter(s => s.full_name.toLowerCase().includes(studentSearch.toLowerCase()));
+  const filteredLinked = linked.filter(s => s.full_name.toLowerCase().includes(studentSearch.toLowerCase()));
 
   return <AcademicShell title="Área do professor" subtitle="Turmas e acompanhamento acadêmico">
     {role.isPending ? <p className="mt-8 text-muted-foreground">Verificando acesso…</p> : role.error ? <p role="alert" className="mt-8 text-destructive">{errorText(role.error)}</p> : role.data !== "teacher" ? (
@@ -90,11 +95,13 @@ function TeacherArea() {
       <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card p-5"><UserRoundPlus className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Aguardando vínculo</p><p className="mt-1 font-display text-3xl font-semibold">{unlinked.length}</p><p className="mt-1 text-xs text-muted-foreground">Alunos que já criaram conta</p></div>
         <div className="rounded-2xl border border-border bg-card p-5"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Meus alunos</p><p className="mt-1 font-display text-3xl font-semibold">{linked.length}</p><p className="mt-1 text-xs text-muted-foreground">Vinculados às minhas turmas</p></div>
-        <div className="rounded-2xl border border-border bg-card p-5"><ClipboardList className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Fluxo</p><p className="mt-1 text-sm font-semibold">Conta → turma → matrícula</p><p className="mt-1 text-xs text-muted-foreground">O aluno cria a conta; o professor completa o vínculo.</p></div>\n        <div className="rounded-2xl border border-border bg-card p-5"><BarChart3 className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Acompanhamento</p><p className="mt-1 font-display text-3xl font-semibold">{linked.filter(s => s.attendance !== null).length}</p><p className="mt-1 text-xs text-muted-foreground">Alunos com frequência registrada</p></div>
+        <div className="rounded-2xl border border-border bg-card p-5"><ClipboardList className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Fluxo</p><p className="mt-1 text-sm font-semibold">Conta → turma → matrícula</p><p className="mt-1 text-xs text-muted-foreground">O aluno cria a conta; o professor completa o vínculo.</p></div>
+        <div className="rounded-2xl border border-border bg-card p-5"><BarChart3 className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Acompanhamento</p><p className="mt-1 font-display text-3xl font-semibold">{linked.filter(s => s.attendance !== null).length}</p><p className="mt-1 text-xs text-muted-foreground">Alunos com frequência registrada</p></div>
       </section>
 
       <section className="mt-6 rounded-2xl border border-border bg-card shadow-sm">
         <div className="border-b border-border p-6"><div className="flex items-center gap-3"><Link2 className="size-5 text-primary" /><div><h2 className="font-semibold">Alunos aguardando vínculo</h2><p className="mt-1 text-sm text-muted-foreground">Selecione um aluno que já possui conta e informe a turma e a matrícula.</p></div></div></div>
+        <div className="border-b border-border p-4"><div className="relative max-w-md"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={studentSearch} onChange={e => setStudentSearch(e.target.value)} placeholder="Buscar aluno pelo nome…" className="pl-9" /></div></div>
         <div className="p-6">
           {students.isPending ? <p className="text-sm text-muted-foreground">Carregando…</p> : filteredUnlinked.length ? <div className="grid gap-3 md:grid-cols-2">{filteredUnlinked.map(s => <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setMessage(""); }} className={`rounded-xl border p-4 text-left transition-colors hover:border-primary ${selectedId === s.id ? "border-primary bg-primary/5" : "border-border"}`}><p className="font-semibold">{s.full_name}</p><p className="mt-1 text-xs text-muted-foreground">Conta criada · aguardando turma e matrícula</p></button>)}</div> : <div className="rounded-xl bg-secondary/50 p-5 text-sm text-muted-foreground">Não há alunos aguardando vínculo.</div>}
         </div>
