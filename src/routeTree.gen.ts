@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAlunoRouteImport } from './routes/_authenticated/aluno'
+import { Route as AuthenticatedAlunoPerfilRouteImport } from './routes/_authenticated/aluno/perfil'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedProfessorRouteImport } from './routes/_authenticated/professor'
 
@@ -53,6 +54,11 @@ const AuthenticatedAlunoRoute = AuthenticatedAlunoRouteImport.update({
   path: '/aluno',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAlunoPerfilRoute = AuthenticatedAlunoPerfilRouteImport.update({
+  id: '/_authenticated/aluno/perfil',
+  path: '/perfil',
+  getParentRoute: () => AuthenticatedAlunoRoute,
+} as any)
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   id: '/painel',
   path: '/painel',
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/aluno': typeof AuthenticatedAlunoRoute
+  '/aluno/perfil': typeof AuthenticatedAlunoPerfilRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/professor': typeof AuthenticatedProfessorRoute
 }
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/aluno': typeof AuthenticatedAlunoRoute
+  '/aluno/perfil': typeof AuthenticatedAlunoPerfilRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/professor': typeof AuthenticatedProfessorRoute
 }
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/aluno': typeof AuthenticatedAlunoRoute
+  '/_authenticated/aluno/perfil': typeof AuthenticatedAlunoPerfilRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/professor': typeof AuthenticatedProfessorRoute
 }
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/aluno'
+    | '/aluno/perfil'
     | '/painel'
     | '/professor'
   fileRoutesByTo: FileRoutesByTo
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/aluno'
+    | '/aluno/perfil'
     | '/painel'
     | '/professor'
   id:
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/aluno'
+    | '/_authenticated/aluno/perfil'
     | '/_authenticated/painel'
     | '/_authenticated/professor'
   fileRoutesById: FileRoutesById
@@ -189,6 +201,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlunoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/aluno/perfil': {
+      id: '/_authenticated/aluno/perfil'
+      path: '/perfil'
+      fullPath: '/aluno/perfil'
+      preLoaderRoute: typeof AuthenticatedAlunoPerfilRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
     '/_authenticated/painel': {
       id: '/_authenticated/painel'
       path: '/painel'
@@ -208,14 +227,24 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
-  AuthenticatedAlunoRoute: typeof AuthenticatedAlunoRoute
+  AuthenticatedAlunoRoute: typeof AuthenticatedAlunoRouteWithChildren
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedProfessorRoute: typeof AuthenticatedProfessorRoute
 }
 
+interface AuthenticatedAlunoRouteChildren {
+  AuthenticatedAlunoPerfilRoute: typeof AuthenticatedAlunoPerfilRoute
+}
+
+const AuthenticatedAlunoRouteChildren: AuthenticatedAlunoRouteChildren = {
+  AuthenticatedAlunoPerfilRoute: AuthenticatedAlunoPerfilRoute,
+}
+
+const AuthenticatedAlunoRouteWithChildren = AuthenticatedAlunoRoute._addFileChildren(AuthenticatedAlunoRouteChildren)
+
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
-  AuthenticatedAlunoRoute: AuthenticatedAlunoRoute,
+  AuthenticatedAlunoRoute: AuthenticatedAlunoRouteWithChildren,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedProfessorRoute: AuthenticatedProfessorRoute,
 }
