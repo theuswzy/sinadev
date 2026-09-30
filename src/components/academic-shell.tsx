@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { GraduationCap, LogOut, LayoutDashboard, ShieldCheck, UserRound, Users, BookOpen, ClipboardList, Megaphone, UserCircle2 } from "lucide-react";
+import { GraduationCap, LogOut, LayoutDashboard, ShieldCheck, UserRound, Users, BookOpen, ClipboardList, Megaphone } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,6 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
         { href: "#tarefas", label: "Tarefas", Icon: ClipboardList },
         { href: "#disciplinas", label: "Disciplinas", Icon: BookOpen },
         { href: "#notas", label: "Notas", Icon: BookOpen },
-        { href: "#perfil", label: "Perfil", Icon: UserCircle2 },
       ];
 
   return (
