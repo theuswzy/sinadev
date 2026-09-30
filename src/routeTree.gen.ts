@@ -228,6 +228,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAlunoRoute: typeof AuthenticatedAlunoRoute
+  AuthenticatedAlunoPerfilRoute: typeof AuthenticatedAlunoPerfilRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedProfessorRoute: typeof AuthenticatedProfessorRoute
 }
