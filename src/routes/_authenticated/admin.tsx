@@ -41,6 +41,15 @@ function AdminArea() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const audit = useQuery({
+    queryKey: ["admin-audit"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_list_audit_logs", { _limit: 100 });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: role.data === true,
+  });
 
   async function setAccess(targetEmail: string, enabled: boolean) {
     setBusy(true);
@@ -117,6 +126,29 @@ function AdminArea() {
             <Button disabled={busy || !email.trim()} onClick={() => void setAccess(email, true)} className="sm:w-48"><CheckCircle2 className="mr-2 size-4" />Autorizar</Button>
           </div>
           {message && <p role="status" className="mt-4 text-sm">{message}</p>}
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-border p-6">
+            <div>
+              <h2 className="font-semibold">Histórico de alterações</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Registro das alterações feitas em alunos e notas.</p>
+            </div>
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{audit.data?.length ?? 0} registros</span>
+          </div>
+          {audit.isPending ? <p className="p-6 text-sm text-muted-foreground">Carregando histórico…</p> : audit.error ? <p role="alert" className="p-6 text-sm text-destructive">{errorText(audit.error)}</p> : audit.data?.length ? (
+            <div className="divide-y divide-border">
+              {audit.data.map((entry) => (
+                <div key={entry.id} className="flex flex-col gap-1 p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">{entry.action} · {entry.table_name}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Registro {entry.record_id ?? "—"}</p>
+                  </div>
+                  <time className="text-xs text-muted-foreground" dateTime={entry.created_at}>{new Date(entry.created_at).toLocaleString("pt-BR")}</time>
+                </div>
+              ))}
+            </div>
+          ) : <p className="p-8 text-center text-sm text-muted-foreground">Nenhuma alteração registrada ainda.</p>}
         </section>
 
         <section className="rounded-2xl border border-border bg-card shadow-sm">
