@@ -108,22 +108,40 @@ function TeacherArea() {
       setMessage("Informe pelo menos uma nota para a turma.");
       return;
     }
-    setBusy(true); setMessage(""); setMessageType("success");
-    for (const student of entries) {
-      const { error } = await supabase.rpc("teacher_upsert_grade", {
-        _student_id: student.id,
-        _subject: bulkSubject.trim(),
-        _period: Number(bulkPeriod),
-        _score: Number(bulkScores[student.id].replace(",", ".")),
-        _absences: 0,
-      });
-      if (error) {
-        setBusy(false);
-        setMessageType("error");
-        setMessage(errorText(error));
-        toast.error("Não foi possível concluir todos os lançamentos.");
-        return;
+
+    setBusy(true);
+    setMessage("");
+    setMessageType("success");
+
+    try {
+      const normalizedSubject = bulkSubject.trim().toLowerCase();
+      const periodNumber = Number(bulkPeriod);
+      const entriesWithAbsences = await Promise.all(
+        entries.map(async (student) => {
+          const existingGrades = await loadGrades(student.id);
+          const existing = existingGrades.find(
+            (grade) => grade.subject.trim().toLowerCase() === normalizedSubject && grade.period === periodNumber,
+          );
+          return { student, absences: existing?.absences ?? 0 };
+        }),
+      );
+
+      for (const { student, absences } of entriesWithAbsences) {
+        const { error } = await supabase.rpc("teacher_upsert_grade", {
+          _student_id: student.id,
+          _subject: bulkSubject.trim(),
+          _period: periodNumber,
+          _score: Number(bulkScores[student.id].replace(",", ".")),
+          _absences: absences,
+        });
+        if (error) throw error;
       }
+    } catch (error) {
+      setBusy(false);
+      setMessageType("error");
+      setMessage(errorText(error));
+      toast.error("Não foi possível concluir todos os lançamentos.");
+      return;
     }
     setBusy(false);
     setBulkScores({});
@@ -193,8 +211,8 @@ function TeacherArea() {
       <section id="inicio" className="mt-8 scroll-mt-28 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="sina-card sina-card-hover sina-interactive p-5"><UserRoundPlus className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Aguardando vínculo</p><p className="mt-1 font-display text-3xl font-semibold">{unlinked.length}</p><p className="mt-1 text-xs text-muted-foreground">Alunos que já criaram conta</p></div>
         <div className="sina-card sina-card-hover sina-interactive p-5"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Meus alunos</p><p className="mt-1 font-display text-3xl font-semibold">{linked.length}</p><p className="mt-1 text-xs text-muted-foreground">Vinculados às minhas turmas</p></div>
-        <div className="sina-card sina-card-hover sina-interactive p-5"><ClipboardList className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Fluxo</p><p className="mt-1 text-sm font-semibold">Conta → turma → matrícula</p><p className="mt-1 text-xs text-muted-foreground">O aluno cria a conta; o professor completa o vínculo.</p></div>
-        <div className="sina-card sina-card-hover sina-interactive p-5"><BarChart3 className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Acompanhamento</p><p className="mt-1 font-display text-3xl font-semibold">{linked.filter(s => s.attendance !== null).length}</p><p className="mt-1 text-xs text-muted-foreground">Alunos com frequência registrada</p></div>
+        <div className="sina-card sina-card-hover sina-interactive p-5"><ClipboardList className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Turmas</p><p className="mt-1 font-display text-3xl font-semibold">{classrooms.length}</p><p className="mt-1 text-xs text-muted-foreground">Turmas com alunos vinculados</p></div>
+        <div className="sina-card sina-card-hover sina-interactive p-5"><BarChart3 className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Frequência média</p><p className="mt-1 font-display text-3xl font-semibold">{classWithAttendance ? `${formatScore(averageAttendance)}%` : "—"}</p><p className="mt-1 text-xs text-muted-foreground">{classWithAttendance ? `${classWithAttendance} aluno${classWithAttendance === 1 ? "" : "s"} com dados` : "Aguardando registros"}</p></div>
       </section>
 
       <section id="alunos" className="mt-6 scroll-mt-28 sina-card sina-card-hover">
