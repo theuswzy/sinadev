@@ -25,10 +25,6 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-async function destination(): Promise<"/aluno" | "/professor" | "/admin"> {
-  const role = await getRole();
-  return role === "admin" ? "/admin" : role === "teacher" ? "/professor" : "/aluno";
-}
 
 async function navigateAfterAuth(navigate: ReturnType<typeof useNavigate>) {
   const role = await getRole();
