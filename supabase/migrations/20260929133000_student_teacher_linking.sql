@@ -51,15 +51,26 @@ $$;
 
 create or replace function public.student_get_profile()
 returns setof public.students
-language sql
+language plpgsql
 security definer
 set search_path = ''
-as $$
-  select s.*
-  from public.students s
-  where s.user_id = auth.uid()
-  limit 1;
-$$;
+as $
+begin
+  if auth.uid() is null then
+    raise exception 'Usuário não autenticado.';
+  end if;
+
+  -- Garante que todo aluno autenticado tenha seu próprio registro,
+  -- mesmo quando ainda não existe vínculo com professor/turma.
+  perform public.ensure_student_profile();
+
+  return query
+    select s.*
+    from public.students s
+    where s.user_id = auth.uid()
+    limit 1;
+end;
+$;
 
 create or replace function public.teacher_list_students()
 returns setof public.students
