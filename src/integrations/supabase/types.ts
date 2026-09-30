@@ -79,6 +79,7 @@ export type Database = {
       students: {
         Row: {
           attendance: number | null
+          avatar_url: string | null
           claim_code: string
           classroom: string
           created_at: string
@@ -91,6 +92,7 @@ export type Database = {
         }
         Insert: {
           attendance?: number | null
+          avatar_url?: string | null
           claim_code?: string
           classroom: string
           created_at?: string
@@ -103,6 +105,7 @@ export type Database = {
         }
         Update: {
           attendance?: number | null
+          avatar_url?: string | null
           claim_code?: string
           classroom?: string
           created_at?: string
@@ -168,6 +171,7 @@ export type Database = {
         Args: never
         Returns: {
           attendance: number | null
+          avatar_url: string | null
           claim_code: string
           classroom: string
           created_at: string
@@ -185,10 +189,33 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      student_update_profile: {
+        Args: { _avatar_url?: string; _full_name: string }
+        Returns: {
+          attendance: number | null
+          avatar_url: string | null
+          claim_code: string
+          classroom: string
+          created_at: string
+          enrollment: string
+          full_name: string
+          id: string
+          teacher_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "students"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       teacher_link_student: {
         Args: { _classroom: string; _enrollment: string; _student_id: string }
         Returns: {
           attendance: number | null
+          avatar_url: string | null
           claim_code: string
           classroom: string
           created_at: string
@@ -210,6 +237,7 @@ export type Database = {
         Args: never
         Returns: {
           attendance: number | null
+          avatar_url: string | null
           claim_code: string
           classroom: string
           created_at: string
