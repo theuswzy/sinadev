@@ -54,7 +54,7 @@ returns setof public.students
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   if auth.uid() is null then
     raise exception 'Usuário não autenticado.';
@@ -70,7 +70,7 @@ begin
     where s.user_id = auth.uid()
     limit 1;
 end;
-$;
+$$;
 
 create or replace function public.teacher_list_students()
 returns setof public.students
