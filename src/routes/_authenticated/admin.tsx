@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { CheckCircle2, GraduationCap, LogOut, ShieldCheck, UserPlus, UserRoundX, Users } from "lucide-react";
+import { CheckCircle2, GraduationCap, LogOut, ShieldCheck, UserPlus, UserRoundX, Users, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -91,7 +91,7 @@ function AdminArea() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 lg:px-8">
           <Link to="/painel" className="flex items-center gap-2 font-display text-2xl font-bold"><GraduationCap className="size-8" />SINA</Link>
           <div className="flex items-center gap-3">
-            <Link to="/painel" className="hidden text-sm text-brand-muted hover:text-brand-foreground sm:block">Painel</Link>
+            <Link to="/painel" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><LayoutDashboard className="size-4" />Painel</Link>
             <Button variant="outline" size="sm" onClick={logout} className="border-brand-border bg-brand text-brand-foreground hover:bg-brand-panel"><LogOut className="mr-2 size-4" />Sair</Button>
           </div>
         </div>
@@ -103,6 +103,11 @@ function AdminArea() {
             <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary"><ShieldCheck className="size-6" /></div>
             <div><p className="text-xs font-bold uppercase tracking-wide text-brand-muted">Controle de acesso</p><h1 className="mt-1 font-display text-2xl font-bold">Administração de professores</h1><p className="mt-2 max-w-2xl text-sm text-brand-muted">Autorize ou revogue quem pode acessar a área de professores e lançar dados acadêmicos.</p></div>
           </div>
+        </section>
+
+        <section className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Professores autorizados</p><p className="mt-1 font-display text-3xl font-semibold">{teachers.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">Contas com acesso ativo</p></div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><ShieldCheck className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Controle de acesso</p><p className="mt-1 text-sm font-semibold">Permissões centralizadas</p><p className="mt-1 text-xs text-muted-foreground">Autorize ou revogue professores pelo painel.</p></div>
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
