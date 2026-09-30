@@ -7,6 +7,7 @@ import { errorText, formatScore, getRole, loadGrades, loadMyStudent, loadAnnounc
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState, type ChangeEvent } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({
@@ -120,8 +121,10 @@ function StudentArea() {
     try {
       await setTaskCompleted(taskId, true);
       await tasks.refetch();
+      toast.success("Tarefa marcada como concluída.");
     } catch (error) {
       setProfileMessage(errorText(error));
+      toast.error(errorText(error));
     }
   }
 
@@ -181,12 +184,17 @@ function StudentArea() {
     } else {
       queryClient.setQueryData(["my-student"], data);
       setProfileOpen(false);
+      toast.success("Perfil atualizado com sucesso.");
     }
     setProfileSaving(false);
   }
 
   if (role.isPending || student.isPending) {
-    return <AcademicShell title="Dashboard acadêmico" subtitle="Meu acompanhamento"><p className="mt-8 text-muted-foreground">Carregando seus dados…</p></AcademicShell>;
+    return <AcademicShell title="Dashboard acadêmico" subtitle="Meu acompanhamento">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Carregando dashboard">
+        {[1, 2, 3, 4].map((item) => <div key={item} className="sina-card p-5"><div className="sina-skeleton size-8" /><div className="sina-skeleton mt-5 h-3 w-24" /><div className="sina-skeleton mt-3 h-8 w-16" /><div className="sina-skeleton mt-3 h-3 w-32" /></div>)}
+      </div>
+    </AcademicShell>;
   }
 
   if (role.error || student.error) {
