@@ -331,7 +331,7 @@ function StudentArea() {
           <div className="rounded-xl border border-border p-4"><p className="text-xs font-bold uppercase text-primary">2</p><p className="mt-2 text-sm font-semibold">Aguarde o vínculo acadêmico</p><p className="mt-1 text-xs text-muted-foreground">Professor ou responsável autorizado poderá vincular sua turma e matrícula.</p></div>
           <div className="rounded-xl border border-border p-4"><p className="text-xs font-bold uppercase text-primary">3</p><p className="mt-2 text-sm font-semibold">Acompanhe seus dados</p><p className="mt-1 text-xs text-muted-foreground">Notas, frequência, matérias, avisos e tarefas aparecerão automaticamente.</p></div>
         </div>
-      </section>}
+      </section>
     </AcademicShell>
   );
 }
