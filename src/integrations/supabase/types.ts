@@ -85,7 +85,7 @@ export type Database = {
           enrollment: string
           full_name: string
           id: string
-          teacher_id: string
+          teacher_id: string | null
           updated_at: string
           user_id: string | null
         }
@@ -97,7 +97,7 @@ export type Database = {
           enrollment: string
           full_name: string
           id?: string
-          teacher_id: string
+          teacher_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -109,7 +109,7 @@ export type Database = {
           enrollment?: string
           full_name?: string
           id?: string
-          teacher_id?: string
+          teacher_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -155,6 +155,7 @@ export type Database = {
         Args: { _code: string; _enrollment: string }
         Returns: boolean
       }
+      ensure_student_profile: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -163,6 +164,98 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      student_get_profile: {
+        Args: never
+        Returns: {
+          attendance: number | null
+          claim_code: string
+          classroom: string
+          created_at: string
+          enrollment: string
+          full_name: string
+          id: string
+          teacher_id: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "students"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      teacher_link_student: {
+        Args: { _classroom: string; _enrollment: string; _student_id: string }
+        Returns: {
+          attendance: number | null
+          claim_code: string
+          classroom: string
+          created_at: string
+          enrollment: string
+          full_name: string
+          id: string
+          teacher_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "students"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      teacher_list_students: {
+        Args: never
+        Returns: {
+          attendance: number | null
+          claim_code: string
+          classroom: string
+          created_at: string
+          enrollment: string
+          full_name: string
+          id: string
+          teacher_id: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "students"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      teacher_update_attendance: {
+        Args: { _attendance: number; _student_id: string }
+        Returns: boolean
+      }
+      teacher_upsert_grade: {
+        Args: {
+          _absences: number
+          _period: number
+          _score: number
+          _student_id: string
+          _subject: string
+        }
+        Returns: {
+          absences: number
+          created_at: string
+          id: string
+          period: number
+          score: number
+          student_id: string
+          subject: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "grades"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       app_role: "student" | "teacher" | "admin"
