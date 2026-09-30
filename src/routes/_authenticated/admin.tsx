@@ -5,6 +5,7 @@ import { CheckCircle2, GraduationCap, LogOut, ShieldCheck, UserPlus, UserRoundX,
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { errorText } from "@/lib/sina-data";
 
 type TeacherAccount = { user_id: string; email: string; display_name: string; created_at: string };
@@ -100,6 +101,7 @@ function AdminArea() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 lg:px-8">
           <Link to="/painel" className="flex items-center gap-2 font-display text-2xl font-bold"><GraduationCap className="size-8" />SINA</Link>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link to="/painel" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><LayoutDashboard className="size-4" />Painel</Link>
             <Button variant="outline" size="sm" onClick={logout} className="border-brand-border bg-brand text-brand-foreground hover:bg-brand-panel"><LogOut className="mr-2 size-4" />Sair</Button>
           </div>
