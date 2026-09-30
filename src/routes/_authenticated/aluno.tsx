@@ -215,7 +215,7 @@ function StudentArea() {
 
   return (
     <AcademicShell title="Dashboard acadêmico" subtitle="Meu acompanhamento">
-      <section className="mt-8 overflow-hidden rounded-3xl border border-brand-border bg-brand p-6 text-brand-foreground shadow-sm md:p-8">
+      <section id="inicio" className="mt-8 scroll-mt-28 overflow-hidden rounded-3xl border border-brand-border bg-brand p-6 text-brand-foreground shadow-sm md:p-8">
         <p className="text-xs font-bold uppercase tracking-wide text-brand-muted">Resumo acadêmico</p>
         <div className="mt-2 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
@@ -243,23 +243,30 @@ function StudentArea() {
         </div>
       </section>
 
-      {profileOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label="Editar perfil"><div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl"><div className="flex items-center justify-between"><div><h2 className="text-xl font-semibold">Editar perfil</h2><p className="mt-1 text-sm text-muted-foreground">Atualize seu nome e sua foto.</p></div><Button type="button" variant="ghost" size="icon" onClick={() => setProfileOpen(false)}><X /></Button></div><div className="mt-6 flex flex-col items-center"><div className="relative flex size-28 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary">{profileAvatar ? <img src={profileAvatar} alt="Prévia do perfil" className="size-full object-cover" /> : <UserRound className="size-10 text-muted-foreground" />}<label className="absolute bottom-1 right-1 flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow"><Camera className="size-4" /><input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} /></label></div></div><div className="mt-6"><label className="text-sm font-medium" htmlFor="student-name">Nome completo</label><Input id="student-name" value={profileName} onChange={(event) => setProfileName(event.target.value)} className="mt-2" /></div>{profileMessage && <p className="mt-3 text-sm text-destructive">{profileMessage}</p>}<div className="mt-6 flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setProfileOpen(false)}>Cancelar</Button><Button type="button" onClick={() => void saveProfile()} disabled={profileSaving}><Save />{profileSaving ? "Salvando…" : "Salvar alterações"}</Button></div></div></div>}
+      <div id="perfil" className="pointer-events-none h-0 scroll-mt-28" aria-hidden="true" />{profileOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label="Editar perfil"><div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl"><div className="flex items-center justify-between"><div><h2 className="text-xl font-semibold">Editar perfil</h2><p className="mt-1 text-sm text-muted-foreground">Atualize seu nome e sua foto.</p></div><Button type="button" variant="ghost" size="icon" onClick={() => setProfileOpen(false)}><X /></Button></div><div className="mt-6 flex flex-col items-center"><div className="relative flex size-28 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary">{profileAvatar ? <img src={profileAvatar} alt="Prévia do perfil" className="size-full object-cover" /> : <UserRound className="size-10 text-muted-foreground" />}<label className="absolute bottom-1 right-1 flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow"><Camera className="size-4" /><input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} /></label></div></div><div className="mt-6"><label className="text-sm font-medium" htmlFor="student-name">Nome completo</label><Input id="student-name" value={profileName} onChange={(event) => setProfileName(event.target.value)} className="mt-2" /></div>{profileMessage && <p className="mt-3 text-sm text-destructive">{profileMessage}</p>}<div className="mt-6 flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setProfileOpen(false)}>Cancelar</Button><Button type="button" onClick={() => void saveProfile()} disabled={profileSaving}><Save />{profileSaving ? "Salvando…" : "Salvar alterações"}</Button></div></div></div>}
 
       {!linked && (
-        <section className="mt-5 rounded-2xl border border-primary/30 bg-primary/5 p-6">
-          <div className="flex gap-4">
-            <CircleAlert className="mt-0.5 size-6 shrink-0 text-primary" />
-            <div>
-              <h2 className="font-semibold">Seu dashboard já está disponível</h2>
-              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-                Você já pode usar todas as áreas do SINA. O vínculo com turma e matrícula apenas determina quando os dados acadêmicos do seu curso estarão disponíveis.
-              </p>
+        <section className="mt-5 overflow-hidden rounded-2xl border border-primary/30 bg-primary/5 p-6">
+          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div className="flex gap-4">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><CircleAlert className="size-5" /></div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-primary">Primeiro acesso</p>
+                <h2 className="mt-1 font-semibold">Seu espaço no SINA está pronto.</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">Sua conta já está funcionando. Falta apenas o vínculo com sua turma e matrícula para que os dados acadêmicos sejam preenchidos.</p>
+              </div>
             </div>
+            <span className="shrink-0 rounded-full border border-primary/20 bg-background/60 px-3 py-1.5 text-xs font-semibold text-primary">1 de 3 etapas</span>
+          </div>
+          <div className="mt-6 grid gap-2 sm:grid-cols-3">
+            <div className="rounded-xl border border-primary/20 bg-card/70 p-3"><p className="text-xs font-bold text-primary">✓ 01</p><p className="mt-1 text-sm font-semibold">Conta criada</p></div>
+            <div className="rounded-xl border border-primary/20 bg-card/70 p-3"><p className="text-xs font-bold text-primary">○ 02</p><p className="mt-1 text-sm font-semibold">Vínculo com turma</p></div>
+            <div className="rounded-xl border border-border bg-card/40 p-3"><p className="text-xs font-bold text-muted-foreground">○ 03</p><p className="mt-1 text-sm font-semibold text-muted-foreground">Dados acadêmicos</p></div>
           </div>
         </section>
       )}
 
-      <section className="mt-5 grid gap-4 lg:grid-cols-3">
+      <section id="tarefas" className="mt-5 scroll-mt-28 grid gap-4 lg:grid-cols-3">
         <div className="sina-card sina-card-hover sina-interactive p-5">
           <div className="flex items-center gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><Megaphone className="size-5" /></div><div><p className="text-xs font-bold uppercase text-muted-foreground">Avisos</p><p className="text-lg font-semibold">{recentAnnouncements.length ? "Novidades da turma" : "Quadro de avisos"}</p></div></div>
           {recentAnnouncements.length ? <div className="mt-4 space-y-3">{recentAnnouncements.map(a => <div key={a.id} className="rounded-xl bg-secondary/50 p-3"><p className="text-sm font-semibold">{a.title}</p><p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{a.content}</p></div>)}</div> : <p className="mt-4 text-sm text-muted-foreground">{linked ? "Os avisos publicados pelos professores aparecerão aqui." : "Os avisos aparecerão aqui quando você estiver vinculado a uma turma."}</p>}
@@ -319,7 +326,7 @@ function StudentArea() {
         </div>
       </section>
 
-      <section className="mt-5 overflow-hidden sina-card sina-card-hover">
+      <section id="notas" className="mt-5 overflow-hidden scroll-mt-28 sina-card sina-card-hover">
         <div className="border-b border-border p-6"><h2 className="text-lg font-semibold">Minhas matérias e notas</h2><p className="mt-1 text-xs text-muted-foreground">{linked ? "Dados vinculados à sua matrícula." : "A área já está disponível; os dados serão preenchidos após o vínculo."}</p></div>
         {grades.isPending ? <p className="p-6 text-sm text-muted-foreground">Carregando seus dados…</p> : grades.error ? <p role="alert" className="p-6 text-sm text-destructive">{errorText(grades.error)}</p> : grades.data?.length ? <div className="overflow-x-auto"><table className="w-full min-w-[560px] text-left text-sm"><thead className="bg-secondary/50"><tr><th className="p-4">Disciplina</th><th className="p-4">Período</th><th className="p-4">Nota</th><th className="p-4">Faltas</th><th className="p-4">Situação</th></tr></thead><tbody>{grades.data.map(g => <tr key={g.id} className="border-b border-border"><td className="p-4 font-medium">{g.subject}</td><td className="p-4">{g.period}º</td><td className="p-4 font-semibold tabular-nums">{formatScore(g.score)}</td><td className="p-4 tabular-nums">{g.absences}</td><td className="p-4">{g.score >= 7 ? "Concluída" : "Em acompanhamento"}</td></tr>)}</tbody></table></div> : <p className="p-6 text-sm text-muted-foreground">Nenhum dado acadêmico disponível ainda. Quando sua turma e matrícula forem vinculadas, os lançamentos aparecerão automaticamente aqui.</p>}
       </section>
