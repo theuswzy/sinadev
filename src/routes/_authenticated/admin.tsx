@@ -121,9 +121,14 @@ function AdminArea() {
             </Button>
           </div>
         </div>
+        <nav aria-label="Navegação administrativa móvel" className="flex gap-1 overflow-x-auto border-t border-brand-border/60 px-4 py-2 sm:hidden">
+          <a href="#inicio" className="flex shrink-0 items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground"><LayoutDashboard className="size-4 text-primary" /> Visão geral</a>
+          <a href="#autorizacao" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><UserPlus className="size-4" /> Professores</a>
+          <a href="#historico" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><ShieldCheck className="size-4" /> Histórico</a>
+        </nav>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-6 px-5 py-7 lg:px-8 lg:py-9">
+      <main id="inicio" className="mx-auto max-w-6xl scroll-mt-28 space-y-6 px-5 py-7 lg:px-8 lg:py-9">
         <section className="rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm md:p-8">
           <div className="flex items-start gap-4">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary"><ShieldCheck className="size-6" /></div>
@@ -136,7 +141,7 @@ function AdminArea() {
           <div className="sina-card sina-card-hover sina-interactive p-5"><ShieldCheck className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Controle de acesso</p><p className="mt-1 text-sm font-semibold">Permissões centralizadas</p><p className="mt-1 text-xs text-muted-foreground">Autorize ou revogue professores pelo painel.</p></div>
         </section>
 
-        <section className="sina-card sina-card-hover p-6">
+        <section id="autorizacao" className="sina-card sina-card-hover scroll-mt-28 p-6">
           <div className="flex items-start gap-3"><UserPlus className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Autorizar professor</h2><p className="mt-1 text-sm text-muted-foreground">Informe o e-mail de uma conta já cadastrada no SINA.</p></div></div>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <Input type="email" placeholder="professor@exemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -145,7 +150,7 @@ function AdminArea() {
           {message && <p role="status" className="mt-4 text-sm">{message}</p>}
         </section>
 
-        <section className="sina-card sina-card-hover">
+        <section id="historico" className="sina-card sina-card-hover scroll-mt-28">
           <div className="flex items-center justify-between border-b border-border p-6">
             <div>
               <h2 className="font-semibold">Histórico de alterações</h2>
@@ -153,7 +158,7 @@ function AdminArea() {
             </div>
             <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{audit.data?.length ?? 0} registros</span>
           </div>
-          {audit.isPending ? <p className="p-6 text-sm text-muted-foreground">Carregando histórico…</p> : audit.error ? <p role="alert" className="p-6 text-sm text-destructive">{errorText(audit.error)}</p> : audit.data?.length ? (
+          {audit.isPending ? <div className="space-y-3 p-6">{[1,2,3].map(item => <div key={item} className="sina-skeleton h-12 w-full" />)}</div> : audit.error ? <p role="alert" className="p-6 text-sm text-destructive">{errorText(audit.error)}</p> : audit.data?.length ? (
             <div className="divide-y divide-border">
               {audit.data.map((entry) => (
                 <div key={entry.id} className="flex flex-col gap-1 p-5 sm:flex-row sm:items-center sm:justify-between">
