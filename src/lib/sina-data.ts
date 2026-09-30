@@ -18,7 +18,18 @@ export async function loadStudents(): Promise<Student[]> {
 export async function loadMyStudent(): Promise<Student | null> {
   const { data, error } = await supabase.rpc("student_get_profile");
   if (error) throw error;
-  return data?.[0] ?? null;
+
+  const existing = data?.[0] ?? null;
+  if (existing) return existing;
+
+  // A criação é feita apenas quando o perfil ainda não existe.
+  // Isso evita writes repetidos durante a atualização automática do dashboard.
+  const { error: ensureError } = await supabase.rpc("ensure_student_profile");
+  if (ensureError) throw ensureError;
+
+  const { data: refreshed, error: refreshError } = await supabase.rpc("student_get_profile");
+  if (refreshError) throw refreshError;
+  return refreshed?.[0] ?? null;
 }
 export async function loadGrades(studentId: string): Promise<Grade[]> {
   const { data, error } = await supabase.from("grades").select("*").eq("student_id", studentId).order("subject").order("period");
