@@ -45,3 +45,37 @@ export async function loadGrades(studentId: string): Promise<Grade[]> {
 }
 export const formatScore = (n: number) => n.toFixed(1).replace(".", ",");
 export const errorText = (err: unknown) => err instanceof Error ? err.message : "Não foi possível concluir. Tente novamente.";
+
+
+export type StudentAnnouncement = Tables<"announcements">;
+export type StudentTask = {
+  id: string;
+  classroom: string;
+  subject: string;
+  title: string;
+  description: string;
+  due_at: string | null;
+  created_at: string;
+  completed: boolean;
+};
+
+export async function loadAnnouncements(): Promise<StudentAnnouncement[]> {
+  const { data, error } = await supabase.rpc("student_list_announcements");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function loadTasks(): Promise<StudentTask[]> {
+  const { data, error } = await supabase.rpc("student_list_tasks");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function setTaskCompleted(taskId: string, completed: boolean): Promise<boolean> {
+  const { data, error } = await supabase.rpc("student_set_task_completed", {
+    _task_id: taskId,
+    _completed: completed,
+  });
+  if (error) throw error;
+  return data ?? false;
+}
