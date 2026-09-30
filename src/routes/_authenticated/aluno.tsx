@@ -33,16 +33,14 @@ function StudentArea() {
     queryKey: ["my-student"],
     queryFn: loadMyStudent,
     enabled: role.data === "student",
-    refetchInterval: 15000,
-    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   });
   const queryClient = useQueryClient();
   const grades = useQuery({
     queryKey: ["my-grades", student.data?.id],
     queryFn: () => loadGrades(student.data?.id ?? ""),
     enabled: !!student.data?.id,
-    refetchInterval: 15000,
-    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   });
 
   const average = grades.data?.length
@@ -59,16 +57,37 @@ function StudentArea() {
     setProfileOpen(true);
   }
 
-  function handleAvatar(event: ChangeEvent<HTMLInputElement>) {
+  async function handleAvatar(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (file.size > 1.5 * 1024 * 1024) {
-      setProfileMessage("Escolha uma foto de até 1,5 MB.");
+    if (!file.type.startsWith("image/")) {
+      setProfileMessage("Escolha uma imagem válida.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setProfileAvatar(typeof reader.result === "string" ? reader.result : null);
-    reader.readAsDataURL(file);
+    if (file.size > 6 * 1024 * 1024) {
+      setProfileMessage("Escolha uma foto de até 6 MB.");
+      return;
+    }
+    setProfileMessage("Enviando foto…");
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) {
+      setProfileMessage("Sua sessão expirou. Entre novamente.");
+      return;
+    }
+    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = auth.user.id + "/avatar-" + Date.now() + "." + extension;
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
+      contentType: file.type,
+      cacheControl: "3600",
+      upsert: false,
+    });
+    if (uploadError) {
+      setProfileMessage("Não foi possível enviar a foto. Tente novamente.");
+      return;
+    }
+    const { data: publicUrl } = supabase.storage.from("avatars").getPublicUrl(path);
+    setProfileAvatar(publicUrl.publicUrl);
+    setProfileMessage(null);
   }
 
   async function saveProfile() {
