@@ -228,30 +228,23 @@ function StudentArea() {
   return (
     <AcademicShell title="Dashboard acadêmico" subtitle="Meu acompanhamento">
       <section id="inicio" className="mt-8 scroll-mt-28 overflow-hidden rounded-3xl border border-brand-border bg-brand p-6 text-brand-foreground shadow-sm md:p-8">
-        <p className="text-xs font-bold uppercase tracking-wide text-brand-muted">Resumo acadêmico</p>
-        <div className="mt-2 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="flex items-center gap-4">
-  <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-brand-border bg-brand-panel">
-    {student.data.avatar_url ? <img src={student.data.avatar_url} alt="" className="size-full object-cover" /> : <UserRound className="size-7 text-brand-muted" />}
-  </div>
-  <div>
-    <h2 className="font-display text-3xl font-bold">{student.data.full_name}</h2>
-    <p className="mt-1 text-xs text-brand-muted">Perfil do estudante</p>
-  </div>
-</div>
-            <p className="mt-2 text-sm text-brand-muted">
-              {linked ? `Turma ${student.data.classroom} · Matrícula ${student.data.enrollment}` : "Cadastro concluído · aguardando vínculo acadêmico"}
-            </p>
-            <p className="mt-2 text-xs text-brand-muted">Os dados acadêmicos são atualizados automaticamente conforme forem lançados.</p>
+        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-brand-border bg-brand-panel">
+              {student.data.avatar_url ? <img src={student.data.avatar_url} alt="" className="size-full object-cover" /> : <UserRound className="size-7 text-brand-muted" />}
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-muted">Área do aluno</p>
+              <h2 className="mt-1 font-display text-3xl font-bold">Olá, {student.data.full_name.split(" ")[0]}! 👋</h2>
+              <p className="mt-1 text-sm text-brand-muted">Bem-vindo ao SINA. Acompanhe sua vida acadêmica de forma simples e organizada.</p>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" variant="outline" size="sm" onClick={openProfile} className="border-brand-border bg-brand text-brand-foreground hover:bg-brand-panel hover:text-brand-foreground"><UserRound /> Editar perfil</Button>
-          <div className="rounded-2xl border border-brand-border bg-brand-panel px-4 py-3 text-sm">
-            <p className="text-xs text-brand-muted">Situação</p>
-            <p className="mt-1 font-semibold">{linked ? "Vinculado à turma" : "Aguardando professor"}</p>
-          </div>
-          </div>
+          <Button type="button" variant="outline" size="sm" onClick={openProfile} className="self-start border-brand-border bg-brand text-brand-foreground hover:bg-brand-panel hover:text-brand-foreground md:self-center"><UserRound /> Meu perfil</Button>
+        </div>
+        <div className="mt-6 flex flex-wrap gap-2 text-xs text-brand-muted">
+          <span className="rounded-full border border-brand-border bg-brand-panel px-3 py-1.5">{linked ? `Turma ${student.data.classroom}` : "Cadastro em andamento"}</span>
+          {student.data.enrollment && <span className="rounded-full border border-brand-border bg-brand-panel px-3 py-1.5">Matrícula {student.data.enrollment}</span>}
+          <span className="rounded-full border border-brand-border bg-brand-panel px-3 py-1.5">{linked ? "Dados atualizados automaticamente" : "Aguardando vínculo acadêmico"}</span>
         </div>
       </section>
 
