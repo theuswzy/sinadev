@@ -33,12 +33,16 @@ function StudentArea() {
     queryKey: ["my-student"],
     queryFn: loadMyStudent,
     enabled: role.data === "student",
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
   });
   const queryClient = useQueryClient();
   const grades = useQuery({
     queryKey: ["my-grades", student.data?.id],
     queryFn: () => loadGrades(student.data?.id ?? ""),
     enabled: !!student.data?.id,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
   });
 
   const average = grades.data?.length
@@ -121,6 +125,7 @@ function StudentArea() {
             <p className="mt-2 text-sm text-brand-muted">
               {linked ? `Turma ${student.data.classroom} · Matrícula ${student.data.enrollment}` : "Cadastro concluído · aguardando vínculo acadêmico"}
             </p>
+            <p className="mt-2 text-xs text-brand-muted">Os dados acadêmicos são atualizados automaticamente conforme forem lançados.</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
           <Button type="button" variant="outline" size="sm" onClick={openProfile} className="border-brand-border bg-brand text-brand-foreground hover:bg-brand-panel hover:text-brand-foreground"><UserRound /> Editar perfil</Button>
@@ -182,7 +187,7 @@ function StudentArea() {
           </section>
 
           <section className="mt-5 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-            <div className="border-b border-border p-6"><h2 className="text-lg font-semibold">Disciplinas e notas</h2><p className="mt-1 text-xs text-muted-foreground">Dados vinculados à sua matrícula.</p></div>
+            <div className="border-b border-border p-6"><h2 className="text-lg font-semibold">Disciplinas e notas</h2><p className="mt-1 text-xs text-muted-foreground">{linked ? "Dados vinculados à sua matrícula." : "As notas aparecerão aqui quando forem lançadas pelo professor."}</p></div>
             {grades.isPending ? <p className="p-6 text-sm text-muted-foreground">Carregando notas…</p> : grades.error ? <p role="alert" className="p-6 text-sm text-destructive">{errorText(grades.error)}</p> : grades.data?.length ? <div className="overflow-x-auto"><table className="w-full min-w-[560px] text-left text-sm"><thead className="bg-secondary/50"><tr><th className="p-4">Disciplina</th><th className="p-4">Período</th><th className="p-4">Nota</th><th className="p-4">Faltas</th><th className="p-4">Situação</th></tr></thead><tbody>{grades.data.map(g => <tr key={g.id} className="border-b border-border"><td className="p-4 font-medium">{g.subject}</td><td className="p-4">{g.period}º</td><td className="p-4 font-semibold tabular-nums">{formatScore(g.score)}</td><td className="p-4 tabular-nums">{g.absences}</td><td className="p-4">{g.score >= 7 ? "Concluída" : "Em acompanhamento"}</td></tr>)}</tbody></table></div> : <p className="p-6 text-sm text-muted-foreground">Ainda não há dados acadêmicos lançados.</p>}
           </section>
 
