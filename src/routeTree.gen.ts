@@ -206,7 +206,7 @@ declare module '@tanstack/react-router' {
       path: '/aluno/perfil'
       fullPath: '/aluno/perfil'
       preLoaderRoute: typeof AuthenticatedAlunoPerfilRouteImport
-      parentRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/painel': {
       id: '/_authenticated/painel'
