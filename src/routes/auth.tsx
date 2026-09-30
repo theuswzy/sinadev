@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { getRole } from "@/lib/sina-data";
 
 function authErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
@@ -24,23 +25,17 @@ export const Route = createFileRoute("/auth")({
 });
 
 async function destination(): Promise<"/aluno" | "/professor" | "/admin"> {
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return "/aluno";
-  const { data: admin } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id).eq("role", "admin").maybeSingle();
-  if (admin) return "/admin";
-  const { data: teacher } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id).eq("role", "teacher").maybeSingle();
-  return teacher ? "/professor" : "/aluno";
+  const role = await getRole();
+  return role === "admin" ? "/admin" : role === "teacher" ? "/professor" : "/aluno";
 }
 
 async function navigateAfterAuth(navigate: ReturnType<typeof useNavigate>) {
-  try {
-    await supabase.rpc("ensure_student_profile");
-    await navigate({ to: await destination(), replace: true });
-  } catch {
-    // Authentication succeeded; if role lookup/navigation fails, keep the
-    // authenticated user out of the login error state and use the safe area.
-    await navigate({ to: "/aluno", replace: true });
+  const role = await getRole();
+  if (role === "student") {
+    const { error } = await supabase.rpc("ensure_student_profile");
+    if (error) throw error;
   }
+  await navigate({ to: role === "admin" ? "/admin" : role === "teacher" ? "/professor" : "/aluno", replace: true });
 }
 
 function AuthPage() {
