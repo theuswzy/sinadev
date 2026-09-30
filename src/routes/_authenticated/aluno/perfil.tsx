@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Camera, Check, LogOut, Palette, Save, ShieldCheck, UserRound } from "lucide-react";
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,10 +120,12 @@ function StudentProfile() {
     return <AcademicShell title="Meu perfil" subtitle="Personalize sua conta"><p className="mt-8">Seu perfil acadêmico ainda não foi criado.</p></AcademicShell>;
   }
 
-  if (!name && avatar === null) {
-    // Initialize the local editing state from the current profile without changing the stored data.
-    startEditing();
-  }
+  useEffect(() => {
+    if (currentStudent) {
+      setName(currentStudent.full_name ?? "");
+      setAvatar(currentStudent.avatar_url ?? null);
+    }
+  }, [currentStudent?.id]);
 
   return (
     <AcademicShell title="Meu perfil" subtitle="Personalize sua conta">
@@ -232,8 +234,8 @@ function StudentProfile() {
               </div>
             </div>
             <div className="mt-5 rounded-2xl bg-secondary/60 p-4">
-              <p className="text-xs text-muted-foreground">E-mail da conta</p>
-              <p className="mt-1 break-all text-sm font-semibold">{currentStudent.email || "E-mail protegido"}</p>
+              <p className="text-xs text-muted-foreground">Identificação acadêmica</p>
+              <p className="mt-1 text-sm font-semibold">Conta de aluno SINA</p>
             </div>
             <div className="mt-3 rounded-2xl border border-border p-4">
               <p className="text-sm font-semibold">Senha</p>
