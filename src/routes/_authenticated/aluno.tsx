@@ -13,6 +13,10 @@ export const Route = createFileRoute("/_authenticated/aluno")({
     meta: [
       { title: "Dashboard do aluno — SINA" },
       { name: "description", content: "Acompanhe seu desempenho acadêmico no SINA." },
+      { property: "og:title", content: "Dashboard do aluno — SINA" },
+      { property: "og:description", content: "Acompanhe seu desempenho acadêmico no SINA." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: StudentArea,
@@ -144,16 +148,16 @@ function StudentArea() {
         <>
           <section aria-label="Indicadores acadêmicos" className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ["Média geral", average ? formatScore(average) : "—", "Escala de 0 a 10", TrendingUp],
-              ["Frequência", student.data.attendance === null ? "—" : `${formatScore(student.data.attendance)}%`, "Frequência registrada", CalendarDays],
-              ["Notas lançadas", String(grades.data?.length ?? 0), "Registros acadêmicos", BookOpen],
-              ["Desempenho ≥ 7", String(completed), "Notas com resultado satisfatório", GraduationCap],
-            ].map(([label, value, note, Icon]) => (
-              <div key={String(label)} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+              { label: "Média geral", value: average ? formatScore(average) : "—", note: "Escala de 0 a 10", Icon: TrendingUp },
+              { label: "Frequência", value: student.data.attendance === null ? "—" : `${formatScore(student.data.attendance)}%`, note: "Frequência registrada", Icon: CalendarDays },
+              { label: "Notas lançadas", value: String(grades.data?.length ?? 0), note: "Registros acadêmicos", Icon: BookOpen },
+              { label: "Desempenho ≥ 7", value: String(completed), note: "Notas com resultado satisfatório", Icon: GraduationCap },
+            ].map(({ label, value, note, Icon }) => (
+              <div key={label} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
                 <Icon className="size-5 text-primary" />
-                <p className="mt-4 text-xs font-bold uppercase text-muted-foreground">{String(label)}</p>
-                <p className="mt-2 font-display text-3xl font-semibold tabular-nums">{String(value)}</p>
-                <p className="mt-2 text-xs text-muted-foreground">{String(note)}</p>
+                <p className="mt-4 text-xs font-bold uppercase text-muted-foreground">{label}</p>
+                <p className="mt-2 font-display text-3xl font-semibold tabular-nums">{value}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{note}</p>
               </div>
             ))}
           </section>
