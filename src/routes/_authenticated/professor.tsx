@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { UserRoundPlus, Link2, Users, ClipboardList, Save, ShieldCheck, Search, CheckCircle2, AlertCircle, BarChart3, Megaphone, ClipboardCheck } from "lucide-react";
+import { UserRoundPlus, Link2, Users, ClipboardList, Save, ShieldCheck, Search, CheckCircle2, AlertCircle, BarChart3, Megaphone, ClipboardCheck, Filter, UsersRound } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,11 @@ function TeacherArea() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [studentSearch, setStudentSearch] = useState("");
+  const [classFilter, setClassFilter] = useState("all");
+  const [bulkClassroom, setBulkClassroom] = useState("");
+  const [bulkSubject, setBulkSubject] = useState("");
+  const [bulkPeriod, setBulkPeriod] = useState("1");
+  const [bulkScores, setBulkScores] = useState<Record<string, string>>({});
   const [messageType, setMessageType] = useState<"success" | "error">("success");
   const [noticeClassroom, setNoticeClassroom] = useState("");
   const [noticeTitle, setNoticeTitle] = useState("");
@@ -94,6 +99,39 @@ function TeacherArea() {
   }
 
 
+  async function saveBulkGrades(e: FormEvent) {
+    e.preventDefault();
+    if (!bulkClassroom || !bulkSubject.trim()) return;
+    const entries = linked.filter(s => s.classroom === bulkClassroom && bulkScores[s.id]?.trim() !== "");
+    if (!entries.length) {
+      setMessageType("error");
+      setMessage("Informe pelo menos uma nota para a turma.");
+      return;
+    }
+    setBusy(true); setMessage(""); setMessageType("success");
+    for (const student of entries) {
+      const { error } = await supabase.rpc("teacher_upsert_grade", {
+        _student_id: student.id,
+        _subject: bulkSubject.trim(),
+        _period: Number(bulkPeriod),
+        _score: Number(bulkScores[student.id].replace(",", ".")),
+        _absences: 0,
+      });
+      if (error) {
+        setBusy(false);
+        setMessageType("error");
+        setMessage(errorText(error));
+        toast.error("Não foi possível concluir todos os lançamentos.");
+        return;
+      }
+    }
+    setBusy(false);
+    setBulkScores({});
+    setMessage("Lançamento em lote concluído.");
+    toast.success(`${entries.length} nota${entries.length === 1 ? "" : "s"} lançada${entries.length === 1 ? "" : "s"} com sucesso.`);
+    await queryClient.invalidateQueries({ queryKey: ["grades"] });
+  }
+
   async function createAnnouncement(e: FormEvent) {
     e.preventDefault();
     setBusy(true); setMessage(""); setMessageType("success");
@@ -130,7 +168,12 @@ function TeacherArea() {
   const unlinked = students.data?.filter(s => !s.teacher_id) ?? [];
   const linked = students.data?.filter(s => s.teacher_id) ?? [];
   const filteredUnlinked = unlinked.filter(s => s.full_name.toLowerCase().includes(studentSearch.toLowerCase()));
-  const filteredLinked = linked.filter(s => s.full_name.toLowerCase().includes(studentSearch.toLowerCase()));
+  const classrooms = Array.from(new Set(linked.map(s => s.classroom).filter(Boolean))).sort();
+  const visibleLinked = classFilter === "all" ? linked : linked.filter(s => s.classroom === classFilter);
+  const filteredLinked = visibleLinked.filter(s => s.full_name.toLowerCase().includes(studentSearch.toLowerCase()));
+  const classStudents = linked.filter(s => s.classroom === bulkClassroom);
+  const classWithAttendance = visibleLinked.filter(s => s.attendance !== null).length;
+  const averageAttendance = classWithAttendance ? visibleLinked.reduce((sum, s) => sum + (s.attendance ?? 0), 0) / classWithAttendance : 0;
 
   return <AcademicShell title="Área do professor" subtitle="Turmas e acompanhamento acadêmico">
     {role.isPending ? <p className="mt-8 text-muted-foreground">Verificando acesso…</p> : role.error ? <p role="alert" className="mt-8 text-destructive">{errorText(role.error)}</p> : role.data !== "teacher" ? (
@@ -171,6 +214,19 @@ function TeacherArea() {
         <div className="border-b border-border p-6"><h2 className="font-semibold">Meus alunos</h2><p className="mt-1 text-sm text-muted-foreground">Somente alunos vinculados a você aparecem nesta lista.</p></div>
         {filteredLinked.length ? <div className="divide-y divide-border">{filteredLinked.map(s => <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setAttendance(s.attendance === null ? "" : String(s.attendance)); setMessage(""); }} className={`flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-accent/50 ${selectedId === s.id ? "bg-accent/50" : ""}`}><span><strong>{s.full_name}</strong><small className="mt-1 block text-muted-foreground">Turma {s.classroom} · Matrícula {s.enrollment}</small></span><span className="text-xs text-muted-foreground">{s.attendance === null ? "Freq. —" : `Freq. ${formatScore(s.attendance)}%`}</span></button>)}</div> : <p className="p-6 text-sm text-muted-foreground">Nenhum aluno vinculado ainda.</p>}
       </section>
+
+      {linked.length > 0 && <section className="mt-5 sina-card sina-card-hover p-6">
+        <div className="flex items-center gap-3"><UsersRound className="size-5 text-primary" /><div><h2 className="font-semibold">Lançamento rápido de notas</h2><p className="mt-1 text-sm text-muted-foreground">Preencha as notas de vários alunos da mesma turma em uma única tela.</p></div></div>
+        <form onSubmit={saveBulkGrades} className="mt-5">
+          <div className="grid gap-3 md:grid-cols-3">
+            <select required value={bulkClassroom} onChange={e => { setBulkClassroom(e.target.value); setBulkScores({}); }} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Selecione a turma</option>{classrooms.map(item => <option key={item} value={item}>{item}</option>)}</select>
+            <Input required placeholder="Disciplina" value={bulkSubject} onChange={e => setBulkSubject(e.target.value)} />
+            <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={bulkPeriod} onChange={e => setBulkPeriod(e.target.value)}>{[1,2,3,4].map(n => <option key={n} value={n}>{n}º período</option>)}</select>
+          </div>
+          {bulkClassroom && <div className="mt-5 overflow-x-auto rounded-xl border border-border"><table className="w-full min-w-[520px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-3 text-left">Aluno</th><th className="p-3 text-left">Matrícula</th><th className="w-40 p-3 text-left">Nota</th></tr></thead><tbody>{classStudents.map(s => <tr key={s.id} className="border-t border-border"><td className="p-3 font-medium">{s.full_name}</td><td className="p-3 text-muted-foreground">{s.enrollment}</td><td className="p-3"><Input type="number" min="0" max="10" step="0.01" value={bulkScores[s.id] ?? ""} onChange={e => setBulkScores(prev => ({ ...prev, [s.id]: e.target.value }))} placeholder="0–10" /></td></tr>)}</tbody></table></div>}
+          <Button type="submit" disabled={busy || !bulkClassroom || !classStudents.length} className="mt-4"><Save className="mr-2 size-4" />{busy ? "Lançando…" : "Lançar notas preenchidas"}</Button>
+        </form>
+      </section>}
 
       {selected?.teacher_id && <section id="lancamentos" className="mt-5 scroll-mt-28 grid gap-5 lg:grid-cols-2">
         <div className="sina-card sina-card-hover p-6">
