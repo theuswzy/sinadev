@@ -141,6 +141,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_audit_logs: {
+        Args: { _limit?: number }
+        Returns: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+        }[]
+      }
       admin_list_teachers: {
         Args: never
         Returns: {
