@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { GraduationCap, BookOpen, CalendarDays, CircleAlert, TrendingUp, UserRound, Megaphone, ClipboardCheck, Clock3, CheckCircle2, ArrowUpRight } from "lucide-react";
+import { GraduationCap, CalendarDays, CircleAlert, TrendingUp, UserRound, Megaphone, ClipboardCheck, Clock3, CheckCircle2, ArrowUpRight } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { errorText, formatScore, getRole, loadGrades, loadMyStudent, loadAnnouncements, loadTasks, setTaskCompleted } from "@/lib/sina-data";
