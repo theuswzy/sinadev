@@ -260,27 +260,27 @@ function StudentArea() {
       )}
 
       <section className="mt-5 grid gap-4 lg:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <div className="sina-card sina-card-hover sina-interactive p-5">
           <div className="flex items-center gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><Megaphone className="size-5" /></div><div><p className="text-xs font-bold uppercase text-muted-foreground">Avisos</p><p className="text-lg font-semibold">{recentAnnouncements.length ? "Novidades da turma" : "Quadro de avisos"}</p></div></div>
           {recentAnnouncements.length ? <div className="mt-4 space-y-3">{recentAnnouncements.map(a => <div key={a.id} className="rounded-xl bg-secondary/50 p-3"><p className="text-sm font-semibold">{a.title}</p><p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{a.content}</p></div>)}</div> : <p className="mt-4 text-sm text-muted-foreground">{linked ? "Os avisos publicados pelos professores aparecerão aqui." : "Os avisos aparecerão aqui quando você estiver vinculado a uma turma."}</p>}
         </div>
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <div className="sina-card sina-card-hover sina-interactive p-5">
           <div className="flex items-center gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><ClipboardCheck className="size-5" /></div><div><p className="text-xs font-bold uppercase text-muted-foreground">Tarefas pendentes</p><p className="text-lg font-semibold">{pendingTasks ? pendingTasks + " pendente" + (pendingTasks === 1 ? "" : "s") : "Nenhuma pendência"}</p></div></div>
           {recentTasks.length ? <div className="mt-4 space-y-3">{recentTasks.map(task => <div key={task.id} className="flex items-start justify-between gap-3 rounded-xl bg-secondary/50 p-3"><div><p className="text-sm font-semibold">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject}{task.due_at ? " · Entrega " + new Date(task.due_at).toLocaleDateString("pt-BR") : ""}</p></div><Button type="button" size="sm" variant="outline" onClick={() => void toggleTask(task.id)}>Concluir</Button></div>)}</div> : <p className="mt-4 text-sm text-muted-foreground">{linked ? "As tarefas recebidas dos professores aparecerão aqui." : "Suas tarefas aparecerão aqui após o vínculo acadêmico."}</p>}
         </div>
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <div className="sina-card sina-card-hover sina-interactive p-5">
           <div className="flex items-center gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><Clock3 className="size-5" /></div><div><p className="text-xs font-bold uppercase text-muted-foreground">Frequência</p><p className="text-lg font-semibold">{student.data.attendance === null ? "Aguardando dados" : formatScore(student.data.attendance) + "%"}</p></div></div>
           <p className="mt-4 text-sm text-muted-foreground">{linked ? "Acompanhe sua frequência e faltas registradas." : "A frequência será preenchida quando houver vínculo acadêmico."}</p>
           <div className="mt-4 flex items-center gap-2 text-xs font-medium text-primary"><CheckCircle2 className="size-4" /> {totalAbsences} {totalAbsences === 1 ? "falta registrada" : "faltas registradas"}</div>
         </div>
       </section>
 
-      <section className="mt-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <section className="mt-5 sina-card sina-card-hover p-6">
         <div className="flex items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Central acadêmica</h2><p className="mt-1 text-sm text-muted-foreground">Todas as áreas ficam disponíveis desde o primeiro acesso.</p></div><div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{pendingTasks} pendência{pendingTasks === 1 ? "" : "s"}</div></div>
         <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-border p-4"><Megaphone className="size-5 text-primary" /><p className="mt-3 font-semibold">Quadro de avisos</p><p className="mt-1 text-xs text-muted-foreground">Comunicados publicados pelos professores da sua turma.</p></div>
-          <div className="rounded-xl border border-border p-4"><ClipboardCheck className="size-5 text-primary" /><p className="mt-3 font-semibold">Minhas tarefas</p><p className="mt-1 text-xs text-muted-foreground">Acompanhe atividades e prazos acadêmicos.</p></div>
-          <div className="rounded-xl border border-border p-4"><BookOpen className="size-5 text-primary" /><p className="mt-3 font-semibold">Minhas matérias</p><p className="mt-1 text-xs text-muted-foreground">Suas disciplinas e respectivos lançamentos aparecerão aqui.</p></div>
+          <div className="sina-interactive rounded-2xl border border-border p-4 hover:border-primary/40 hover:bg-primary/[0.02]"><Megaphone className="size-5 text-primary" /><p className="mt-3 font-semibold">Quadro de avisos</p><p className="mt-1 text-xs text-muted-foreground">Comunicados publicados pelos professores da sua turma.</p></div>
+          <div className="sina-interactive rounded-2xl border border-border p-4 hover:border-primary/40 hover:bg-primary/[0.02]"><ClipboardCheck className="size-5 text-primary" /><p className="mt-3 font-semibold">Minhas tarefas</p><p className="mt-1 text-xs text-muted-foreground">Acompanhe atividades e prazos acadêmicos.</p></div>
+          <div className="sina-interactive rounded-2xl border border-border p-4 hover:border-primary/40 hover:bg-primary/[0.02]"><BookOpen className="size-5 text-primary" /><p className="mt-3 font-semibold">Minhas matérias</p><p className="mt-1 text-xs text-muted-foreground">Suas disciplinas e respectivos lançamentos aparecerão aqui.</p></div>
         </div>
       </section>
 
@@ -291,7 +291,7 @@ function StudentArea() {
           { label: "Notas lançadas", value: String(grades.data?.length ?? 0), note: "Registros do seu perfil", Icon: BookOpen },
           { label: "Disciplinas", value: String(new Set(grades.data?.map(g => g.subject) ?? []).size), note: "Matérias cadastradas", Icon: GraduationCap },
         ].map(({ label, value, note, Icon }) => (
-          <div key={label} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <div key={label} className="sina-card sina-card-hover sina-interactive p-5">
             <Icon className="size-5 text-primary" />
             <p className="mt-4 text-xs font-bold uppercase text-muted-foreground">{label}</p>
             <p className="mt-2 font-display text-3xl font-semibold tabular-nums">{value}</p>
@@ -300,7 +300,7 @@ function StudentArea() {
         ))}
       </section>
 
-      <section className="mt-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <section className="mt-5 sina-card sina-card-hover p-6">
         <div className="flex items-center justify-between gap-4">
           <div><h2 className="text-lg font-semibold">Minhas notas e desempenho</h2><p className="mt-1 text-xs text-muted-foreground">Acompanhe os dados lançados para o seu perfil.</p></div>
           <div className="hidden rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary sm:block">SINA</div>
@@ -319,17 +319,17 @@ function StudentArea() {
         </div>
       </section>
 
-      <section className="mt-5 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <section className="mt-5 overflow-hidden sina-card sina-card-hover">
         <div className="border-b border-border p-6"><h2 className="text-lg font-semibold">Minhas matérias e notas</h2><p className="mt-1 text-xs text-muted-foreground">{linked ? "Dados vinculados à sua matrícula." : "A área já está disponível; os dados serão preenchidos após o vínculo."}</p></div>
         {grades.isPending ? <p className="p-6 text-sm text-muted-foreground">Carregando seus dados…</p> : grades.error ? <p role="alert" className="p-6 text-sm text-destructive">{errorText(grades.error)}</p> : grades.data?.length ? <div className="overflow-x-auto"><table className="w-full min-w-[560px] text-left text-sm"><thead className="bg-secondary/50"><tr><th className="p-4">Disciplina</th><th className="p-4">Período</th><th className="p-4">Nota</th><th className="p-4">Faltas</th><th className="p-4">Situação</th></tr></thead><tbody>{grades.data.map(g => <tr key={g.id} className="border-b border-border"><td className="p-4 font-medium">{g.subject}</td><td className="p-4">{g.period}º</td><td className="p-4 font-semibold tabular-nums">{formatScore(g.score)}</td><td className="p-4 tabular-nums">{g.absences}</td><td className="p-4">{g.score >= 7 ? "Concluída" : "Em acompanhamento"}</td></tr>)}</tbody></table></div> : <p className="p-6 text-sm text-muted-foreground">Nenhum dado acadêmico disponível ainda. Quando sua turma e matrícula forem vinculadas, os lançamentos aparecerão automaticamente aqui.</p>}
       </section>
 
-      <section className="mt-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <section className="mt-5 sina-card sina-card-hover p-6">
         <h2 className="text-lg font-semibold">Próximos passos</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-border p-4"><p className="text-xs font-bold uppercase text-primary">1</p><p className="mt-2 text-sm font-semibold">Acesse seu dashboard</p><p className="mt-1 text-xs text-muted-foreground">Seu painel fica disponível assim que sua conta é criada.</p></div>
-          <div className="rounded-xl border border-border p-4"><p className="text-xs font-bold uppercase text-primary">2</p><p className="mt-2 text-sm font-semibold">Aguarde o vínculo acadêmico</p><p className="mt-1 text-xs text-muted-foreground">Professor ou responsável autorizado poderá vincular sua turma e matrícula.</p></div>
-          <div className="rounded-xl border border-border p-4"><p className="text-xs font-bold uppercase text-primary">3</p><p className="mt-2 text-sm font-semibold">Acompanhe seus dados</p><p className="mt-1 text-xs text-muted-foreground">Notas, frequência, matérias, avisos e tarefas aparecerão automaticamente.</p></div>
+          <div className="sina-interactive rounded-2xl border border-border p-4 hover:border-primary/40 hover:bg-primary/[0.02]"><p className="text-xs font-bold uppercase text-primary">1</p><p className="mt-2 text-sm font-semibold">Acesse seu dashboard</p><p className="mt-1 text-xs text-muted-foreground">Seu painel fica disponível assim que sua conta é criada.</p></div>
+          <div className="sina-interactive rounded-2xl border border-border p-4 hover:border-primary/40 hover:bg-primary/[0.02]"><p className="text-xs font-bold uppercase text-primary">2</p><p className="mt-2 text-sm font-semibold">Aguarde o vínculo acadêmico</p><p className="mt-1 text-xs text-muted-foreground">Professor ou responsável autorizado poderá vincular sua turma e matrícula.</p></div>
+          <div className="sina-interactive rounded-2xl border border-border p-4 hover:border-primary/40 hover:bg-primary/[0.02]"><p className="text-xs font-bold uppercase text-primary">3</p><p className="mt-2 text-sm font-semibold">Acompanhe seus dados</p><p className="mt-1 text-xs text-muted-foreground">Notas, frequência, matérias, avisos e tarefas aparecerão automaticamente.</p></div>
         </div>
       </section>
     </AcademicShell>
