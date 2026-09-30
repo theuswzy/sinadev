@@ -138,6 +138,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_teachers: {
+        Args: never
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          user_id: string
+        }[]
+      }
+      admin_set_teacher_access: {
+        Args: { _email: string; _enabled: boolean }
+        Returns: boolean
+      }
       claim_student: {
         Args: { _code: string; _enrollment: string }
         Returns: boolean
@@ -149,9 +162,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "student" | "teacher"
+      app_role: "student" | "teacher" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -279,7 +293,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["student", "teacher"],
+      app_role: ["student", "teacher", "admin"],
     },
   },
 } as const
