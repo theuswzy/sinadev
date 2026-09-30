@@ -27,10 +27,10 @@ const benefits = [
 function PresentationPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="relative z-20 border-b border-brand-border bg-brand text-brand-foreground">
+      <header className="sticky top-0 z-40 border-b border-brand-border/80 bg-brand/95 text-brand-foreground shadow-sm backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8 lg:px-10">
-          <Link to="/" aria-label="SINA — início" className="flex shrink-0 items-center gap-2 font-display text-2xl font-bold">
-            <GraduationCap aria-hidden="true" className="size-8 stroke-[1.5]" /> SINA
+          <Link to="/" aria-label="SINA — início" className="group flex shrink-0 items-center gap-2.5 font-display text-xl font-bold tracking-tight">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-brand-panel text-primary ring-1 ring-brand-border transition-transform group-hover:scale-105"><GraduationCap aria-hidden="true" className="size-5" /></span> SINA
           </Link>
           <nav aria-label="Navegação" className="flex items-center gap-4 text-sm sm:gap-7">
             <a href="#sobre" className="hidden text-brand-foreground/75 transition-colors hover:text-brand-foreground sm:inline">Sobre</a>
@@ -40,9 +40,9 @@ function PresentationPage() {
       </header>
 
       <main>
-        <section className="relative flex min-h-[520px] items-center overflow-hidden bg-brand text-brand-foreground sm:min-h-[570px] lg:min-h-[650px]">
+        <section className="relative flex min-h-[560px] items-center overflow-hidden bg-brand text-brand-foreground sm:min-h-[620px] lg:min-h-[700px]">
           <img src={learningImage} width={1536} height={1024} alt="Estudantes analisando materiais de estudo juntos" className="absolute inset-0 h-full w-full object-cover object-[58%_center]" />
-          <div className="absolute inset-0 bg-brand/60 sm:bg-brand/35" aria-hidden="true" />
+          <div className="absolute inset-0 bg-gradient-to-r from-brand/90 via-brand/65 to-brand/25 sm:from-brand/85 sm:via-brand/45 sm:to-brand/15" aria-hidden="true" />
           <div className="relative mx-auto w-full max-w-7xl px-5 py-20 sm:px-8 lg:px-10">
             <div className="max-w-[660px]">
               <p className="mb-6 flex items-center gap-3 text-xs font-bold uppercase text-brand-muted"><span className="h-px w-8 bg-primary" /> Sistema digital acadêmico</p>
@@ -72,7 +72,7 @@ function PresentationPage() {
             <h2 className="mt-3 max-w-xl font-display text-3xl font-semibold leading-tight sm:text-4xl">Tudo no lugar certo, para acompanhar melhor.</h2>
             <div className="mt-10 grid gap-0 border-t border-border md:grid-cols-3">
               {benefits.map(({ icon: Icon, number, title, description }) => (
-                <article key={number} className="border-b border-border py-8 md:border-b-0 md:border-r md:px-7 md:first:pl-0 md:last:border-r-0 md:last:pr-0">
+                <article key={number} className="sina-interactive border-b border-border py-8 md:border-b-0 md:border-r md:px-7 md:first:pl-0 md:last:border-r-0 md:last:pr-0">
                   <div className="flex items-start justify-between"><Icon aria-hidden="true" className="size-8 stroke-[1.5] text-success" /><span className="font-display text-xs font-semibold text-muted-foreground">{number}</span></div>
                   <h3 className="mt-8 font-display text-lg font-semibold">{title}</h3>
                   <p className="mt-3 max-w-sm text-sm leading-7 text-muted-foreground">{description}</p>
@@ -86,8 +86,8 @@ function PresentationPage() {
           <div className="mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-20 lg:px-10">
             <div><p className="text-xs font-bold uppercase text-brand-muted">Feito para quem ensina e aprende</p><h2 className="mt-3 max-w-md font-display text-3xl font-semibold leading-tight sm:text-4xl">Duas perspectivas. Um mesmo caminho.</h2></div>
             <div className="grid gap-8 sm:grid-cols-2">
-              <div className="border-t border-brand-border pt-5"><BookOpen aria-hidden="true" className="size-7 text-brand-muted" /><h3 className="mt-4 font-display text-lg font-semibold">Para alunos</h3><p className="mt-2 text-sm leading-7 text-brand-foreground/75">Consulte suas notas e sua frequência em um espaço pessoal.</p></div>
-              <div className="border-t border-brand-border pt-5"><UsersRound aria-hidden="true" className="size-7 text-brand-muted" /><h3 className="mt-4 font-display text-lg font-semibold">Para professores</h3><p className="mt-2 text-sm leading-7 text-brand-foreground/75">Cadastre alunos e mantenha notas e frequência atualizadas.</p></div>
+              <div className="sina-interactive border-t border-brand-border pt-5"><BookOpen aria-hidden="true" className="size-7 text-brand-muted" /><h3 className="mt-4 font-display text-lg font-semibold">Para alunos</h3><p className="mt-2 text-sm leading-7 text-brand-foreground/75">Consulte suas notas e sua frequência em um espaço pessoal.</p></div>
+              <div className="sina-interactive border-t border-brand-border pt-5"><UsersRound aria-hidden="true" className="size-7 text-brand-muted" /><h3 className="mt-4 font-display text-lg font-semibold">Para professores</h3><p className="mt-2 text-sm leading-7 text-brand-foreground/75">Cadastre alunos e mantenha notas e frequência atualizadas.</p></div>
             </div>
           </div>
         </section>
