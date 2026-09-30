@@ -2,12 +2,19 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 export type Student = Tables<"students">;
 export type Grade = Tables<"grades">;
-export async function getRole(): Promise<"teacher" | "student" | "admin"> {
+export type UserRole = "teacher" | "student" | "admin";
+export type AcademicArea = "/aluno" | "/professor" | "/admin";
+
+export async function getRole(): Promise<UserRole> {
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) throw new Error("Entre na sua conta para continuar.");
   const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", auth.user.id).in("role", ["admin", "teacher"]).order("role").limit(1).maybeSingle();
   if (error) throw error;
   return data?.role === "admin" ? "admin" : data?.role === "teacher" ? "teacher" : "student";
+}
+
+export function routeForRole(role: UserRole): AcademicArea {
+  return role === "admin" ? "/admin" : role === "teacher" ? "/professor" : "/aluno";
 }
 export async function loadStudents(): Promise<Student[]> {
   const { data, error } = await supabase.rpc("teacher_list_students");
