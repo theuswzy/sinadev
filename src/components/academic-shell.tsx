@@ -66,6 +66,7 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
 
           <div className="ml-auto flex items-center gap-2">
             <span className="hidden rounded-full border border-brand-border bg-brand-panel/70 px-3 py-1.5 text-xs font-medium text-brand-muted lg:inline-flex">{title}</span>
+            {role.data === "student" && <Link to="/aluno/perfil" className="inline-flex items-center gap-2 rounded-xl border border-brand-border bg-brand-panel/70 px-3 py-2 text-xs font-semibold text-brand-foreground transition-colors hover:bg-brand-panel" aria-label="Abrir meu perfil"><UserRound className="size-4" /><span className="hidden md:inline">Meu perfil</span></Link>}
             <ThemeToggle />
             <Button type="button" size="sm" variant="outline" onClick={logout} className="border-brand-border bg-transparent text-brand-foreground shadow-none transition-colors hover:bg-brand-panel hover:text-brand-foreground">
               <LogOut />
