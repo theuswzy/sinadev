@@ -1,12 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { GraduationCap, BookOpen, CalendarDays, CircleAlert, TrendingUp, Camera, UserRound, Save, X, Megaphone, ClipboardCheck, Clock3, CheckCircle2, ArrowUpRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { GraduationCap, BookOpen, CalendarDays, CircleAlert, TrendingUp, UserRound, Megaphone, ClipboardCheck, Clock3, CheckCircle2, ArrowUpRight } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { errorText, formatScore, getRole, loadGrades, loadMyStudent, loadAnnouncements, loadTasks, setTaskCompleted } from "@/lib/sina-data";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
@@ -24,11 +23,6 @@ export const Route = createFileRoute("/_authenticated/aluno")({
 });
 
 function StudentArea() {
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [profileName, setProfileName] = useState("");
-  const [profileAvatar, setProfileAvatar] = useState<string | null>(null);
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
   const student = useQuery({
     queryKey: ["my-student"],
@@ -36,7 +30,6 @@ function StudentArea() {
     enabled: role.data === "student",
     refetchOnWindowFocus: true,
   });
-  const queryClient = useQueryClient();
   const announcements = useQuery({
     queryKey: ["my-announcements", student.data?.classroom],
     queryFn: loadAnnouncements,
@@ -132,67 +125,6 @@ function StudentArea() {
     }
   }
 
-  function openProfile() {
-    setProfileName(student.data?.full_name ?? "");
-    setProfileAvatar(student.data?.avatar_url ?? null);
-    setProfileMessage(null);
-    setProfileOpen(true);
-  }
-
-  async function handleAvatar(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setProfileMessage("Escolha uma imagem válida.");
-      return;
-    }
-    if (file.size > 6 * 1024 * 1024) {
-      setProfileMessage("Escolha uma foto de até 6 MB.");
-      return;
-    }
-    setProfileMessage("Enviando foto…");
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      setProfileMessage("Sua sessão expirou. Entre novamente.");
-      return;
-    }
-    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const path = auth.user.id + "/avatar-" + Date.now() + "." + extension;
-    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, {
-      contentType: file.type,
-      cacheControl: "3600",
-      upsert: false,
-    });
-    if (uploadError) {
-      setProfileMessage("Não foi possível enviar a foto. Tente novamente.");
-      return;
-    }
-    const { data: publicUrl } = supabase.storage.from("avatars").getPublicUrl(path);
-    setProfileAvatar(publicUrl.publicUrl);
-    setProfileMessage(null);
-  }
-
-  async function saveProfile() {
-    if (!profileName.trim()) {
-      setProfileMessage("Informe seu nome.");
-      return;
-    }
-    setProfileSaving(true);
-    setProfileMessage(null);
-    const { data, error } = await supabase.rpc("student_update_profile", {
-      _full_name: profileName.trim(),
-      _avatar_url: profileAvatar,
-    });
-    if (error) {
-      setProfileMessage(error.message);
-    } else {
-      queryClient.setQueryData(["my-student"], data);
-      setProfileOpen(false);
-      toast.success("Perfil atualizado com sucesso.");
-    }
-    setProfileSaving(false);
-  }
-
   if (role.isPending || student.isPending) {
     return <AcademicShell title="Dashboard acadêmico" subtitle="Meu acompanhamento">
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Carregando dashboard">
@@ -239,7 +171,7 @@ function StudentArea() {
               <p className="mt-1 text-sm text-brand-muted">Bem-vindo ao SINA. Acompanhe sua vida acadêmica de forma simples e organizada.</p>
             </div>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={openProfile} className="self-start border-brand-border bg-brand text-brand-foreground hover:bg-brand-panel hover:text-brand-foreground md:self-center"><UserRound /> Meu perfil</Button>
+          <Link to="/aluno/perfil" className="inline-flex items-center gap-2 self-start rounded-xl border border-brand-border bg-brand px-3 py-2 text-sm font-semibold text-brand-foreground transition-colors hover:bg-brand-panel hover:text-brand-foreground md:self-center"><UserRound /> Meu perfil</Link>
         </div>
         <div className="mt-6 flex flex-wrap gap-2 text-xs text-brand-muted">
           <span className="rounded-full border border-brand-border bg-brand-panel px-3 py-1.5">{linked ? `Turma ${student.data.classroom}` : "Cadastro em andamento"}</span>
@@ -247,8 +179,6 @@ function StudentArea() {
           <span className="rounded-full border border-brand-border bg-brand-panel px-3 py-1.5">{linked ? "Dados atualizados automaticamente" : "Aguardando vínculo acadêmico"}</span>
         </div>
       </section>
-
-      <div id="perfil" className="pointer-events-none h-0 scroll-mt-28" aria-hidden="true" />{profileOpen && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label="Editar perfil"><div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl"><div className="flex items-center justify-between"><div><h2 className="text-xl font-semibold">Editar perfil</h2><p className="mt-1 text-sm text-muted-foreground">Atualize seu nome e sua foto.</p></div><Button type="button" variant="ghost" size="icon" onClick={() => setProfileOpen(false)}><X /></Button></div><div className="mt-6 flex flex-col items-center"><div className="relative flex size-28 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary">{profileAvatar ? <img src={profileAvatar} alt="Prévia do perfil" className="size-full object-cover" /> : <UserRound className="size-10 text-muted-foreground" />}<label className="absolute bottom-1 right-1 flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow"><Camera className="size-4" /><input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} /></label></div></div><div className="mt-6"><label className="text-sm font-medium" htmlFor="student-name">Nome completo</label><Input id="student-name" value={profileName} onChange={(event) => setProfileName(event.target.value)} className="mt-2" /></div>{profileMessage && <p className="mt-3 text-sm text-destructive">{profileMessage}</p>}<div className="mt-6 flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setProfileOpen(false)}>Cancelar</Button><Button type="button" onClick={() => void saveProfile()} disabled={profileSaving}><Save />{profileSaving ? "Salvando…" : "Salvar alterações"}</Button></div></div></div>}
 
       {!linked && (
         <section className="mt-5 overflow-hidden rounded-2xl border border-primary/30 bg-primary/5 p-6">
