@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { errorText, getRole, loadMyStudent } from "@/lib/sina-data";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/aluno.perfil")({
+export const Route = createFileRoute("/_authenticated/aluno/perfil")({
   head: () => ({
     meta: [
       { title: "Meu perfil — SINA" },
