@@ -233,8 +233,51 @@ function TeacherArea() {
       </section>}
 
       <section className="mt-6 sina-card sina-card-hover">
-        <div className="border-b border-border p-6"><h2 className="font-semibold">Meus alunos</h2><p className="mt-1 text-sm text-muted-foreground">Somente alunos vinculados a você aparecem nesta lista.</p></div>
-        {filteredLinked.length ? <div className="divide-y divide-border">{filteredLinked.map(s => <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setAttendance(s.attendance === null ? "" : String(s.attendance)); setMessage(""); }} className={`flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-accent/50 ${selectedId === s.id ? "bg-accent/50" : ""}`}><span><strong>{s.full_name}</strong><small className="mt-1 block text-muted-foreground">Turma {s.classroom} · Matrícula {s.enrollment}</small></span><span className="text-xs text-muted-foreground">{s.attendance === null ? "Freq. —" : `Freq. ${formatScore(s.attendance)}%`}</span></button>)}</div> : <p className="p-6 text-sm text-muted-foreground">Nenhum aluno vinculado ainda.</p>}
+        <div className="border-b border-border p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="font-semibold">Meus alunos</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Filtre por turma ou pesquise pelo nome para encontrar rapidamente um aluno.</p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative">
+                <Filter className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <select value={classFilter} onChange={e => setClassFilter(e.target.value)} className="h-10 min-w-44 rounded-md border border-input bg-background pl-9 pr-3 text-sm" aria-label="Filtrar alunos por turma">
+                  <option value="all">Todas as turmas</option>
+                  {classrooms.map(item => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </div>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input value={studentSearch} onChange={e => setStudentSearch(e.target.value)} placeholder="Buscar aluno…" className="pl-9" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="border-b border-border bg-secondary/30 px-6 py-3 text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">{filteredLinked.length}</span> aluno{filteredLinked.length === 1 ? "" : "s"} encontrado{filteredLinked.length === 1 ? "" : "s"}{classFilter !== "all" ? ` em ${classFilter}` : ""}
+        </div>
+        {filteredLinked.length ? (
+          <div className="divide-y divide-border">
+            {filteredLinked.map(s => (
+              <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setAttendance(s.attendance === null ? "" : String(s.attendance)); setMessage(""); }} className={`flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-accent/50 ${selectedId === s.id ? "bg-accent/50" : ""}`}>
+                <span>
+                  <strong>{s.full_name}</strong>
+                  <small className="mt-1 block text-muted-foreground">Turma {s.classroom} · Matrícula {s.enrollment}</small>
+                </span>
+                <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                  {s.attendance === null ? "Freq. —" : `Freq. ${formatScore(s.attendance)}%`}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="p-8 text-center">
+            <UsersRound className="mx-auto size-8 text-muted-foreground" />
+            <p className="mt-3 font-medium">Nenhum aluno encontrado</p>
+            <p className="mt-1 text-sm text-muted-foreground">Ajuste a turma ou o nome pesquisado.</p>
+          </div>
+        )}
       </section>
 
       {linked.length > 0 && <section className="mt-5 sina-card sina-card-hover p-6">
