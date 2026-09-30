@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { GraduationCap, LogOut, Moon, Sun, LayoutDashboard, ShieldCheck, UserRound, Users } from "lucide-react";
+import { GraduationCap, LogOut, LayoutDashboard, ShieldCheck, UserRound, Users } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
