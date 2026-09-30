@@ -132,11 +132,11 @@ function AdminArea() {
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Professores autorizados</p><p className="mt-1 font-display text-3xl font-semibold">{teachers.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">Contas com acesso ativo</p></div>
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm"><ShieldCheck className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Controle de acesso</p><p className="mt-1 text-sm font-semibold">Permissões centralizadas</p><p className="mt-1 text-xs text-muted-foreground">Autorize ou revogue professores pelo painel.</p></div>
+          <div className="sina-card sina-card-hover sina-interactive p-5"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Professores autorizados</p><p className="mt-1 font-display text-3xl font-semibold">{teachers.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">Contas com acesso ativo</p></div>
+          <div className="sina-card sina-card-hover sina-interactive p-5"><ShieldCheck className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Controle de acesso</p><p className="mt-1 text-sm font-semibold">Permissões centralizadas</p><p className="mt-1 text-xs text-muted-foreground">Autorize ou revogue professores pelo painel.</p></div>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <section className="sina-card sina-card-hover p-6">
           <div className="flex items-start gap-3"><UserPlus className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Autorizar professor</h2><p className="mt-1 text-sm text-muted-foreground">Informe o e-mail de uma conta já cadastrada no SINA.</p></div></div>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <Input type="email" placeholder="professor@exemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -145,7 +145,7 @@ function AdminArea() {
           {message && <p role="status" className="mt-4 text-sm">{message}</p>}
         </section>
 
-        <section className="rounded-2xl border border-border bg-card shadow-sm">
+        <section className="sina-card sina-card-hover">
           <div className="flex items-center justify-between border-b border-border p-6">
             <div>
               <h2 className="font-semibold">Histórico de alterações</h2>
@@ -168,7 +168,7 @@ function AdminArea() {
           ) : <p className="p-8 text-center text-sm text-muted-foreground">Nenhuma alteração registrada ainda.</p>}
         </section>
 
-        <section className="rounded-2xl border border-border bg-card shadow-sm">
+        <section className="sina-card sina-card-hover">
           <div className="flex items-center justify-between border-b border-border p-6"><div className="flex items-center gap-3"><Users className="size-5 text-primary" /><div><h2 className="font-semibold">Contas autorizadas</h2><p className="mt-1 text-sm text-muted-foreground">Contas que atualmente possuem permissão para lançar dados acadêmicos.</p></div></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{teachers.data?.length ?? 0} professor(es)</span></div>
           {teachers.isPending ? <p className="p-6 text-sm text-muted-foreground">Carregando permissões…</p> : teachers.error ? <p role="alert" className="p-6 text-sm text-destructive">{errorText(teachers.error)}</p> : teachers.data?.length ? (
             <div className="divide-y divide-border">
