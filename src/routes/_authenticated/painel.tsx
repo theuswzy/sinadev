@@ -88,6 +88,10 @@ function Painel() {
   useEffect(() => {
     if (account.data === "student") {
       void navigate({ to: "/aluno", replace: true });
+    } else if (account.data === "teacher") {
+      void navigate({ to: "/professor", replace: true });
+    } else if (account.data === "admin") {
+      void navigate({ to: "/admin", replace: true });
     }
   }, [account.data, navigate]);
 
