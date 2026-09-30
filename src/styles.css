@@ -192,3 +192,28 @@
 #lovable-badge {
   display: none !important;
 }
+
+
+@layer base {
+  ::selection { background: color-mix(in oklch, var(--color-primary) 28%, transparent); color: var(--color-foreground); }
+  :focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+  html { scroll-behavior: smooth; }
+  body { min-height: 100vh; }
+}
+
+@layer utilities {
+  .sina-interactive {
+    transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  }
+  .sina-interactive:hover { transform: translateY(-1px); }
+  .sina-card {
+    border: 1px solid var(--color-border);
+    background: var(--color-card);
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px color-mix(in oklch, var(--color-foreground) 5%, transparent);
+  }
+  .sina-card-hover:hover {
+    border-color: color-mix(in oklch, var(--color-primary) 45%, var(--color-border));
+    box-shadow: 0 8px 24px color-mix(in oklch, var(--color-foreground) 7%, transparent), 0 1px 2px color-mix(in oklch, var(--color-foreground) 5%, transparent);
+  }
+}
