@@ -41,11 +41,11 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-brand-border bg-brand text-brand-foreground shadow-sm">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
-          <Link to="/painel" className="flex items-center gap-2 font-display text-2xl font-bold">
+          <Link to={area.href} className="flex items-center gap-2 font-display text-2xl font-bold">
             <GraduationCap className="size-8" />SINA
           </Link>
           <nav aria-label="Navegação principal" className="order-3 flex w-full items-center gap-2 overflow-x-auto sm:order-none sm:w-auto">
-            <Link to="/painel" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm text-brand-muted transition hover:bg-brand-panel hover:text-brand-foreground">
+            <Link to={area.href} className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm text-brand-muted transition hover:bg-brand-panel hover:text-brand-foreground">
               <LayoutDashboard className="size-4" /> Painel
             </Link>
             <Link to={area.href} className="flex shrink-0 items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-sm font-semibold text-brand-foreground transition hover:opacity-90">
