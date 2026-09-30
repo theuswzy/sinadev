@@ -39,13 +39,13 @@ function StudentArea() {
   const announcements = useQuery({
     queryKey: ["my-announcements", student.data?.classroom],
     queryFn: loadAnnouncements,
-    enabled: Boolean(student.data?.teacher_id && student.data?.enrollment && student.data?.classroom),
+    enabled: !!student.data?.id,
     refetchOnWindowFocus: true,
   });
   const tasks = useQuery({
     queryKey: ["my-tasks", student.data?.classroom],
     queryFn: loadTasks,
-    enabled: Boolean(student.data?.teacher_id && student.data?.enrollment && student.data?.classroom),
+    enabled: !!student.data?.id,
     refetchOnWindowFocus: true,
   });
   const grades = useQuery({
