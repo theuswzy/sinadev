@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { UserRoundPlus, Link2, Users, ClipboardList, Save, ShieldCheck, Search, CheckCircle2, AlertCircle, BarChart3 } from "lucide-react";
+import { UserRoundPlus, Link2, Users, ClipboardList, Save, ShieldCheck, Search, CheckCircle2, AlertCircle, BarChart3, Megaphone, ClipboardCheck } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,14 @@ function TeacherArea() {
   const [busy, setBusy] = useState(false);
   const [studentSearch, setStudentSearch] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error">("success");
+  const [noticeClassroom, setNoticeClassroom] = useState("");
+  const [noticeTitle, setNoticeTitle] = useState("");
+  const [noticeContent, setNoticeContent] = useState("");
+  const [taskClassroom, setTaskClassroom] = useState("");
+  const [taskSubject, setTaskSubject] = useState("");
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDescription, setTaskDescription] = useState("");
+  const [taskDueAt, setTaskDueAt] = useState("");
 
   async function linkStudent(e: FormEvent) {
     e.preventDefault();
@@ -79,6 +87,38 @@ function TeacherArea() {
     setMessage("Nota registrada.");
     setSubject(""); setScore(""); setAbsences("0");
     await queryClient.invalidateQueries({ queryKey: ["grades", selected.id] });
+  }
+
+
+  async function createAnnouncement(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true); setMessage(""); setMessageType("success");
+    const { error } = await supabase.rpc("teacher_create_announcement", {
+      _classroom: noticeClassroom.trim(),
+      _title: noticeTitle.trim(),
+      _content: noticeContent.trim(),
+    });
+    setBusy(false);
+    if (error) { setMessageType("error"); setMessage(errorText(error)); return; }
+    setNoticeTitle(""); setNoticeContent("");
+    setMessage("Aviso publicado para a turma.");
+  }
+
+  async function createTask(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true); setMessage(""); setMessageType("success");
+    const due = taskDueAt ? new Date(taskDueAt).toISOString() : null;
+    const { error } = await supabase.rpc("teacher_create_task", {
+      _classroom: taskClassroom.trim(),
+      _subject: taskSubject.trim(),
+      _title: taskTitle.trim(),
+      _description: taskDescription.trim(),
+      _due_at: due,
+    });
+    setBusy(false);
+    if (error) { setMessageType("error"); setMessage(errorText(error)); return; }
+    setTaskSubject(""); setTaskTitle(""); setTaskDescription(""); setTaskDueAt("");
+    setMessage("Tarefa publicada para a turma.");
   }
 
   const unlinked = students.data?.filter(s => !s.teacher_id) ?? [];
@@ -138,6 +178,28 @@ function TeacherArea() {
           {grades.data?.length ? <div className="mt-5 overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="py-2">Disciplina</th><th className="py-2">Período</th><th className="py-2">Nota</th></tr></thead><tbody>{grades.data.map(g => <tr key={g.id} className="border-b border-border"><td className="py-2">{g.subject}</td><td className="py-2">{g.period}º</td><td className="py-2 font-semibold">{formatScore(g.score)}</td></tr>)}</tbody></table></div> : null}
         </div>
       </section>}
+      <section className="mt-6 grid gap-5 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="flex items-center gap-3"><Megaphone className="size-5 text-primary" /><div><h2 className="font-semibold">Quadro de avisos</h2><p className="mt-1 text-sm text-muted-foreground">Publique um comunicado para uma das suas turmas.</p></div></div>
+          <form onSubmit={createAnnouncement} className="mt-5 space-y-3">
+            <Input required value={noticeClassroom} onChange={e => setNoticeClassroom(e.target.value)} placeholder="Turma (ex.: Turma A)" />
+            <Input required value={noticeTitle} onChange={e => setNoticeTitle(e.target.value)} placeholder="Título do aviso" />
+            <textarea required maxLength={2000} value={noticeContent} onChange={e => setNoticeContent(e.target.value)} placeholder="Escreva o comunicado..." className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+            <Button type="submit" disabled={busy}><Megaphone className="mr-2 size-4" />Publicar aviso</Button>
+          </form>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <div className="flex items-center gap-3"><ClipboardCheck className="size-5 text-primary" /><div><h2 className="font-semibold">Nova tarefa</h2><p className="mt-1 text-sm text-muted-foreground">Crie uma atividade com disciplina e prazo.</p></div></div>
+          <form onSubmit={createTask} className="mt-5 space-y-3">
+            <Input required value={taskClassroom} onChange={e => setTaskClassroom(e.target.value)} placeholder="Turma (ex.: Turma A)" />
+            <div className="grid gap-3 sm:grid-cols-2"><Input required value={taskSubject} onChange={e => setTaskSubject(e.target.value)} placeholder="Disciplina" /><Input required value={taskTitle} onChange={e => setTaskTitle(e.target.value)} placeholder="Título da tarefa" /></div>
+            <textarea maxLength={4000} value={taskDescription} onChange={e => setTaskDescription(e.target.value)} placeholder="Descrição e orientações..." className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+            <Input type="datetime-local" value={taskDueAt} onChange={e => setTaskDueAt(e.target.value)} />
+            <Button type="submit" disabled={busy}><ClipboardCheck className="mr-2 size-4" />Publicar tarefa</Button>
+          </form>
+        </div>
+      </section>
+
       {message && <div role={messageType === "error" ? "alert" : "status"} className={`mt-5 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${messageType === "error" ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-primary/20 bg-primary/10 text-foreground"}`}>{messageType === "error" ? <AlertCircle className="mt-0.5 size-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />}<span>{message}</span></div>}
     </>}
   </AcademicShell>;
