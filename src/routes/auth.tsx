@@ -6,6 +6,18 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 
+function authErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  const normalized = message.toLowerCase();
+  if (normalized.includes("invalid login credentials")) return "E-mail ou senha incorretos.";
+  if (normalized.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar.";
+  if (normalized.includes("user already registered")) return "Este e-mail já possui uma conta.";
+  if (normalized.includes("password should be at least")) return "A senha precisa ter pelo menos 6 caracteres.";
+  if (normalized.includes("email rate limit")) return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+  if (normalized.includes("network") || normalized.includes("fetch")) return "Não foi possível conectar ao serviço. Verifique sua internet e tente novamente.";
+  return message || "Não foi possível concluir a operação.";
+}
+
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Acesso — SINA" }, { name: "description", content: "Entre ou crie sua conta para acessar sua área acadêmica no SINA." }, { property: "og:title", content: "Acesso — SINA" }, { property: "og:description", content: "Acesso seguro às áreas acadêmicas do SINA." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: AuthPage,
@@ -66,7 +78,7 @@ function AuthPage() {
         await navigateAfterAuth(navigate);
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Não foi possível continuar.");
+      setMessage(authErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -77,7 +89,7 @@ function AuthPage() {
     setBusy(true);
     const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
     if (result.error) {
-      setMessage(result.error.message);
+      setMessage(authErrorMessage(result.error));
       setBusy(false);
       return;
     }
