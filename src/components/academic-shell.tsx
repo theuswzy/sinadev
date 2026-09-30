@@ -33,6 +33,7 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
     : [
         { href: "#inicio", label: "Visão geral", Icon: LayoutDashboard },
         { href: "#tarefas", label: "Tarefas", Icon: ClipboardList },
+        { href: "#disciplinas", label: "Disciplinas", Icon: BookOpen },
         { href: "#notas", label: "Notas", Icon: BookOpen },
         { href: "#perfil", label: "Perfil", Icon: UserCircle2 },
       ];
