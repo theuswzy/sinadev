@@ -84,12 +84,27 @@ function StudentArea() {
           void grades.refetch();
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "announcements" },
+        () => { void announcements.refetch(); },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks" },
+        () => { void tasks.refetch(); },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "task_completions" },
+        () => { void tasks.refetch(); },
+      )
       .subscribe();
 
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [student.data?.id, student.refetch, grades.refetch]);
+  }, [student.data?.id, student.refetch, grades.refetch, announcements.refetch, tasks.refetch]);
 
   const average = grades.data?.length
     ? grades.data.reduce((sum, grade) => sum + grade.score, 0) / grades.data.length
