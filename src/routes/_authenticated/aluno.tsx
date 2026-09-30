@@ -103,6 +103,10 @@ function StudentArea() {
     return <AcademicShell title="Dashboard acadêmico" subtitle="Área do professor"><p className="mt-8">Sua conta possui acesso de professor. <Link to="/professor" className="text-primary underline">Abrir área do professor</Link>.</p></AcademicShell>;
   }
 
+  if (role.data === "admin") {
+    return <AcademicShell title="Dashboard acadêmico" subtitle="Área administrativa"><p className="mt-8">Sua conta possui acesso administrativo. <Link to="/admin" className="text-primary underline">Abrir área administrativa</Link>.</p></AcademicShell>;
+  }
+
   if (!student.data) {
     return <AcademicShell title="Dashboard acadêmico" subtitle="Meu acompanhamento"><div className="mt-8 rounded-2xl border border-border bg-card p-6"><h2 className="text-lg font-semibold">Seu perfil acadêmico está sendo preparado</h2><p className="mt-2 text-sm text-muted-foreground">Entre novamente para criar seu perfil de aluno.</p></div></AcademicShell>;
   }
