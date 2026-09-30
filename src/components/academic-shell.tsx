@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { GraduationCap, LogOut, LayoutDashboard, ShieldCheck, UserRound, Users } from "lucide-react";
+import { GraduationCap, LogOut, LayoutDashboard, ShieldCheck, UserRound, Users, BookOpen, ClipboardList, Megaphone, UserCircle2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,20 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
     role.data === "teacher" ? { href: "/professor" as const, label: "Professor", Icon: Users } :
     { href: "/aluno" as const, label: "Aluno", Icon: UserRound };
 
+  const sectionLinks = role.data === "teacher"
+    ? [
+        { href: "#inicio", label: "Visão geral", Icon: LayoutDashboard },
+        { href: "#alunos", label: "Alunos", Icon: Users },
+        { href: "#lancamentos", label: "Lançamentos", Icon: BookOpen },
+        { href: "#comunicacao", label: "Comunicação", Icon: Megaphone },
+      ]
+    : [
+        { href: "#inicio", label: "Visão geral", Icon: LayoutDashboard },
+        { href: "#tarefas", label: "Tarefas", Icon: ClipboardList },
+        { href: "#notas", label: "Notas", Icon: BookOpen },
+        { href: "#perfil", label: "Perfil", Icon: UserCircle2 },
+      ];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-brand-border/80 bg-brand/95 text-brand-foreground shadow-sm backdrop-blur-xl">
@@ -34,15 +48,20 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
             <span>SINA</span>
           </Link>
 
-          <nav aria-label="Navegação principal" className="ml-2 hidden items-center rounded-xl border border-brand-border/80 bg-brand-panel/60 p-1 sm:flex">
-            <Link to={area.href} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-brand-muted transition-all hover:bg-brand-panel hover:text-brand-foreground">
-              <LayoutDashboard className="size-4" />
-              <span>Painel</span>
-            </Link>
-            <Link to={area.href} className="flex items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-sm font-semibold text-brand-foreground shadow-sm ring-1 ring-brand-border/70" aria-current="page">
-              <area.Icon className="size-4 text-primary" />
-              <span>{area.label}</span>
-            </Link>
+          <nav aria-label="Navegação principal" className="ml-2 hidden max-w-[680px] items-center gap-0.5 overflow-x-auto rounded-xl border border-brand-border/80 bg-brand-panel/60 p-1 sm:flex">
+            {sectionLinks.map(({ href, label, Icon }, index) => (
+              <a
+                key={href}
+                href={href}
+                aria-current={index === 0 ? "page" : undefined}
+                className={index === 0
+                  ? "flex shrink-0 items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-sm font-semibold text-brand-foreground shadow-sm ring-1 ring-brand-border/70"
+                  : "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-brand-muted transition-colors hover:bg-brand-panel hover:text-brand-foreground"}
+              >
+                <Icon className={index === 0 ? "size-4 text-primary" : "size-4"} />
+                <span>{label}</span>
+              </a>
+            ))}
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
@@ -56,14 +75,18 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
         </div>
 
         <nav aria-label="Navegação móvel" className="flex gap-1 overflow-x-auto border-t border-brand-border/60 px-4 py-2 sm:hidden">
-          <Link to={area.href} className="flex shrink-0 items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground" aria-current="page">
-            <area.Icon className="size-4 text-primary" />
-            {area.label}
-          </Link>
-          <Link to={area.href} className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground">
-            <LayoutDashboard className="size-4" />
-            Painel
-          </Link>
+          {sectionLinks.map(({ href, label, Icon }, index) => (
+            <a
+              key={href}
+              href={href}
+              className={index === 0
+                ? "flex shrink-0 items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground"
+                : "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted transition-colors hover:bg-brand-panel hover:text-brand-foreground"}
+            >
+              <Icon className={index === 0 ? "size-4 text-primary" : "size-4"} />
+              {label}
+            </a>
+          ))}
         </nav>
       </header>
 
