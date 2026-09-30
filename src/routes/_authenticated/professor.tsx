@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { UserRoundPlus, Link2, Users, ClipboardList, Save, ShieldCheck } from "lucide-react";
+import { UserRoundPlus, Link2, Users, ClipboardList, Save, ShieldCheck, Search, CheckCircle2, AlertCircle, BarChart3 } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,19 +29,19 @@ function TeacherArea() {
   const [absences, setAbsences] = useState("0");
   const [attendance, setAttendance] = useState("");
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false);\n  const [studentSearch, setStudentSearch] = useState("");\n  const [messageType, setMessageType] = useState<"success" | "error">("success");
 
   async function linkStudent(e: FormEvent) {
     e.preventDefault();
     if (!selected) return;
-    setBusy(true); setMessage("");
+    setBusy(true); setMessage(""); setMessageType("success");
     const { data, error } = await supabase.rpc("teacher_link_student", {
       _student_id: selected.id,
       _enrollment: enrollment.trim(),
       _classroom: classroom.trim(),
     });
     setBusy(false);
-    if (error) { setMessage(errorText(error)); return; }
+    if (error) { setMessageType("error"); setMessage(errorText(error)); return; }
     if (!data) { setMessage("Não foi possível vincular o aluno."); return; }
     setEnrollment(""); setClassroom("");
     setMessage("Aluno vinculado à turma e à matrícula.");
@@ -56,7 +56,7 @@ function TeacherArea() {
     setBusy(true); setMessage("");
     const { error } = await supabase.rpc("teacher_update_attendance", { _student_id: selected.id, _attendance: value });
     setBusy(false);
-    setMessage(error ? errorText(error) : "Frequência atualizada.");
+    if (error) setMessageType("error");\n    setMessage(error ? errorText(error) : "Frequência atualizada.");
     if (!error) await queryClient.invalidateQueries({ queryKey: ["teacher-students"] });
   }
 
@@ -79,7 +79,7 @@ function TeacherArea() {
   }
 
   const unlinked = students.data?.filter(s => !s.teacher_id) ?? [];
-  const linked = students.data?.filter(s => s.teacher_id) ?? [];
+  const linked = students.data?.filter(s => s.teacher_id) ?? [];\n  const filteredUnlinked = unlinked.filter(s => s.full_name.toLowerCase().includes(studentSearch.toLowerCase()));\n  const filteredLinked = linked.filter(s => s.full_name.toLowerCase().includes(studentSearch.toLowerCase()));
 
   return <AcademicShell title="Área do professor" subtitle="Turmas e acompanhamento acadêmico">
     {role.isPending ? <p className="mt-8 text-muted-foreground">Verificando acesso…</p> : role.error ? <p role="alert" className="mt-8 text-destructive">{errorText(role.error)}</p> : role.data !== "teacher" ? (
@@ -87,16 +87,16 @@ function TeacherArea() {
         <ShieldCheck className="size-6 text-primary" /><p className="mt-3 font-semibold">Acesso reservado a professores autorizados.</p><p className="mt-1 text-sm text-muted-foreground">Solicite autorização ao administrador do SINA.</p><Link to="/painel" className="mt-4 inline-block text-sm text-primary underline">Voltar ao painel</Link>
       </div>
     ) : <>
-      <section className="mt-8 grid gap-4 sm:grid-cols-3">
+      <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card p-5"><UserRoundPlus className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Aguardando vínculo</p><p className="mt-1 font-display text-3xl font-semibold">{unlinked.length}</p><p className="mt-1 text-xs text-muted-foreground">Alunos que já criaram conta</p></div>
         <div className="rounded-2xl border border-border bg-card p-5"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Meus alunos</p><p className="mt-1 font-display text-3xl font-semibold">{linked.length}</p><p className="mt-1 text-xs text-muted-foreground">Vinculados às minhas turmas</p></div>
-        <div className="rounded-2xl border border-border bg-card p-5"><ClipboardList className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Fluxo</p><p className="mt-1 text-sm font-semibold">Conta → turma → matrícula</p><p className="mt-1 text-xs text-muted-foreground">O aluno cria a conta; o professor completa o vínculo.</p></div>
+        <div className="rounded-2xl border border-border bg-card p-5"><ClipboardList className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Fluxo</p><p className="mt-1 text-sm font-semibold">Conta → turma → matrícula</p><p className="mt-1 text-xs text-muted-foreground">O aluno cria a conta; o professor completa o vínculo.</p></div>\n        <div className="rounded-2xl border border-border bg-card p-5"><BarChart3 className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Acompanhamento</p><p className="mt-1 font-display text-3xl font-semibold">{linked.filter(s => s.attendance !== null).length}</p><p className="mt-1 text-xs text-muted-foreground">Alunos com frequência registrada</p></div>
       </section>
 
       <section className="mt-6 rounded-2xl border border-border bg-card shadow-sm">
         <div className="border-b border-border p-6"><div className="flex items-center gap-3"><Link2 className="size-5 text-primary" /><div><h2 className="font-semibold">Alunos aguardando vínculo</h2><p className="mt-1 text-sm text-muted-foreground">Selecione um aluno que já possui conta e informe a turma e a matrícula.</p></div></div></div>
         <div className="p-6">
-          {students.isPending ? <p className="text-sm text-muted-foreground">Carregando…</p> : unlinked.length ? <div className="grid gap-3 md:grid-cols-2">{unlinked.map(s => <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setMessage(""); }} className={`rounded-xl border p-4 text-left transition-colors hover:border-primary ${selectedId === s.id ? "border-primary bg-primary/5" : "border-border"}`}><p className="font-semibold">{s.full_name}</p><p className="mt-1 text-xs text-muted-foreground">Conta criada · aguardando turma e matrícula</p></button>)}</div> : <div className="rounded-xl bg-secondary/50 p-5 text-sm text-muted-foreground">Não há alunos aguardando vínculo.</div>}
+          {students.isPending ? <p className="text-sm text-muted-foreground">Carregando…</p> : filteredUnlinked.length ? <div className="grid gap-3 md:grid-cols-2">{filteredUnlinked.map(s => <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setMessage(""); }} className={`rounded-xl border p-4 text-left transition-colors hover:border-primary ${selectedId === s.id ? "border-primary bg-primary/5" : "border-border"}`}><p className="font-semibold">{s.full_name}</p><p className="mt-1 text-xs text-muted-foreground">Conta criada · aguardando turma e matrícula</p></button>)}</div> : <div className="rounded-xl bg-secondary/50 p-5 text-sm text-muted-foreground">Não há alunos aguardando vínculo.</div>}
         </div>
       </section>
 
@@ -111,13 +111,13 @@ function TeacherArea() {
 
       <section className="mt-6 rounded-2xl border border-border bg-card shadow-sm">
         <div className="border-b border-border p-6"><h2 className="font-semibold">Meus alunos</h2><p className="mt-1 text-sm text-muted-foreground">Somente alunos vinculados a você aparecem nesta lista.</p></div>
-        {linked.length ? <div className="divide-y divide-border">{linked.map(s => <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setAttendance(s.attendance === null ? "" : String(s.attendance)); setMessage(""); }} className={`flex w-full items-center justify-between gap-4 p-5 text-left hover:bg-accent/40 ${selectedId === s.id ? "bg-accent/50" : ""}`}><span><strong>{s.full_name}</strong><small className="mt-1 block text-muted-foreground">Turma {s.classroom} · Matrícula {s.enrollment}</small></span><span className="text-xs text-muted-foreground">{s.attendance === null ? "Freq. —" : `Freq. ${formatScore(s.attendance)}%`}</span></button>)}</div> : <p className="p-6 text-sm text-muted-foreground">Nenhum aluno vinculado ainda.</p>}
+        {filteredLinked.length ? <div className="divide-y divide-border">{filteredLinked.map(s => <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setAttendance(s.attendance === null ? "" : String(s.attendance)); setMessage(""); }} className={`flex w-full items-center justify-between gap-4 p-5 text-left hover:bg-accent/40 ${selectedId === s.id ? "bg-accent/50" : ""}`}><span><strong>{s.full_name}</strong><small className="mt-1 block text-muted-foreground">Turma {s.classroom} · Matrícula {s.enrollment}</small></span><span className="text-xs text-muted-foreground">{s.attendance === null ? "Freq. —" : `Freq. ${formatScore(s.attendance)}%`}</span></button>)}</div> : <p className="p-6 text-sm text-muted-foreground">Nenhum aluno vinculado ainda.</p>}
       </section>
 
       {selected?.teacher_id && <section className="mt-5 grid gap-5 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-6">
           <h2 className="font-semibold">Frequência de {selected.full_name}</h2>
-          <form onSubmit={saveAttendance} className="mt-4 flex gap-3"><Input type="number" min="0" max="100" step="0.01" required value={attendance} onChange={e => setAttendance(e.target.value)} placeholder="0 a 100%" /><Button type="submit" disabled={busy}><Save className="mr-2 size-4" />Salvar</Button></form>
+          <form onSubmit={saveAttendance} className="mt-4 flex gap-3"><Input type="number" min="0" max="100" step="0.01" required value={attendance} onChange={e => setAttendance(e.target.value)} placeholder="0 a 100%" /><Button type="submit" disabled={busy}><Save className="mr-2 size-4" />{busy ? "Salvando…" : "Salvar"}</Button></form>
         </div>
         <div className="rounded-2xl border border-border bg-card p-6">
           <h2 className="font-semibold">Lançar nota</h2>
@@ -126,12 +126,12 @@ function TeacherArea() {
             <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={period} onChange={e => setPeriod(e.target.value)}>{[1,2,3,4].map(n => <option key={n} value={n}>{n}º período</option>)}</select>
             <Input required type="number" min="0" max="10" step="0.01" placeholder="Nota" value={score} onChange={e => setScore(e.target.value)} />
             <Input required type="number" min="0" step="1" placeholder="Faltas" value={absences} onChange={e => setAbsences(e.target.value)} />
-            <Button type="submit" disabled={busy} className="sm:col-span-2"><Save className="mr-2 size-4" />Salvar nota</Button>
+            <Button type="submit" disabled={busy} className="sm:col-span-2"><Save className="mr-2 size-4" />{busy ? "Salvando…" : "Salvar nota"}</Button>
           </form>
           {grades.data?.length ? <div className="mt-5 overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="py-2">Disciplina</th><th className="py-2">Período</th><th className="py-2">Nota</th></tr></thead><tbody>{grades.data.map(g => <tr key={g.id} className="border-b border-border"><td className="py-2">{g.subject}</td><td className="py-2">{g.period}º</td><td className="py-2 font-semibold">{formatScore(g.score)}</td></tr>)}</tbody></table></div> : null}
         </div>
       </section>}
-      {message && <p role="status" className="mt-5 text-sm">{message}</p>}
+      {message && <div role={messageType === "error" ? "alert" : "status"} className={`mt-5 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${messageType === "error" ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-primary/20 bg-primary/10 text-foreground"}`}>{messageType === "error" ? <AlertCircle className="mt-0.5 size-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />}<span>{message}</span></div>}
     </>}
   </AcademicShell>;
 }
