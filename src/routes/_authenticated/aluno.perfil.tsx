@@ -33,6 +33,13 @@ function StudentProfile() {
   const displayName = name || currentStudent?.full_name || "";
   const displayAvatar = avatar ?? currentStudent?.avatar_url ?? null;
 
+  useEffect(() => {
+    if (currentStudent) {
+      setName(currentStudent.full_name ?? "");
+      setAvatar(currentStudent.avatar_url ?? null);
+    }
+  }, [currentStudent?.id]);
+
   async function handleAvatar(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -113,13 +120,6 @@ function StudentProfile() {
   if (!currentStudent) {
     return <AcademicShell title="Meu perfil" subtitle="Personalize sua conta"><p className="mt-8">Seu perfil acadêmico ainda não foi criado.</p></AcademicShell>;
   }
-
-  useEffect(() => {
-    if (currentStudent) {
-      setName(currentStudent.full_name ?? "");
-      setAvatar(currentStudent.avatar_url ?? null);
-    }
-  }, [currentStudent?.id]);
 
   return (
     <AcademicShell title="Meu perfil" subtitle="Personalize sua conta">
