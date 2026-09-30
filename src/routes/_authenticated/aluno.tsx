@@ -104,7 +104,6 @@ function StudentArea() {
     ? grades.data.reduce((sum, grade) => sum + grade.score, 0) / grades.data.length
     : 0;
   const totalAbsences = grades.data?.reduce((sum, grade) => sum + grade.absences, 0) ?? 0;
-  const completed = grades.data?.filter((grade) => grade.score >= 7).length ?? 0;
   const linked = Boolean(student.data?.teacher_id && student.data?.enrollment && student.data?.classroom);
   const pendingTasks = tasks.data?.filter(task => !task.completed).length ?? 0;
   const recentAnnouncements = announcements.data?.slice(0, 3) ?? [];
@@ -217,20 +216,19 @@ function StudentArea() {
         </div>
       </section>
 
-      <section className="mt-5 sina-card sina-card-hover p-6">
-        <div className="flex items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Central acadêmica</h2><p className="mt-1 text-sm text-muted-foreground">Todas as áreas ficam disponíveis desde o primeiro acesso.</p></div><div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{pendingTasks} pendência{pendingTasks === 1 ? "" : "s"}</div></div>
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <div className="sina-interactive rounded-2xl border border-border p-4 hover:border-primary/40 hover:bg-primary/[0.02]"><Megaphone className="size-5 text-primary" /><p className="mt-3 font-semibold">Quadro de avisos</p><p className="mt-1 text-xs text-muted-foreground">Comunicados publicados pelos professores da sua turma.</p></div>
-          <div className="sina-interactive rounded-2xl border border-border p-4 hover:border-primary/40 hover:bg-primary/[0.02]"><ClipboardCheck className="size-5 text-primary" /><p className="mt-3 font-semibold">Minhas tarefas</p><p className="mt-1 text-xs text-muted-foreground">Acompanhe atividades e prazos acadêmicos.</p></div>
-          <div className="sina-interactive rounded-2xl border border-border p-4 hover:border-primary/40 hover:bg-primary/[0.02]"><BookOpen className="size-5 text-primary" /><p className="mt-3 font-semibold">Minhas matérias</p><p className="mt-1 text-xs text-muted-foreground">Suas disciplinas e respectivos lançamentos aparecerão aqui.</p></div>
+      <section aria-label="Resumo acadêmico" className="mt-5">
+        <div className="mb-3 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">Visão rápida</p>
+            <h2 className="mt-1 text-lg font-semibold">Resumo acadêmico</h2>
+          </div>
+          <span className="text-xs text-muted-foreground">Seus principais indicadores</span>
         </div>
-      </section>
-
-      <section aria-label="Indicadores acadêmicos" className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Média geral", value: average ? formatScore(average) : "—", note: linked ? "Escala de 0 a 10" : "Aguardando notas", Icon: TrendingUp },
           { label: "Frequência", value: student.data.attendance === null ? "—" : `${formatScore(student.data.attendance)}%`, note: linked ? "Frequência registrada" : "Aguardando dados", Icon: CalendarDays },
-          { label: "Notas lançadas", value: String(grades.data?.length ?? 0), note: "Registros do seu perfil", Icon: BookOpen },
+          { label: "Tarefas pendentes", value: String(pendingTasks), note: pendingTasks ? "Aguardando sua ação" : "Tudo em dia", Icon: ClipboardCheck },
           { label: "Disciplinas", value: String(new Set(grades.data?.map(g => g.subject) ?? []).size), note: "Matérias cadastradas", Icon: GraduationCap },
         ].map(({ label, value, note, Icon }) => (
           <div key={label} className="sina-card sina-card-hover sina-interactive p-5">
@@ -240,24 +238,6 @@ function StudentArea() {
             <p className="mt-2 text-xs text-muted-foreground">{note}</p>
           </div>
         ))}
-      </section>
-
-      <section className="mt-5 sina-card sina-card-hover p-6">
-        <div className="flex items-center justify-between gap-4">
-          <div><h2 className="text-lg font-semibold">Minhas notas e desempenho</h2><p className="mt-1 text-xs text-muted-foreground">Acompanhe os dados lançados para o seu perfil.</p></div>
-          <div className="hidden rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary sm:block">SINA</div>
-        </div>
-        <div className="mt-6 grid gap-5 md:grid-cols-2">
-          <div className="rounded-2xl bg-secondary/50 p-5">
-            <p className="text-xs font-bold uppercase text-muted-foreground">Média atual</p>
-            <p className="mt-2 font-display text-4xl font-semibold">{average ? formatScore(average) : "—"}</p>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-border"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, average * 10)}%` }} /></div>
-          </div>
-          <div className="rounded-2xl bg-secondary/50 p-5">
-            <p className="text-xs font-bold uppercase text-muted-foreground">Frequência</p>
-            <p className="mt-2 font-display text-4xl font-semibold">{student.data.attendance === null ? "—" : `${formatScore(student.data.attendance)}%`}</p>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-border"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, student.data.attendance ?? 0)}%` }} /></div>
-          </div>
         </div>
       </section>
 
