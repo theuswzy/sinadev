@@ -97,13 +97,28 @@ function AdminArea() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <header className="border-b border-brand-border bg-brand text-brand-foreground">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5 lg:px-8">
-          <Link to="/painel" className="flex items-center gap-2 font-display text-2xl font-bold"><GraduationCap className="size-8" />SINA</Link>
-          <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-40 border-b border-brand-border/80 bg-brand/95 text-brand-foreground shadow-sm backdrop-blur-xl">
+        <div className="mx-auto flex min-h-16 max-w-7xl items-center gap-3 px-5 lg:px-8">
+          <Link to="/painel" className="group flex shrink-0 items-center gap-2.5 font-display text-xl font-bold tracking-tight" aria-label="SINA — voltar ao painel">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-brand-panel text-primary ring-1 ring-brand-border transition-transform group-hover:scale-105">
+              <GraduationCap className="size-5" />
+            </span>
+            SINA
+          </Link>
+          <nav aria-label="Navegação administrativa" className="ml-2 hidden items-center rounded-xl border border-brand-border/80 bg-brand-panel/60 p-1 sm:flex">
+            <Link to="/painel" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground">
+              <LayoutDashboard className="size-4" /> Painel
+            </Link>
+            <span className="flex items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-sm font-semibold text-brand-foreground shadow-sm ring-1 ring-brand-border/70">
+              <ShieldCheck className="size-4 text-primary" /> Administração
+            </span>
+          </nav>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="hidden rounded-full border border-brand-border bg-brand-panel/70 px-3 py-1.5 text-xs font-medium text-brand-muted lg:inline-flex">Controle de acesso</span>
             <ThemeToggle />
-            <Link to="/painel" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><LayoutDashboard className="size-4" />Painel</Link>
-            <Button variant="outline" size="sm" onClick={logout} className="border-brand-border bg-brand text-brand-foreground hover:bg-brand-panel"><LogOut className="mr-2 size-4" />Sair</Button>
+            <Button variant="outline" size="sm" onClick={logout} className="border-brand-border bg-transparent text-brand-foreground shadow-none hover:bg-brand-panel">
+              <LogOut className="mr-2 size-4" /><span className="hidden sm:inline">Sair</span>
+            </Button>
           </div>
         </div>
       </header>
