@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { GraduationCap, BookOpen, CalendarDays, CircleAlert, TrendingUp, Camera, UserRound, Save, X, Megaphone, ClipboardCheck, Clock3, CheckCircle2 } from "lucide-react";
+import { GraduationCap, BookOpen, CalendarDays, CircleAlert, TrendingUp, Camera, UserRound, Save, X, Megaphone, ClipboardCheck, Clock3, CheckCircle2, ArrowUpRight } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { errorText, formatScore, getRole, loadGrades, loadMyStudent, loadAnnouncements, loadTasks, setTaskCompleted } from "@/lib/sina-data";
@@ -116,6 +116,11 @@ function StudentArea() {
   const pendingTasks = tasks.data?.filter(task => !task.completed).length ?? 0;
   const recentAnnouncements = announcements.data?.slice(0, 3) ?? [];
   const recentTasks = tasks.data?.filter(task => !task.completed).slice(0, 4) ?? [];
+  const subjectPerformance = Array.from(new Set(grades.data?.map(g => g.subject) ?? [])).map(subject => {
+    const items = grades.data?.filter(g => g.subject === subject) ?? [];
+    return { subject, average: items.reduce((sum, item) => sum + item.score, 0) / items.length, absences: items.reduce((sum, item) => sum + item.absences, 0), periods: items.length };
+  }).sort((a, b) => b.average - a.average);
+  const topSubjects = subjectPerformance.slice(0, 4);
 
   async function toggleTask(taskId: string) {
     try {
@@ -123,7 +128,6 @@ function StudentArea() {
       await tasks.refetch();
       toast.success("Tarefa marcada como concluída.");
     } catch (error) {
-      setProfileMessage(errorText(error));
       toast.error(errorText(error));
     }
   }
@@ -332,6 +336,11 @@ function StudentArea() {
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-border"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, student.data.attendance ?? 0)}%` }} /></div>
           </div>
         </div>
+      </section>
+
+      <section className="mt-5 sina-card sina-card-hover p-6">
+        <div className="flex items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Desempenho por disciplina</h2><p className="mt-1 text-sm text-muted-foreground">Uma visão rápida das médias e faltas em cada matéria.</p></div><ArrowUpRight className="size-5 text-primary" /></div>
+        {topSubjects.length ? <div className="mt-5 grid gap-3 md:grid-cols-2">{topSubjects.map(item => <div key={item.subject} className="rounded-2xl border border-border p-4"><div className="flex items-center justify-between gap-3"><p className="font-semibold">{item.subject}</p><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">{formatScore(item.average)}</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, item.average * 10)}%` }} /></div><div className="mt-3 flex justify-between text-xs text-muted-foreground"><span>{item.periods} lançamento{item.periods === 1 ? "" : "s"}</span><span>{item.absences} falta{item.absences === 1 ? "" : "s"}</span></div></div>)}</div> : <div className="mt-5 rounded-xl bg-secondary/50 p-4 text-sm text-muted-foreground">As médias por disciplina aparecerão aqui quando houver notas lançadas.</div>}
       </section>
 
       <section id="notas" className="mt-5 overflow-hidden scroll-mt-28 sina-card sina-card-hover">
