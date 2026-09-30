@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BookOpen, ChartNoAxesCombined, ClipboardList, GraduationCap, LockKeyhole, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import learningImage from "@/assets/sina-learning.jpg";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -33,7 +34,7 @@ function PresentationPage() {
           </Link>
           <nav aria-label="Navegação" className="flex items-center gap-4 text-sm sm:gap-7">
             <a href="#sobre" className="hidden text-brand-foreground/75 transition-colors hover:text-brand-foreground sm:inline">Sobre</a>
-            <Link to="/auth" className="inline-flex items-center gap-2 border-b border-primary pb-1 font-semibold text-brand-foreground transition-colors hover:text-brand-muted">Acessar <ArrowRight aria-hidden="true" className="size-4" /></Link>
+            <div className="flex items-center gap-3"><ThemeToggle /><Link to="/auth" className="inline-flex items-center gap-2 border-b border-primary pb-1 font-semibold text-brand-foreground transition-colors hover:text-brand-muted">Acessar <ArrowRight aria-hidden="true" className="size-4" /></Link></div>
           </nav>
         </div>
       </header>
