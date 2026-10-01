@@ -303,9 +303,13 @@ begin
   on conflict(task_id,student_id) do update
   set content=excluded.content,status='submitted',submitted_at=now(),updated_at=now();
   select id into sub_id from public.task_submissions where task_id=_task_id and student_id=sid;
+  insert into public.task_completions(task_id,student_id,completed,updated_at)
+  values(_task_id,sid,true,now())
+  on conflict(task_id,student_id)
+  do update set completed=true,updated_at=now();
   return sub_id;
 end;
-$$;
+$;
 
 create or replace function public.teacher_list_task_submissions(_task_id uuid)
 returns table(id uuid,task_id uuid,student_id uuid,student_name text,enrollment text,content text,status text,submitted_at timestamptz,score numeric,feedback text)
