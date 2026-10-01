@@ -32,10 +32,10 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
         { href: "#comunicacao", label: "Comunicação", Icon: Megaphone },
       ]
     : [
-        { href: "#inicio", label: "Visão geral", Icon: LayoutDashboard },
-        { href: "#tarefas", label: "Tarefas", Icon: ClipboardList },
-        { href: "#disciplinas", label: "Disciplinas", Icon: BookOpen },
-        { href: "#notas", label: "Notas", Icon: BookOpen },
+        { href: "/aluno", label: "Visão geral", Icon: LayoutDashboard, route: true },
+        { href: "/aluno#tarefas", label: "Tarefas", Icon: ClipboardList },
+        { href: "/aluno#disciplinas", label: "Disciplinas", Icon: BookOpen },
+        { href: "/aluno#notas", label: "Notas", Icon: BookOpen },
         { href: "/perfil", label: "Perfil", Icon: UserRound, route: true },
       ];
 
