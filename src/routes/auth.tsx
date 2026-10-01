@@ -59,7 +59,7 @@ function AuthPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [requestedRole, setRequestedRole] = useState<RequestedRole>("student");
+  const [requestedRole, setRequestedRole] = useState<RequestedRole | null>(null);
   const [pendingState, setPendingState] = useState<OnboardingState | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -114,6 +114,10 @@ function AuthPage() {
       }
 
       if (mode === "signup") {
+        if (!requestedRole) {
+          setMessage("Escolha se você é aluno ou professor antes de criar a conta.");
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -147,6 +151,11 @@ function AuthPage() {
 
   async function google() {
     setMessage("");
+    if (!requestedRole) {
+      setMode("signup");
+      setMessage("Antes de continuar com o Google, escolha se você é aluno ou professor.");
+      return;
+    }
     setBusy(true);
     window.localStorage.setItem("sina-requested-role", requestedRole);
     const result = await lovable.auth.signInWithOAuth("google", {
@@ -328,6 +337,7 @@ function AuthPage() {
                   <>
                     <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
                     <Button type="button" variant="outline" onClick={google} disabled={busy} className="h-11 w-full">Continuar com Google</Button>
+                    <p className="mt-2 text-center text-xs leading-5 text-muted-foreground">Ao criar uma conta nova com Google, você precisará informar se é aluno ou professor antes da aprovação.</p>
                   </>
                 )}
 
