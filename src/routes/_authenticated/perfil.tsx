@@ -230,7 +230,7 @@ function StudentProfile() {
   return (
     <AcademicShell title="Meu perfil" subtitle="Edite seus dados e personalize sua experiência">
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-        <Link to="/aluno" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+        <Link to={role.data === "admin" ? "/admin" : role.data === "teacher" ? "/professor" : "/aluno"} className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="size-4" /> Voltar ao dashboard
         </Link>
         {!editing && (
