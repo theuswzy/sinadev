@@ -1037,6 +1037,48 @@ export type Database = {
         updated_at: string
       }[]
     }
+    teacher_list_subjects: {
+      Args: Record<PropertyKey, never>
+      Returns: { id: string; name: string; code: string | null; status: string; created_by: string | null }[]
+    }
+    teacher_create_subject: {
+      Args: { _name: string; _code: string }
+      Returns: string
+    }
+    teacher_update_subject: {
+      Args: { _id: string; _name: string; _code: string }
+      Returns: boolean
+    }
+    teacher_archive_subject: {
+      Args: { _id: string }
+      Returns: boolean
+    }
+    teacher_create_task: {
+      Args: {
+        _classroom: string
+        _subject: string
+        _title: string
+        _description: string
+        _due_at: string | null
+        _attachment_path?: string | null
+        _attachment_name?: string | null
+        _attachment_size?: number | null
+        _attachment_type?: string | null
+      }
+      Returns: Tables<'tasks'>['Row']
+    }
+    teacher_create_announcement: {
+      Args: {
+        _classroom: string
+        _title: string
+        _content: string
+        _attachment_path?: string | null
+        _attachment_name?: string | null
+        _attachment_size?: number | null
+        _attachment_type?: string | null
+      }
+      Returns: Tables<'announcements'>['Row']
+    }
     Enums: {
       app_role: "student" | "teacher" | "admin"
     }
