@@ -1,3 +1,162 @@
+
+-- Remove the old one-student-per-user uniqueness so the same account can belong
+-- to more than one institution without overwriting another school's profile.
+do $$
+declare r record;
+begin
+  for r in
+    select conname
+    from pg_constraint
+    where conrelid='public.students'::regclass
+      and contype='u'
+      and conkey = array[(select attnum from pg_attribute where attrelid='public.students'::regclass and attname='user_id' and not attisdropped)]
+  loop
+    execute format('alter table public.students drop constraint if exists %I',r.conname);
+  end loop;
+
+  for r in
+    select indexrelid::regclass::text as index_name
+    from pg_index
+    where indrelid='public.students'::regclass
+      and indisunique
+      and indkey = array[(select attnum from pg_attribute where attrelid='public.students'::regclass and attname='user_id' and not attisdropped)]
+  loop
+    execute format('drop index if exists %s',r.index_name);
+  end loop;
+end;
+$$;
+
+create or replace function public.ensure_student_profile_for_user(_user_id uuid,_institution_id uuid)
+returns boolean
+language plpgsql security definer set search_path to ''
+as $$
+declare display_name text;
+begin
+  if _institution_id is null then raise exception 'Instituição obrigatória para criar o perfil do aluno.'; end if;
+
+  if exists(select 1 from public.students where user_id=_user_id and institution_id=_institution_id) then
+    return true;
+  end if;
+
+  select coalesce(
+    nullif(p.display_name,''),
+    nullif(au.raw_user_meta_data->>'display_name',''),
+    split_part(coalesce(au.email,''),'@',1)
+  ) into display_name
+  from auth.users au
+  left join public.profiles p on p.user_id=au.id
+  where au.id=_user_id;
+
+  insert into public.students(user_id,full_name,enrollment,classroom,teacher_id,institution_id)
+  values(_user_id,coalesce(display_name,'Aluno'),'','','',_institution_id);
+
+  return true;
+end;
+$$;
+
+-- Fix the empty teacher_id literal above for strict UUID schemas.
+create or replace function public.ensure_student_profile_for_user(_user_id uuid,_institution_id uuid)
+returns boolean
+language plpgsql security definer set search_path to ''
+as $$
+declare display_name text;
+begin
+  if _institution_id is null then raise exception 'Instituição obrigatória para criar o perfil do aluno.'; end if;
+  if exists(select 1 from public.students where user_id=_user_id and institution_id=_institution_id) then return true; end if;
+
+  select coalesce(
+    nullif(p.display_name,''),
+    nullif(au.raw_user_meta_data->>'display_name',''),
+    split_part(coalesce(au.email,''),'@','1')
+  ) into display_name
+  from auth.users au
+  left join public.profiles p on p.user_id=au.id
+  where au.id=_user_id;
+
+  insert into public.students(user_id,full_name,enrollment,classroom,teacher_id,institution_id)
+  values(_user_id,coalesce(display_name,'Aluno'),'','',null,_institution_id);
+  return true;
+end;
+$$;
+
+create or replace function public.ensure_student_profile()
+returns boolean
+language plpgsql security definer set search_path to ''
+as $$
+declare uid uuid:=auth.uid(); inst uuid;
+begin
+  if uid is null then raise exception 'Usuário não autenticado.'; end if;
+  inst:=sina_private.current_institution('student'::public.app_role);
+  if inst is null then raise exception 'Aluno sem instituição ativa.'; end if;
+  return public.ensure_student_profile_for_user(uid,inst);
+end;
+$$;
+
+create or replace function public.student_get_profile()
+returns setof public.students
+language sql stable security definer set search_path to ''
+as $$
+  select s.*
+  from public.students s
+  where s.user_id=auth.uid()
+    and s.institution_id=sina_private.current_institution('student'::public.app_role)
+  order by s.updated_at desc
+  limit 1;
+$$;
+
+create or replace function public.student_update_profile(_full_name text,_avatar_url text default null)
+returns public.students
+language plpgsql security definer set search_path to ''
+as $$
+declare result_row public.students; inst uuid;
+begin
+  inst:=sina_private.current_institution('student'::public.app_role);
+  if inst is null then raise exception 'Aluno sem instituição ativa.'; end if;
+  update public.students
+  set full_name=trim(_full_name),avatar_url=nullif(trim(_avatar_url),''),
+      updated_at=now()
+  where user_id=auth.uid() and institution_id=inst
+  returning * into result_row;
+  if result_row.id is null then
+    perform public.ensure_student_profile();
+    update public.students
+    set full_name=trim(_full_name),avatar_url=nullif(trim(_avatar_url),''),
+        updated_at=now()
+    where user_id=auth.uid() and institution_id=inst
+    returning * into result_row;
+  end if;
+  return result_row;
+end;
+$$;
+
+create or replace function public.student_set_task_completed(_task_id uuid,_completed boolean)
+returns boolean
+language plpgsql security definer set search_path to ''
+as $$
+declare student_record public.students;
+begin
+  select s.* into student_record
+  from public.students s
+  where s.user_id=auth.uid()
+    and s.institution_id=sina_private.current_institution('student'::public.app_role)
+  limit 1;
+  if student_record.id is null then raise exception 'Perfil de aluno não encontrado.'; end if;
+
+  if not exists(
+    select 1 from public.tasks t
+    where t.id=_task_id and t.institution_id=student_record.institution_id
+      and t.teacher_id=student_record.teacher_id
+      and t.classroom=student_record.classroom
+      and student_record.teacher_id is not null
+  ) then raise exception 'Tarefa não encontrada para este aluno.'; end if;
+
+  insert into public.task_completions(task_id,student_id,completed,updated_at)
+  values(_task_id,student_record.id,_completed,now())
+  on conflict(task_id,student_id) do update set completed=excluded.completed,updated_at=now();
+  return true;
+end;
+$$;
+
 -- SINA: final functional hardening for academic workflows
 -- Keeps all academic reads/writes scoped to the active institution and assigned class.
 
