@@ -314,7 +314,7 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated': {
       id: '/_authenticated',
-      path: ''
+      path: '',
       fullPath: '/',
       preLoaderRoute: typeof AuthenticatedRouteRouteImport,
       parentRoute: typeof rootRouteImport,
