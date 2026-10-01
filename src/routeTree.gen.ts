@@ -18,6 +18,13 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAlunoRouteImport } from './routes/_authenticated/aluno'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedProfessorRouteImport } from './routes/_authenticated/professor'
+import { Route as AuthenticatedProfessorTurmasRouteImport } from './routes/_authenticated/professor/turmas'
+import { Route as AuthenticatedProfessorNotasRouteImport } from './routes/_authenticated/professor/notas'
+import { Route as AuthenticatedProfessorFrequenciaRouteImport } from './routes/_authenticated/professor/frequencia'
+import { Route as AuthenticatedProfessorAvaliacoesRouteImport } from './routes/_authenticated/professor/avaliacoes'
+import { Route as AuthenticatedProfessorAtividadesRouteImport } from './routes/_authenticated/professor/atividades'
+import { Route as AuthenticatedProfessorAgendaRouteImport } from './routes/_authenticated/professor/agenda'
+import { Route as AuthenticatedProfessorComunicacaoRouteImport } from './routes/_authenticated/professor/comunicacao'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedAlunoTarefasRouteImport } from './routes/_authenticated/aluno/tarefas'
 import { Route as AuthenticatedAlunoDisciplinasRouteImport } from './routes/_authenticated/aluno/disciplinas'
@@ -102,6 +109,48 @@ const AuthenticatedProfessorRoute = AuthenticatedProfessorRouteImport.update({
   path: '/professor',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedProfessorTurmasRoute = AuthenticatedProfessorTurmasRouteImport.update({
+  id: '/_authenticated/professor/turmas',
+  path: '/turmas',
+  getParentRoute: () => AuthenticatedProfessorRoute,
+} as any)
+
+const AuthenticatedProfessorNotasRoute = AuthenticatedProfessorNotasRouteImport.update({
+  id: '/_authenticated/professor/notas',
+  path: '/notas',
+  getParentRoute: () => AuthenticatedProfessorRoute,
+} as any)
+
+const AuthenticatedProfessorFrequenciaRoute = AuthenticatedProfessorFrequenciaRouteImport.update({
+  id: '/_authenticated/professor/frequencia',
+  path: '/frequencia',
+  getParentRoute: () => AuthenticatedProfessorRoute,
+} as any)
+
+const AuthenticatedProfessorAvaliacoesRoute = AuthenticatedProfessorAvaliacoesRouteImport.update({
+  id: '/_authenticated/professor/avaliacoes',
+  path: '/avaliacoes',
+  getParentRoute: () => AuthenticatedProfessorRoute,
+} as any)
+
+const AuthenticatedProfessorAtividadesRoute = AuthenticatedProfessorAtividadesRouteImport.update({
+  id: '/_authenticated/professor/atividades',
+  path: '/atividades',
+  getParentRoute: () => AuthenticatedProfessorRoute,
+} as any)
+
+const AuthenticatedProfessorAgendaRoute = AuthenticatedProfessorAgendaRouteImport.update({
+  id: '/_authenticated/professor/agenda',
+  path: '/agenda',
+  getParentRoute: () => AuthenticatedProfessorRoute,
+} as any)
+
+const AuthenticatedProfessorComunicacaoRoute = AuthenticatedProfessorComunicacaoRouteImport.update({
+  id: '/_authenticated/professor/comunicacao',
+  path: '/comunicacao',
+  getParentRoute: () => AuthenticatedProfessorRoute,
+} as any)
+
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   id: '/_authenticated/perfil',
   path: '/perfil',
@@ -117,6 +166,20 @@ export interface FileRoutesByFullPath {
   '/aluno': typeof AuthenticatedAlunoRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/professor': typeof AuthenticatedProfessorRoute
+  '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
+  '/professor/notas': typeof AuthenticatedProfessorNotasRoute
+  '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
+  '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
+  '/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
+  '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
+  '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
+  '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
+  '/professor/notas': typeof AuthenticatedProfessorNotasRoute
+  '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
+  '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
+  '/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
+  '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
+  '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
   '/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
@@ -172,6 +235,13 @@ export interface FileRouteTypes {
     | '/aluno'
     | '/painel'
     | '/professor'
+    | '/professor/turmas'
+    | '/professor/notas'
+    | '/professor/frequencia'
+    | '/professor/avaliacoes'
+    | '/professor/atividades'
+    | '/professor/agenda'
+    | '/professor/comunicacao'
     | '/perfil'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -195,6 +265,13 @@ export interface FileRouteTypes {
     | '/_authenticated/aluno'
     | '/_authenticated/painel'
     | '/_authenticated/professor'
+    | '/_authenticated/professor/turmas'
+    | '/_authenticated/professor/notas'
+    | '/_authenticated/professor/frequencia'
+    | '/_authenticated/professor/avaliacoes'
+    | '/_authenticated/professor/atividades'
+    | '/_authenticated/professor/agenda'
+    | '/_authenticated/professor/comunicacao'
     | '/_authenticated/perfil'
     | '/_authenticated/aluno/tarefas'
     | '/_authenticated/aluno/disciplinas'
@@ -347,12 +424,32 @@ const AuthenticatedAlunoRouteChildren: AuthenticatedAlunoRouteChildren = {
 }
 const AuthenticatedAlunoRouteWithChildren = AuthenticatedAlunoRoute._addFileChildren(AuthenticatedAlunoRouteChildren)
 
+interface AuthenticatedProfessorRouteChildren {
+  AuthenticatedProfessorTurmasRoute: typeof AuthenticatedProfessorTurmasRoute
+  AuthenticatedProfessorNotasRoute: typeof AuthenticatedProfessorNotasRoute
+  AuthenticatedProfessorFrequenciaRoute: typeof AuthenticatedProfessorFrequenciaRoute
+  AuthenticatedProfessorAvaliacoesRoute: typeof AuthenticatedProfessorAvaliacoesRoute
+  AuthenticatedProfessorAtividadesRoute: typeof AuthenticatedProfessorAtividadesRoute
+  AuthenticatedProfessorAgendaRoute: typeof AuthenticatedProfessorAgendaRoute
+  AuthenticatedProfessorComunicacaoRoute: typeof AuthenticatedProfessorComunicacaoRoute
+}
+const AuthenticatedProfessorRouteChildren: AuthenticatedProfessorRouteChildren = {
+  AuthenticatedProfessorTurmasRoute,
+  AuthenticatedProfessorNotasRoute,
+  AuthenticatedProfessorFrequenciaRoute,
+  AuthenticatedProfessorAvaliacoesRoute,
+  AuthenticatedProfessorAtividadesRoute,
+  AuthenticatedProfessorAgendaRoute,
+  AuthenticatedProfessorComunicacaoRoute,
+}
+const AuthenticatedProfessorRouteWithChildren = AuthenticatedProfessorRoute._addFileChildren(AuthenticatedProfessorRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAlunoRoute: typeof AuthenticatedAlunoRouteWithChildren
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
-  AuthenticatedProfessorRoute: typeof AuthenticatedProfessorRoute
+  AuthenticatedProfessorRoute: typeof AuthenticatedProfessorRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -360,7 +457,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAlunoRoute: AuthenticatedAlunoRouteWithChildren,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
-  AuthenticatedProfessorRoute: AuthenticatedProfessorRoute,
+  AuthenticatedProfessorRoute: AuthenticatedProfessorRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =
