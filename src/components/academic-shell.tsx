@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   CheckCircle2,
+  Building2,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
@@ -45,6 +46,14 @@ export function AcademicShell({
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
+  const institutions = useQuery({
+    queryKey: ["my-institutions"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("account_list_institutions");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   async function logout() {
     await queryClient.cancelQueries();
@@ -176,6 +185,27 @@ export function AcademicShell({
             </div>
 
             <div className="hidden items-center gap-2 md:flex">
+              {institutions.data && institutions.data.length > 0 && (
+                <div className="hidden lg:flex items-center gap-2 rounded-xl border border-border bg-card px-2.5 py-1.5">
+                  <Building2 className="size-4 text-primary" />
+                  <select
+                    aria-label="Instituição ativa"
+                    value={institutions.data[0]?.id ?? ""}
+                    onChange={async (event) => {
+                      if (!event.target.value) return;
+                      const { error } = await supabase.rpc("account_set_institution", { _institution_id: event.target.value });
+                      if (error) return;
+                      await queryClient.invalidateQueries();
+                      window.location.reload();
+                    }}
+                    className="max-w-48 bg-transparent text-xs font-semibold outline-none"
+                  >
+                    {institutions.data.map((institution) => (
+                      <option key={institution.id} value={institution.id}>{institution.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
                 {roleShort}
               </span>
