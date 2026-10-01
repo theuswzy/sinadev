@@ -26,34 +26,6 @@ begin
 end;
 $$;
 
-create or replace function public.ensure_student_profile_for_user(_user_id uuid,_institution_id uuid)
-returns boolean
-language plpgsql security definer set search_path to ''
-as $$
-declare display_name text;
-begin
-  if _institution_id is null then raise exception 'Instituição obrigatória para criar o perfil do aluno.'; end if;
-
-  if exists(select 1 from public.students where user_id=_user_id and institution_id=_institution_id) then
-    return true;
-  end if;
-
-  select coalesce(
-    nullif(p.display_name,''),
-    nullif(au.raw_user_meta_data->>'display_name',''),
-    split_part(coalesce(au.email,''),'@',1)
-  ) into display_name
-  from auth.users au
-  left join public.profiles p on p.user_id=au.id
-  where au.id=_user_id;
-
-  insert into public.students(user_id,full_name,enrollment,classroom,teacher_id,institution_id)
-  values(_user_id,coalesce(display_name,'Aluno'),'','','',_institution_id);
-
-  return true;
-end;
-$$;
-
 -- Fix the empty teacher_id literal above for strict UUID schemas.
 create or replace function public.ensure_student_profile_for_user(_user_id uuid,_institution_id uuid)
 returns boolean
@@ -67,7 +39,7 @@ begin
   select coalesce(
     nullif(p.display_name,''),
     nullif(au.raw_user_meta_data->>'display_name',''),
-    split_part(coalesce(au.email,''),'@','1')
+    split_part(coalesce(au.email,''),'@',1)
   ) into display_name
   from auth.users au
   left join public.profiles p on p.user_id=au.id
