@@ -28,6 +28,34 @@ begin
 end;
 $$;
 
+
+-- Defense-in-depth RLS for academic records. RPCs remain the primary write path,
+-- but direct Data API reads must also respect the active institution.
+drop policy if exists "Task submissions visible to owners" on public.task_submissions;
+create policy "Task submissions visible to owners"
+on public.task_submissions for select to authenticated
+using (
+  exists(
+    select 1 from public.students s
+    where s.id=task_submissions.student_id
+      and s.user_id=(select auth.uid())
+      and s.institution_id=(select sina_private.current_institution('student'::public.app_role))
+  )
+  or exists(
+    select 1 from public.tasks t
+    where t.id=task_submissions.task_id
+      and t.teacher_id=(select auth.uid())
+      and t.institution_id=(select sina_private.current_institution('teacher'::public.app_role))
+  )
+  or exists(
+    select 1 from public.institution_memberships m
+    where m.user_id=(select auth.uid())
+      and m.institution_id=(select public.current_institution_id_for_admin())
+      and m.role='admin'
+      and m.status='active'
+  )
+);
+
 -- Fix the empty teacher_id literal above for strict UUID schemas.
 create or replace function public.ensure_student_profile_for_user(_user_id uuid,_institution_id uuid)
 returns boolean
