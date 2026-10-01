@@ -5,7 +5,7 @@ import { BarChart3, BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, Clipbo
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { errorText, formatScore, loadAttendance, loadGrades, loadStudents, loadTeacherAcademicOptions, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassrooms, saveAttendance, createAssessment, createTeacherCalendarEvent, loadTaskSubmissions, gradeTaskSubmission, loadTeacherSubjects, createTeacherSubject, updateTeacherSubject, archiveTeacherSubject, loadTeacherSubjectAssignments, loadTeacherClassReport, assignTeacherSubjectToClass, unassignTeacherSubjectFromClass, type AttendanceRow, type TeacherStudent, type TeacherClassroom, type TaskSubmission, type TeacherSubject } from "@/lib/sina-data";
+import { errorText, formatScore, loadAttendance, loadGrades, loadStudents, loadTeacherAcademicOptions, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassrooms, createTeacherClassroom, saveAttendance, createAssessment, createTeacherCalendarEvent, loadTaskSubmissions, gradeTaskSubmission, loadTeacherSubjects, createTeacherSubject, updateTeacherSubject, archiveTeacherSubject, loadTeacherSubjectAssignments, loadTeacherClassReport, assignTeacherSubjectToClass, unassignTeacherSubjectFromClass, type AttendanceRow, type TeacherStudent, type TeacherClassroom, type TaskSubmission, type TeacherSubject } from "@/lib/sina-data";
 import { supabase } from "@/integrations/supabase/client";
 
 export type TeacherModule = "turmas"|"disciplinas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"agenda"|"comunicacao";
@@ -32,8 +32,9 @@ function Metric({label,value,icon:Icon}:{label:string;value:number;icon:typeof U
 export function TeacherModulePage({module}:{module:TeacherModule}){return <Guard><AcademicShell title={meta[module].title} subtitle={meta[module].subtitle}><ModuleContent module={module}/></AcademicShell></Guard>}
 function ModuleContent({module}:{module:TeacherModule}){const qc=useQueryClient();const classes=useQuery({queryKey:["teacher-module-classes"],queryFn:loadTeacherClassrooms});const [classId,setClassId]=useState("");const active=classId||(classes.data?.[0]?.id||"");const students=useQuery({queryKey:["teacher-module-students"],queryFn:loadStudents,enabled:["turmas","notas"].includes(module)});const [studentId,setStudentId]=useState("");const student=(students.data||[]).find(x=>x.id===studentId)||(students.data||[]).find(x=>!!x.teacher_id);const grades=useQuery({queryKey:["teacher-module-grades",student?.id],queryFn:()=>loadGrades(student?.id||""),enabled:module==="notas"&&!!student?.id});const day=new Date().toISOString().slice(0,10);const report=useQuery({queryKey:["teacher-class-report",active],queryFn:()=>loadTeacherClassReport(active),enabled:module==="turmas"&&!!active});const attendance=useQuery({queryKey:["teacher-module-attendance",active,day],queryFn:()=>loadAttendance(active,day),enabled:module==="frequencia"&&!!active});
 if(classes.isPending)return <div className="sina-card mt-6 p-6">Carregando dados…</div>;
-if(module==="disciplinas")return <SubjectBox/>;
-if(module==="turmas")return <div className="mt-6 space-y-5">
+const noClasses=!classes.data?.length;
+if(module==="disciplinas")return <div className="space-y-5"><NoClassroomBanner visible={noClasses} onCreated={()=>void classes.refetch()}/><SubjectBox/></div>;
+if(module==="turmas")return <div className="mt-6 space-y-5"><NoClassroomBanner visible={noClasses} onCreated={()=>void classes.refetch()}/>
   <ClassSelect classes={classes.data||[]} value={active} onChange={setClassId}/>
   <section className="sina-card p-6">
     <h2 className="font-semibold">Alunos da turma</h2>
@@ -54,12 +55,28 @@ if(module==="turmas")return <div className="mt-6 space-y-5">
   </section>
 </div>;
 if(module==="notas")return <div className="mt-6 space-y-5"><section className="sina-card p-5"><label className="text-sm font-medium">Aluno<select value={student?.id||""} onChange={e=>setStudentId(e.target.value)} className="mt-2 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Selecione</option>{(students.data||[]).filter(x=>x.teacher_id).map(x=><option key={x.id} value={x.id}>{x.full_name} · {x.classroom}</option>)}</select></label></section>{student&&<><GradeForm student={student} qc={qc}/><BulkGradeForm students={(students.data||[]).filter(x=>x.teacher_id&&(!active||x.classroom_id===active))} qc={qc}/><section className="sina-card p-6"><h2 className="font-semibold">Histórico de notas</h2><div className="mt-4 overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-border text-left"><th className="py-2">Disciplina</th><th className="py-2">Período</th><th className="py-2">Nota</th><th className="py-2">Faltas</th></tr></thead><tbody>{(grades.data||[]).map(g=><tr key={g.id} className="border-b border-border"><td className="py-2">{g.subject}</td><td className="py-2">{g.period}º</td><td className="py-2 font-semibold">{formatScore(g.score)}</td><td className="py-2">{g.absences}</td></tr>)}</tbody></table></div></section></>}</div>;
+if(noClasses)return <div className="mt-6"><NoClassroomBanner visible onCreated={()=>void classes.refetch()}/></div>;
 if(module==="frequencia")return <AttendanceBox classes={classes.data||[]} active={active} onChange={setClassId} data={attendance.data||[]} qc={qc}/>;
 if(module==="avaliacoes")return <AssessmentsBox classes={classes.data||[]} active={active} onChange={setClassId}/>;
 if(module==="agenda")return <AgendaBox classes={classes.data||[]}/>;
 if(module==="atividades")return <PublishBox kind="task" classes={classes.data||[]}/>;
 return <PublishBox kind="notice" classes={classes.data||[]}/>;
 }
+function NoClassroomBanner({visible,onCreated}:{visible:boolean;onCreated:()=>void}){
+  const [name,setName]=useState("");
+  const [code,setCode]=useState("");
+  const [busy,setBusy]=useState(false);
+  if(!visible)return null;
+  async function create(){
+    if(!name.trim())return;
+    setBusy(true);
+    try{await createTeacherClassroom(name,code);setName("");setCode("");onCreated();}
+    catch(error){window.alert(errorText(error));}
+    finally{setBusy(false);}
+  }
+  return <section className="sina-card mt-6 border-primary/20 bg-primary/5 p-5 sm:p-6"><p className="text-xs font-bold uppercase tracking-wide text-primary">Primeiro passo</p><h2 className="mt-1 text-lg font-semibold">Você ainda não tem uma turma</h2><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Crie sua primeira turma para liberar alunos, notas, frequência, atividades, avaliações, agenda e comunicação.</p><div className="mt-4 grid gap-2 sm:grid-cols-[1fr_180px_auto]"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome da turma"/><Input value={code} onChange={e=>setCode(e.target.value)} placeholder="Código (opcional)"/><Button disabled={busy||!name.trim()} onClick={()=>void create()}>{busy?"Criando…":"Criar turma"}</Button></div></section>;
+}
+
 function SubjectBox(){
   const q=useQuery({queryKey:["teacher-subjects"],queryFn:loadTeacherSubjects});
   const classes=useQuery({queryKey:["teacher-subject-classrooms"],queryFn:loadTeacherClassrooms});
