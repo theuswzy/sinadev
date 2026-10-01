@@ -737,6 +737,199 @@ export type Database = {
         }
       }
     }
+    teacher_list_classrooms: {
+      Args: Record<PropertyKey, never>
+      Returns: {
+        id: string
+        name: string
+        code: string | null
+        status: string
+        student_count: number
+      }[]
+    }
+    teacher_get_attendance: {
+      Args: { _classroom_id: string; _date: string }
+      Returns: {
+        student_id: string
+        full_name: string
+        enrollment: string
+        status: string
+        note: string
+      }[]
+    }
+    teacher_save_attendance: {
+      Args: { _classroom_id: string; _date: string; _rows: Json }
+      Returns: number
+    }
+    student_list_attendance: {
+      Args: { _limit?: number }
+      Returns: {
+        attendance_date: string
+        status: string
+        note: string | null
+        classroom: string
+      }[]
+    }
+    teacher_list_academic_options: {
+      Args: Record<PropertyKey, never>
+      Returns: Json
+    }
+    teacher_list_assessments: {
+      Args: { _classroom_id: string }
+      Returns: {
+        id: string
+        title: string
+        assessment_type: string
+        weight: number
+        max_score: number
+        due_at: string | null
+        status: string
+        subject_id: string | null
+        subject_name: string
+        term_id: string | null
+        term_name: string
+      }[]
+    }
+    teacher_create_assessment: {
+      Args: {
+        _classroom_id: string
+        _subject_id: string | null
+        _term_id: string | null
+        _title: string
+        _type: string
+        _weight: number
+        _max_score: number
+        _due_at: string | null
+      }
+      Returns: string
+    }
+    teacher_upsert_assessment_score: {
+      Args: { _assessment_id: string; _student_id: string; _score: number | null; _feedback: string | null }
+      Returns: boolean
+    }
+    student_list_assessments: {
+      Args: Record<PropertyKey, never>
+      Returns: {
+        id: string
+        title: string
+        assessment_type: string
+        weight: number
+        max_score: number
+        due_at: string | null
+        status: string
+        subject_name: string
+        term_name: string
+        score: number | null
+        feedback: string | null
+      }[]
+    }
+    student_submit_task: {
+      Args: { _task_id: string; _content: string }
+      Returns: string
+    }
+    student_list_task_submissions: {
+      Args: Record<PropertyKey, never>
+      Returns: {
+        id: string
+        task_id: string
+        content: string
+        attachment_path: string | null
+        attachment_name: string | null
+        status: string
+        submitted_at: string
+        score: number | null
+        feedback: string | null
+      }[]
+    }
+    teacher_list_task_submissions: {
+      Args: { _task_id: string }
+      Returns: {
+        id: string
+        task_id: string
+        student_id: string
+        student_name: string
+        enrollment: string
+        content: string
+        status: string
+        submitted_at: string
+        score: number | null
+        feedback: string | null
+      }[]
+    }
+    teacher_grade_submission: {
+      Args: { _submission_id: string; _score: number | null; _feedback: string | null }
+      Returns: boolean
+    }
+    teacher_list_calendar: {
+      Args: { _from: string; _to: string }
+      Returns: {
+        id: string
+        classroom_id: string | null
+        classroom_name: string | null
+        title: string
+        description: string
+        start_at: string
+        end_at: string | null
+        event_type: string
+        status: string
+      }[]
+    }
+    student_list_calendar: {
+      Args: { _from: string; _to: string }
+      Returns: {
+        id: string
+        classroom_id: string | null
+        classroom_name: string | null
+        title: string
+        description: string
+        start_at: string
+        end_at: string | null
+        event_type: string
+        status: string
+      }[]
+    }
+    teacher_create_calendar_event: {
+      Args: {
+        _classroom_id: string | null
+        _title: string
+        _description: string
+        _start_at: string
+        _end_at: string | null
+        _event_type: string
+      }
+      Returns: string
+    }
+    admin_list_academic_setup: {
+      Args: Record<PropertyKey, never>
+      Returns: Json
+    }
+    admin_upsert_classroom: {
+      Args: { _id: string | null; _name: string; _code: string }
+      Returns: string
+    }
+    admin_archive_classroom: {
+      Args: { _id: string }
+      Returns: boolean
+    }
+    admin_upsert_subject: {
+      Args: { _id: string | null; _name: string; _code: string }
+      Returns: string
+    }
+    admin_upsert_term: {
+      Args: { _id: string | null; _name: string; _starts_at: string | null; _ends_at: string | null; _is_current: boolean }
+      Returns: string
+    }
+    teacher_get_class_report: {
+      Args: { _classroom_id: string }
+      Returns: {
+        student_id: string
+        student_name: string
+        enrollment: string
+        attendance_percent: number | null
+        grade_average: number
+        assessment_count: number
+      }[]
+    }
     Enums: {
       app_role: "student" | "teacher" | "admin"
     }
