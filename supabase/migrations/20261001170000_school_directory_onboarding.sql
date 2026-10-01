@@ -382,6 +382,50 @@ $$;
 revoke all on function public.ensure_student_profile_for_user(uuid,uuid) from public, anon;
 revoke all on function public.ensure_student_profile_for_user(uuid,uuid) from public, anon, authenticated;
 
+create or replace function public.admin_list_role_requests_v2()
+returns table(
+  id uuid,
+  user_id uuid,
+  email text,
+  display_name text,
+  requested_role text,
+  status text,
+  review_note text,
+  created_at timestamptz,
+  reviewed_at timestamptz,
+  school_directory_id uuid,
+  school_name text,
+  school_network_type text
+)
+language sql
+stable
+security definer
+set search_path to ''
+as $
+  select
+    rr.id,
+    rr.user_id,
+    au.email::text,
+    coalesce(p.display_name,''),
+    rr.requested_role::text,
+    rr.status,
+    rr.review_note,
+    rr.created_at,
+    rr.reviewed_at,
+    rr.school_directory_id,
+    d.name,
+    d.network_type
+  from public.account_role_requests rr
+  join auth.users au on au.id=rr.user_id
+  left join public.profiles p on p.user_id=rr.user_id
+  left join public.school_directory d on d.id=rr.school_directory_id
+  where public.has_role(auth.uid(),'admin'::public.app_role)
+  order by case when rr.status='pending' then 0 else 1 end, rr.created_at desc;
+$;
+
+revoke all on function public.admin_list_role_requests_v2() from public, anon;
+grant execute on function public.admin_list_role_requests_v2() to authenticated;
+
 -- Initial verified catalog entries. More rows can be imported without changing the schema.
 insert into public.school_directory
   (name, normalized_name, municipality, state, network_type, administrative_type, source, source_year)
