@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { GraduationCap, CalendarDays, CircleAlert, TrendingUp, UserRound, Megaphone, ClipboardCheck, Clock3, CheckCircle2, ArrowUpRight } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
@@ -23,19 +23,17 @@ export const Route = createFileRoute("/_authenticated/aluno")({
 });
 
 function StudentArea() {
-  const location = useLocation();
-  const isProfileRoute = location.pathname === "/aluno/perfil";
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
   const student = useQuery({
     queryKey: ["my-student"],
     queryFn: loadMyStudent,
-    enabled: role.data === "student" && !isProfileRoute,
+    enabled: role.data === "student",
     refetchOnWindowFocus: true,
   });
   const announcements = useQuery({
     queryKey: ["my-announcements", student.data?.classroom],
     queryFn: loadAnnouncements,
-    enabled: !!student.data?.id && !isProfileRoute,
+    enabled: !!student.data?.id,
     refetchOnWindowFocus: true,
   });
   const tasks = useQuery({
@@ -115,10 +113,6 @@ function StudentArea() {
     return { subject, average: items.reduce((sum, item) => sum + item.score, 0) / items.length, absences: items.reduce((sum, item) => sum + item.absences, 0), periods: items.length };
   }).sort((a, b) => b.average - a.average);
   const topSubjects = subjectPerformance.slice(0, 4);
-
-  if (isProfileRoute) {
-    return <Outlet />;
-  }
 
   async function toggleTask(taskId: string) {
     try {
