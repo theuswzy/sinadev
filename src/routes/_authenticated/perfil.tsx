@@ -44,9 +44,13 @@ function StudentProfile() {
   const accountName =
     account.data?.user_metadata?.display_name ||
     account.data?.email?.split("@")[0] ||
+    "Usuário";
+  const roleLabel =
+    role.data === "admin" ? "Administrador" :
+    role.data === "teacher" ? "Professor" :
     "Aluno";
   const currentName = currentStudent?.full_name || accountName;
-  const currentAvatar = currentStudent?.avatar_url ?? null;
+  const currentAvatar = currentStudent?.avatar_url ?? account.data?.user_metadata?.avatar_url ?? null;
   const displayName = editing ? name : currentName;
   const displayAvatar = editing ? avatar : currentAvatar;
 
@@ -127,7 +131,7 @@ function StudentProfile() {
     const trimmedName = name.trim();
 
     if (!trimmedName) {
-      setMessage("Informe seu nome completo.");
+      setMessage("Informe seu nome.");
       return;
     }
 
@@ -140,27 +144,34 @@ function StudentProfile() {
     setMessage(null);
 
     try {
-      const { error: ensureError } = await supabase.rpc("ensure_student_profile");
-      if (ensureError) throw ensureError;
+      if (role.data === "student") {
+        const { error: ensureError } = await supabase.rpc("ensure_student_profile");
+        if (ensureError) throw ensureError;
 
-      const { data, error } = await supabase.rpc("student_update_profile", {
-        _full_name: trimmedName,
-        _avatar_url: avatar,
-      });
+        const { data, error } = await supabase.rpc("student_update_profile", {
+          _full_name: trimmedName,
+          _avatar_url: avatar,
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      await supabase.auth.updateUser({
-        data: { display_name: trimmedName },
-      });
+        await supabase.auth.updateUser({
+          data: { display_name: trimmedName },
+        });
 
-      queryClient.setQueryData(["my-student"], data);
-      await queryClient.invalidateQueries({ queryKey: ["my-student"] });
+        queryClient.setQueryData(["my-student"], data);
+        await queryClient.invalidateQueries({ queryKey: ["my-student"] });
+        setAvatar(data?.avatar_url ?? avatar);
+      } else {
+        const { error } = await supabase.auth.updateUser({
+          data: { display_name: trimmedName },
+        });
+        if (error) throw error;
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["auth-user-profile"] });
-
       setEditing(false);
       setName(trimmedName);
-      setAvatar(data?.avatar_url ?? avatar);
       toast.success("Perfil atualizado com sucesso.");
     } catch (error) {
       const text = errorText(error);
@@ -216,17 +227,6 @@ function StudentProfile() {
     );
   }
 
-  if (role.data !== "student") {
-    return (
-      <AcademicShell title="Meu perfil" subtitle="Edite seus dados e personalize sua experiência">
-        <div className="mt-8 rounded-2xl border border-border bg-secondary/40 p-6">
-          <p className="font-semibold">Perfil de aluno</p>
-          <p className="mt-1 text-sm text-muted-foreground">Esta área é destinada aos alunos.</p>
-        </div>
-      </AcademicShell>
-    );
-  }
-
   return (
     <AcademicShell title="Meu perfil" subtitle="Edite seus dados e personalize sua experiência">
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
@@ -247,20 +247,23 @@ function StudentProfile() {
               {displayAvatar ? <img src={displayAvatar} alt="" className="size-full object-cover" /> : <UserRound className="size-8 text-brand-muted" />}
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-muted">Perfil do aluno</p>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-muted">Meu perfil</p>
               <h2 className="mt-1 font-display text-2xl font-bold">{currentName}</h2>
-              <p className="mt-1 text-sm text-brand-muted">
-                Aluno · {currentStudent?.classroom ? `Turma ${currentStudent.classroom}` : "Aguardando vínculo"}
-              </p>
+              <p className="mt-1 text-sm text-brand-muted">{roleLabel}{currentStudent?.classroom ? ` · Turma ${currentStudent.classroom}` : ""}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-xl border border-brand-border bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground">
-              {currentStudent?.enrollment || "Matrícula pendente"}
-            </span>
-            <span className="rounded-xl border border-brand-border bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground">
-              {currentStudent?.classroom || "Turma pendente"}
-            </span>
+            <span className="rounded-xl border border-brand-border bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground">{roleLabel}</span>
+            {currentStudent && (
+              <>
+                <span className="rounded-xl border border-brand-border bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground">
+                  {currentStudent.enrollment || "Matrícula pendente"}
+                </span>
+                <span className="rounded-xl border border-brand-border bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground">
+                  {currentStudent.classroom || "Turma pendente"}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -283,18 +286,24 @@ function StudentProfile() {
             <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
               <div className="relative flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary">
                 {displayAvatar ? <img src={displayAvatar} alt="Prévia do perfil" className="size-full object-cover" /> : <UserRound className="size-10 text-muted-foreground" />}
-                <label className="absolute bottom-1 right-1 flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105">
-                  <Camera className="size-4" />
-                  <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} />
-                </label>
+                {role.data === "student" && (
+                  <label className="absolute bottom-1 right-1 flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105">
+                    <Camera className="size-4" />
+                    <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} />
+                  </label>
+                )}
               </div>
               <div className="text-center sm:text-left">
                 <p className="font-semibold">Foto de perfil</p>
-                <p className="mt-1 max-w-md text-sm leading-6 text-muted-foreground">PNG, JPG ou WebP, até 6 MB.</p>
-                <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary">
-                  <Camera className="size-4" /> {uploading ? "Enviando…" : "Escolher foto"}
-                  <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} />
-                </label>
+                <p className="mt-1 max-w-md text-sm leading-6 text-muted-foreground">
+                  {role.data === "student" ? "PNG, JPG ou WebP, até 6 MB." : "A foto deste tipo de conta é somente para exibição."}
+                </p>
+                {role.data === "student" && (
+                  <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary">
+                    <Camera className="size-4" /> {uploading ? "Enviando…" : "Escolher foto"}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} />
+                  </label>
+                )}
               </div>
             </div>
 
@@ -311,16 +320,18 @@ function StudentProfile() {
               />
             </div>
 
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl bg-secondary/60 p-4">
-                <p className="text-xs text-muted-foreground">Matrícula</p>
-                <p className="mt-1 font-semibold">{currentStudent?.enrollment || "Ainda não vinculada"}</p>
+            {currentStudent && (
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl bg-secondary/60 p-4">
+                  <p className="text-xs text-muted-foreground">Matrícula</p>
+                  <p className="mt-1 font-semibold">{currentStudent.enrollment || "Ainda não vinculada"}</p>
+                </div>
+                <div className="rounded-2xl bg-secondary/60 p-4">
+                  <p className="text-xs text-muted-foreground">Turma</p>
+                  <p className="mt-1 font-semibold">{currentStudent.classroom || "Ainda não vinculada"}</p>
+                </div>
               </div>
-              <div className="rounded-2xl bg-secondary/60 p-4">
-                <p className="text-xs text-muted-foreground">Turma</p>
-                <p className="mt-1 font-semibold">{currentStudent?.classroom || "Ainda não vinculada"}</p>
-              </div>
-            </div>
+            )}
           </fieldset>
 
           <div className="mt-5 rounded-2xl border border-border bg-secondary/30 p-4">
