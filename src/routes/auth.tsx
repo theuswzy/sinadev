@@ -11,7 +11,10 @@ import {
   getAccountOnboardingState,
   getRole,
   resubmitRoleRequest,
+  searchSchoolDirectory,
+  ensureAccountOnboardingForSchool,
   type OnboardingState,
+  type SchoolDirectoryEntry,
 } from "@/lib/sina-data";
 
 function authErrorMessage(error: unknown): string {
@@ -60,12 +63,21 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [requestedRole, setRequestedRole] = useState<RequestedRole | null>(null);
+  const [selectedSchool, setSelectedSchool] = useState<SchoolDirectoryEntry | null>(null);
+  const [schoolSearch, setSchoolSearch] = useState("");
+  const [schoolResults, setSchoolResults] = useState<SchoolDirectoryEntry[]>([]);
+  const [schoolLoading, setSchoolLoading] = useState(false);
   const [pendingState, setPendingState] = useState<OnboardingState | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function finishAuth(explicitRole?: RequestedRole) {
-    const state = await ensureAccountOnboarding(explicitRole);
+  async function finishAuth(explicitRole?: RequestedRole, explicitSchoolId?: string) {
+    const schoolId = explicitSchoolId || window.localStorage.getItem("sina-school-directory-id") || undefined;
+    window.localStorage.removeItem("sina-school-directory-id");
+
+    const state = schoolId && explicitRole
+      ? await ensureAccountOnboardingForSchool(explicitRole, schoolId)
+      : await ensureAccountOnboarding(explicitRole);
     if (state.status === "pending") {
       setPendingState(state);
       setMode("pending");
@@ -85,14 +97,39 @@ function AuthPage() {
   }
 
   useEffect(() => {
+    if (mode !== "signup") return;
+
+    let cancelled = false;
+    setSchoolLoading(true);
+
+    const timer = window.setTimeout(() => {
+      void searchSchoolDirectory(schoolSearch).then((items) => {
+        if (!cancelled) setSchoolResults(items);
+      }).catch(() => {
+        if (!cancelled) setSchoolResults([]);
+      }).finally(() => {
+        if (!cancelled) setSchoolLoading(false);
+      });
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [mode, schoolSearch]);
+
+  useEffect(() => {
     void supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
 
       const storedRole = window.localStorage.getItem("sina-requested-role");
-      window.localStorage.removeItem("sina-requested-role");
+      const storedSchoolId = window.localStorage.getItem("sina-school-directory-id");
 
       try {
-        await finishAuth(storedRole === "teacher" || storedRole === "student" ? storedRole : undefined);
+        await finishAuth(
+          storedRole === "teacher" || storedRole === "student" ? storedRole : undefined,
+          storedSchoolId || undefined,
+        );
       } catch (error) {
         setMessage(authErrorMessage(error));
       }
@@ -126,13 +163,18 @@ function AuthPage() {
             data: {
               display_name: name.trim(),
               requested_role: requestedRole,
+              school_directory_id: selectedSchool.id,
             },
           },
         });
         if (error) throw error;
 
+        if (!selectedSchool) {
+          throw new Error("Selecione sua escola antes de criar a conta.");
+        }
+
         if (data.session) {
-          await finishAuth(requestedRole);
+          await finishAuth(requestedRole, selectedSchool.id);
         } else {
           setMessage("Conta criada. Confirme seu e-mail para continuar; depois o SINA enviará sua solicitação para aprovação.");
         }
@@ -157,19 +199,26 @@ function AuthPage() {
       return;
     }
     setBusy(true);
+    if (!selectedSchool) {
+      setMessage("Selecione sua escola antes de continuar com o Google.");
+      setBusy(false);
+      return;
+    }
     window.localStorage.setItem("sina-requested-role", requestedRole);
+    window.localStorage.setItem("sina-school-directory-id", selectedSchool.id);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: `${window.location.origin}/auth`,
     });
     if (result.error) {
       window.localStorage.removeItem("sina-requested-role");
+      window.localStorage.removeItem("sina-school-directory-id");
       setMessage(authErrorMessage(result.error));
       setBusy(false);
       return;
     }
     if (!result.redirected) {
       try {
-        await finishAuth(requestedRole);
+        await finishAuth(requestedRole, selectedSchool.id);
       } catch (error) {
         setMessage(authErrorMessage(error));
       } finally {
@@ -321,6 +370,69 @@ function AuthPage() {
                     <p className="text-xs leading-5 text-muted-foreground">A função escolhida é uma solicitação. O acesso só é liberado depois da aprovação do administrador.</p>
                   </div>
                 )}
+
+                {mode === "signup" && (
+                  <div className="mt-5 space-y-3">
+                    <div>
+                      <p className="text-sm font-semibold">Qual é a sua escola?</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Pesquise uma escola pública de Salvador. A aprovação será encaminhada para a instituição escolhida.
+                      </p>
+                    </div>
+
+                    {selectedSchool ? (
+                      <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold">{selectedSchool.name}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {selectedSchool.network_type === "municipal" ? "Rede municipal" : selectedSchool.network_type === "estadual" ? "Rede estadual" : "Rede federal"} · {selectedSchool.municipality} - {selectedSchool.state}
+                            </p>
+                          </div>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedSchool(null)}>Trocar</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <Input
+                          value={schoolSearch}
+                          onChange={e => setSchoolSearch(e.target.value)}
+                          placeholder="Digite o nome da escola..."
+                          className="h-11"
+                          autoComplete="off"
+                        />
+                        <div className="mt-2 max-h-56 overflow-auto rounded-2xl border border-border bg-card">
+                          {schoolLoading ? (
+                            <p className="px-4 py-3 text-sm text-muted-foreground">Pesquisando escolas…</p>
+                          ) : schoolResults.length ? (
+                            schoolResults.map(school => (
+                              <button
+                                key={school.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedSchool(school);
+                                  setSchoolSearch(school.name);
+                                }}
+                                className="flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-secondary/60"
+                              >
+                                <GraduationCap className="mt-0.5 size-4 shrink-0 text-primary" />
+                                <span>
+                                  <span className="block text-sm font-semibold">{school.name}</span>
+                                  <span className="mt-1 block text-xs text-muted-foreground">
+                                    {school.network_type === "municipal" ? "Municipal" : school.network_type === "estadual" ? "Estadual" : "Federal"} · {school.municipality} - {school.state}
+                                  </span>
+                                </span>
+                              </button>
+                            ))
+                          ) : (
+                            <p className="px-4 py-3 text-sm text-muted-foreground">
+                              Nenhuma escola encontrada com esse nome.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                 <form onSubmit={submit} className="mt-6 space-y-4">
                   {mode === "signup" && <label className="block text-sm font-medium">Nome completo<Input required value={name} onChange={e => setName(e.target.value)} className="mt-2 h-11" autoComplete="name" /></label>}
