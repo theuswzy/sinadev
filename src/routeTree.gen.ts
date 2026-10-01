@@ -175,7 +175,6 @@ export interface FileRoutesByFullPath {
   '/professor': typeof AuthenticatedProfessorRoute
   '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
   '/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
-  '/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
   '/professor/notas': typeof AuthenticatedProfessorNotasRoute
   '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
   '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
