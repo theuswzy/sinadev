@@ -211,13 +211,17 @@ export function AcademicShell({
                 {roleShort}
               </span>
               <ThemeToggle />
-              <Link
-                to="/perfil"
-                className="flex size-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 rounded-xl px-3"
+                onClick={() => void navigate({ to: "/perfil" })}
                 aria-label="Meu perfil"
+                title="Meu perfil"
               >
                 <UserRound className="size-4" />
-              </Link>
+                <span className="hidden lg:inline">Perfil</span>
+              </Button>
               <Button type="button" variant="outline" size="sm" onClick={logout} className="rounded-xl">
                 <LogOut className="mr-2 size-4" />
                 Sair
@@ -249,14 +253,17 @@ export function AcademicShell({
           {mobileOpen && (
             <div className="border-t border-border py-3 md:hidden">
               <div className="grid gap-2 sm:grid-cols-2">
-                <Link
-                  to="/perfil"
-                  className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold"
-                  onClick={() => setMobileOpen(false)}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    void navigate({ to: "/perfil" });
+                  }}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left text-sm font-semibold"
                 >
                   <UserRound className="size-4 text-primary" />
                   Meu perfil
-                </Link>
+                </button>
                 <button
                   type="button"
                   onClick={logout}
