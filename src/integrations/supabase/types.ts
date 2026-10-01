@@ -547,6 +547,10 @@ export type Database = {
         Args: { _teacher_id: string; _classroom_id: string }
         Returns: boolean
       }
+      teacher_create_classroom: {
+        Args: { _name: string; _code: string }
+        Returns: string
+      }
       teacher_create_task: {
         Args: {
           _attachment_name?: string | null
