@@ -64,10 +64,13 @@ export function AcademicShell({
     role.data === "teacher"
       ? [
           { href: "/professor", label: "Dashboard", Icon: LayoutDashboard, route: true },
-          { href: "#alunos", label: "Alunos", Icon: Users },
-          { href: "#lancamentos", label: "Notas", Icon: BarChart3 },
-          { href: "#central-turma", label: "Turmas e atividades", Icon: ClipboardList },
-          { href: "#comunicacao", label: "Comunicação", Icon: Megaphone },
+          { href: "/professor/turmas", label: "Turmas", Icon: Users, route: true },
+          { href: "/professor/notas", label: "Notas", Icon: BarChart3, route: true },
+          { href: "/professor/frequencia", label: "Frequência", Icon: CheckCircle2, route: true },
+          { href: "/professor/avaliacoes", label: "Avaliações", Icon: ClipboardCheck, route: true },
+          { href: "/professor/atividades", label: "Atividades", Icon: ClipboardList, route: true },
+          { href: "/professor/agenda", label: "Agenda", Icon: CalendarDays, route: true },
+          { href: "/professor/comunicacao", label: "Comunicação", Icon: Megaphone, route: true },
         ]
       : role.data === "student"
         ? [
@@ -119,7 +122,7 @@ export function AcademicShell({
       return (
         <Link
           key={item.href}
-          to={item.href as "/aluno" | "/aluno/tarefas" | "/aluno/disciplinas" | "/aluno/notas" | "/aluno/frequencia" | "/aluno/agenda" | "/aluno/avisos" | "/perfil" | "/admin" | "/professor"}
+          to={item.href as any}
           className={className}
           aria-current={active ? "page" : undefined}
           onClick={() => setMobileOpen(false)}
