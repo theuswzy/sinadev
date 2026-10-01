@@ -982,6 +982,23 @@ export type Database = {
       Args: { _request_id: string; _decision: string; _approved_role: string; _note: string }
       Returns: boolean
     }
+    admin_list_role_requests_v2: {
+      Args: Record<PropertyKey, never>
+      Returns: {
+        id: string
+        user_id: string
+        email: string
+        display_name: string
+        requested_role: string
+        status: string
+        review_note: string | null
+        created_at: string
+        reviewed_at: string | null
+        school_directory_id: string | null
+        school_name: string | null
+        school_network_type: string | null
+      }[]
+    }
     Enums: {
       app_role: "student" | "teacher" | "admin"
     }
