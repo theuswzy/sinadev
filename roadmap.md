@@ -15,14 +15,17 @@
 - [x] Avisos e atividades com anexos, edição, exclusão e modelos.
 - [x] Auditoria administrativa existente e integrada à área de administração.
 
+- [x] Avaliações com pesos, períodos e notas por aluno.
+- [x] Entrega de atividades com correção e feedback.
+
 ## Próxima evolução de produto
-- [ ] Central completa da turma com diário de classe.
-- [ ] Frequência por aula/data com lançamento em lote.
-- [ ] Calendário acadêmico institucional.
-- [ ] Acompanhamento de conclusão de atividades pelo professor.
+- [x] Central completa da turma com diário de classe.
+- [x] Frequência por aula/data com lançamento em lote.
+- [x] Calendário acadêmico institucional.
+- [x] Acompanhamento de conclusão de atividades pelo professor.
 - [ ] Importação de alunos/turmas por CSV.
-- [ ] Gestão administrativa de turmas, disciplinas e períodos.
-- [ ] Relatórios acadêmicos exportáveis.
+- [x] Gestão administrativa de turmas, disciplinas e períodos.
+- [x] Relatórios acadêmicos exportáveis.
 - [ ] Paginação e filtros server-side para grandes volumes.
 - [ ] Convites institucionais e onboarding por instituição.
 - [ ] Testes automatizados de autorização, RLS e fluxos críticos.
