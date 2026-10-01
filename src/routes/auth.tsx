@@ -399,7 +399,7 @@ function AuthPage() {
               </div>
             ) : (
               <>
-                {mode === "signup" && (
+                {mode === "signup" ? (
                   <div className="mt-6 space-y-5">
                     <div className="flex items-center gap-2">
                       {[1, 2, 3].map(step => (
@@ -418,12 +418,8 @@ function AuthPage() {
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">Escolha o perfil que será analisado pelo administrador.</p>
                         <div className="mt-3 grid gap-3 sm:grid-cols-2">
                           {(["student", "teacher"] as const).map(role => (
-                            <button
-                              key={role}
-                              type="button"
-                              onClick={() => { setRequestedRole(role); setMessage(""); }}
-                              className={`rounded-2xl border p-4 text-left transition ${requestedRole === role ? "border-primary bg-primary/5 ring-2 ring-primary/15" : "border-border hover:bg-secondary/60"}`}
-                            >
+                            <button key={role} type="button" onClick={() => { setRequestedRole(role); setMessage(""); }}
+                              className={`rounded-2xl border p-4 text-left transition ${requestedRole === role ? "border-primary bg-primary/5 ring-2 ring-primary/15" : "border-border hover:bg-secondary/60"}`}>
                               <div className="flex items-center gap-2">
                                 {role === "student" ? <UserRound className="size-5 text-primary" /> : <UsersRound className="size-5 text-primary" />}
                                 <span className="font-semibold">{roleLabel(role)}</span>
@@ -432,12 +428,8 @@ function AuthPage() {
                             </button>
                           ))}
                         </div>
-                        <Button
-                          type="button"
-                          className="mt-4 h-11 w-full"
-                          disabled={!requestedRole}
-                          onClick={() => { setMessage(""); setSignupStep(2); }}
-                        >
+                        <Button type="button" className="mt-4 h-11 w-full" disabled={!requestedRole}
+                          onClick={() => { setMessage(""); setSignupStep(2); }}>
                           Continuar <ArrowRight />
                         </Button>
                       </div>
@@ -447,7 +439,6 @@ function AuthPage() {
                       <div>
                         <p className="text-sm font-semibold">Qual é a sua instituição?</p>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">Pesquise e selecione a escola onde você estuda ou trabalha.</p>
-
                         {selectedSchool ? (
                           <div className="mt-3 rounded-2xl border border-primary/30 bg-primary/5 p-4">
                             <div className="flex items-start justify-between gap-3">
@@ -476,12 +467,9 @@ function AuthPage() {
                                 <p className="px-4 py-3 text-sm text-muted-foreground">Pesquisando instituições…</p>
                               ) : schoolResults.length ? (
                                 schoolResults.map(school => (
-                                  <button
-                                    key={school.id}
-                                    type="button"
+                                  <button key={school.id} type="button"
                                     onClick={() => { setSelectedSchool(school); setSchoolSearch(school.name); setMessage(""); }}
-                                    className="flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-secondary/60"
-                                  >
+                                    className="flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-secondary/60">
                                     <GraduationCap className="mt-0.5 size-4 shrink-0 text-primary" />
                                     <span>
                                       <span className="block text-sm font-semibold">{school.name}</span>
@@ -497,26 +485,18 @@ function AuthPage() {
                             </div>
                           </div>
                         )}
-
                         <div className="mt-4 grid grid-cols-2 gap-2">
-                          <Button type="button" variant="outline" className="h-11" onClick={() => { setMessage(""); setSignupStep(1); }}>
-                            Voltar
-                          </Button>
-                          <Button type="button" className="h-11" disabled={!selectedSchool} onClick={() => { setMessage(""); setSignupStep(3); }}>
-                            Continuar <ArrowRight />
-                          </Button>
+                          <Button type="button" variant="outline" className="h-11" onClick={() => { setMessage(""); setSignupStep(1); }}>Voltar</Button>
+                          <Button type="button" className="h-11" disabled={!selectedSchool} onClick={() => { setMessage(""); setSignupStep(3); }}>Continuar <ArrowRight /></Button>
                         </div>
                       </div>
                     )}
 
                     {signupStep === 3 && (
-                      <div>
+                      <form onSubmit={submit} className="space-y-4">
                         <div className="rounded-2xl border border-border bg-secondary/50 p-4">
                           <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-xs text-muted-foreground">Cadastro como</p>
-                              <p className="font-semibold">{roleLabel(requestedRole)}</p>
-                            </div>
+                            <div><p className="text-xs text-muted-foreground">Cadastro como</p><p className="font-semibold">{roleLabel(requestedRole)}</p></div>
                             <Button type="button" variant="ghost" size="sm" onClick={() => setSignupStep(1)}>Alterar</Button>
                           </div>
                           <div className="mt-3 border-t border-border pt-3">
@@ -526,122 +506,83 @@ function AuthPage() {
                           </div>
                         </div>
 
-                        <div className="mt-4 space-y-4">
-                          <label className="block text-sm font-medium">
-                            Nome completo
-                            <Input required value={name} onChange={e => setName(e.target.value)} className="mt-2 h-11" autoComplete="name" placeholder="Seu nome completo" />
+                        <label className="block text-sm font-medium">Nome completo
+                          <Input required value={name} onChange={e => setName(e.target.value)} className="mt-2 h-11" autoComplete="name" placeholder="Seu nome completo" />
+                        </label>
+                        <label className="block text-sm font-medium">E-mail
+                          <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 h-11" autoComplete="email" placeholder="voce@exemplo.com" />
+                        </label>
+                        <div>
+                          <label className="block text-sm font-medium">Senha
+                            <Input required type="password" minLength={8} value={password} onChange={e => setPassword(e.target.value)} className="mt-2 h-11" autoComplete="new-password" placeholder="Crie uma senha forte" />
                           </label>
-                          <label className="block text-sm font-medium">
-                            E-mail
-                            <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 h-11" autoComplete="email" placeholder="voce@exemplo.com" />
-                          </label>
-                          <div>
-                            <label className="block text-sm font-medium">
-                              Senha
-                              <div className="relative mt-2">
-                                <Input required type="password" minLength={8} value={password} onChange={e => setPassword(e.target.value)} className="h-11 pr-10" autoComplete="new-password" placeholder="Crie uma senha forte" />
-                              </div>
-                            </label>
-                            {password && (() => {
-                              const checks = passwordChecks(password);
-                              const score = Object.values(checks).filter(Boolean).length;
-                              return (
-                                <div className="mt-2 rounded-xl border border-border bg-secondary/40 p-3">
-                                  <div className="flex items-center justify-between text-xs">
-                                    <span className="font-semibold">Força da senha</span>
-                                    <span className="text-muted-foreground">{score <= 2 ? "Fraca" : score < 5 ? "Boa" : "Forte"}</span>
-                                  </div>
-                                  <div className="mt-2 grid grid-cols-5 gap-1">
-                                    {Array.from({length: 5}).map((_, index) => <span key={index} className={`h-1 rounded-full ${index < score ? "bg-primary" : "bg-border"}`} />)}
-                                  </div>
-                                  <div className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
-                                    <span>{checks.length ? "✓" : "○"} Pelo menos 8 caracteres</span>
-                                    <span>{checks.upper ? "✓" : "○"} Uma letra maiúscula</span>
-                                    <span>{checks.lower ? "✓" : "○"} Uma letra minúscula</span>
-                                    <span>{checks.number ? "✓" : "○"} Um número</span>
-                                    <span>{checks.special ? "✓" : "○"} Um caractere especial</span>
-                                  </div>
+                          {password && (() => {
+                            const checks = passwordChecks(password);
+                            const score = Object.values(checks).filter(Boolean).length;
+                            return (
+                              <div className="mt-2 rounded-xl border border-border bg-secondary/40 p-3">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-semibold">Força da senha</span>
+                                  <span className="text-muted-foreground">{score <= 2 ? "Fraca" : score < 5 ? "Boa" : "Forte"}</span>
                                 </div>
-                              );
-                            })()}
-                          </div>
-                          <label className="block text-sm font-medium">
-                            Confirmar senha
-                            <Input required type="password" minLength={8} value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} className="mt-2 h-11" autoComplete="new-password" placeholder="Digite a senha novamente" />
-                          </label>
-                          {passwordConfirm && password !== passwordConfirm && <p className="text-xs font-medium text-destructive">As senhas não coincidem.</p>}
-
-                          {message && <div role="status" className="rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">{message}</div>}
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <Button type="button" variant="outline" className="h-11" onClick={() => { setMessage(""); setSignupStep(2); }}>Voltar</Button>
-                            <Button disabled={busy} className="h-11 font-semibold" type="submit">
-                              {busy ? "Enviando…" : "Enviar cadastro"} <ArrowRight />
-                            </Button>
-                          </div>
+                                <div className="mt-2 grid grid-cols-5 gap-1">
+                                  {Array.from({length: 5}).map((_, index) => <span key={index} className={`h-1 rounded-full ${index < score ? "bg-primary" : "bg-border"}`} />)}
+                                </div>
+                                <div className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+                                  <span>{checks.length ? "✓" : "○"} Pelo menos 8 caracteres</span>
+                                  <span>{checks.upper ? "✓" : "○"} Uma letra maiúscula</span>
+                                  <span>{checks.lower ? "✓" : "○"} Uma letra minúscula</span>
+                                  <span>{checks.number ? "✓" : "○"} Um número</span>
+                                  <span>{checks.special ? "✓" : "○"} Um caractere especial</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
-                      </div>
+                        <label className="block text-sm font-medium">Confirmar senha
+                          <Input required type="password" minLength={8} value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} className="mt-2 h-11" autoComplete="new-password" placeholder="Digite a senha novamente" />
+                        </label>
+                        {passwordConfirm && password !== passwordConfirm && <p className="text-xs font-medium text-destructive">As senhas não coincidem.</p>}
+                        {message && <div role="status" className="rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">{message}</div>}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button type="button" variant="outline" className="h-11" onClick={() => { setMessage(""); setSignupStep(2); }}>Voltar</Button>
+                          <Button disabled={busy} className="h-11 font-semibold" type="submit">{busy ? "Enviando…" : "Enviar cadastro"} <ArrowRight /></Button>
+                        </div>
+                      </form>
+                    )}
+
+                    {signupStep === 3 && (
+                      <>
+                        <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
+                        <Button type="button" variant="outline" onClick={() => void google()} disabled={busy} className="h-11 w-full">Continuar com Google</Button>
+                        <p className="mt-2 text-center text-xs leading-5 text-muted-foreground">Sua função e instituição serão mantidas durante o cadastro com Google e também passarão por aprovação.</p>
+                      </>
                     )}
                   </div>
-                )}
-
-                <form onSubmit={submit} className="mt-6 space-y-4">
-                  {mode === "signup" && <label className="block text-sm font-medium">Nome completo<Input required value={name} onChange={e => setName(e.target.value)} className="mt-2 h-11" autoComplete="name" /></label>}
-                  <label className="block text-sm font-medium">E-mail<Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 h-11" autoComplete="email" /></label>
-                  {mode !== "forgot" && <label className="block text-sm font-medium">Senha<Input required type="password" minLength={6} value={password} onChange={e => setPassword(e.target.value)} className="mt-2 h-11" autoComplete={mode === "signup" ? "new-password" : "current-password"} /></label>}
-                  {message && <div role="status" className="rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6 text-foreground">{message}</div>}
-                  <Button disabled={busy} className="h-11 w-full font-semibold" type="submit">
-                    {busy ? "Aguarde…" : mode === "login" ? "Entrar no SINA" : mode === "signup" ? "Enviar cadastro para aprovação" : "Enviar link de recuperação"}
-                    <ArrowRight />
-                  </Button>
-                </form>
-
-                {mode !== "pending" && mode !== "forgot" && mode !== "signup" && (
+                ) : mode === "login" ? (
                   <>
-                    {message && <div role="status" className="mt-4 rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">{message}</div>}
+                    {message && <div role="status" className="mt-6 rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">{message}</div>}
                     <form onSubmit={submit} className="mt-6 space-y-4">
-                      <label className="block text-sm font-medium">
-                        E-mail
+                      <label className="block text-sm font-medium">E-mail
                         <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 h-11" autoComplete="email" placeholder="voce@exemplo.com" />
                       </label>
-                      <label className="block text-sm font-medium">
-                        Senha
+                      <label className="block text-sm font-medium">Senha
                         <Input required type="password" minLength={6} value={password} onChange={e => setPassword(e.target.value)} className="mt-2 h-11" autoComplete="current-password" placeholder="Sua senha" />
                       </label>
-                      <Button disabled={busy} className="h-11 w-full font-semibold" type="submit">
-                        {busy ? "Entrando…" : "Entrar no SINA"} <ArrowRight />
-                      </Button>
+                      <Button disabled={busy} className="h-11 w-full font-semibold" type="submit">{busy ? "Entrando…" : "Entrar no SINA"} <ArrowRight /></Button>
                     </form>
-
                     <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
-                    <Button type="button" variant="outline" onClick={() => void google()} disabled={busy} className="h-11 w-full">
-                      Continuar com Google
-                    </Button>
+                    <Button type="button" variant="outline" onClick={() => void google()} disabled={busy} className="h-11 w-full">Continuar com Google</Button>
                   </>
-                )}
-
-                {mode === "forgot" && (
+                ) : (
                   <>
-                    {message && <div role="status" className="mt-4 rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">{message}</div>}
+                    {message && <div role="status" className="mt-6 rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">{message}</div>}
                     <form onSubmit={submit} className="mt-6 space-y-4">
-                      <label className="block text-sm font-medium">
-                        E-mail
+                      <label className="block text-sm font-medium">E-mail
                         <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 h-11" autoComplete="email" placeholder="voce@exemplo.com" />
                       </label>
-                      <Button disabled={busy} className="h-11 w-full font-semibold" type="submit">
-                        {busy ? "Enviando…" : "Enviar link de recuperação"} <ArrowRight />
-                      </Button>
+                      <Button disabled={busy} className="h-11 w-full font-semibold" type="submit">{busy ? "Enviando…" : "Enviar link de recuperação"} <ArrowRight /></Button>
                     </form>
-                  </>
-                )}
-
-                {mode === "signup" && signupStep === 3 && (
-                  <>
-                    <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
-                    <Button type="button" variant="outline" onClick={() => void google()} disabled={busy} className="h-11 w-full">
-                      Continuar com Google
-                    </Button>
-                    <p className="mt-2 text-center text-xs leading-5 text-muted-foreground">Sua função e instituição serão mantidas durante o cadastro com Google e também passarão por aprovação.</p>
                   </>
                 )}
 
