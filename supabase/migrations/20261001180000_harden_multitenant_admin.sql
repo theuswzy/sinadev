@@ -726,3 +726,15 @@ grant execute on function public.teacher_delete_task(uuid) to authenticated;
 grant execute on function public.student_list_announcements() to authenticated;
 grant execute on function public.student_list_tasks() to authenticated;
 grant execute on function public.student_set_task_completed(uuid,boolean) to authenticated;
+
+
+-- Keep catalog provenance honest for municipal entries imported from the
+-- public 2023 municipal list used during the initial directory bootstrap.
+update public.school_directory
+set source='SMED/UNICEF',
+    source_year=2023,
+    updated_at=now()
+where municipality='Salvador'
+  and network_type='municipal'
+  and source='Prefeitura de Salvador'
+  and source_year=2026;
