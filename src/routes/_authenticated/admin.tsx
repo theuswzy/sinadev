@@ -2,12 +2,12 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, UserCheck, Ban } from "lucide-react";
+import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, UserCheck, Ban, UserRoundCheck, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { errorText } from "@/lib/sina-data";
+import { errorText, loadAccountRoleRequests, reviewAccountRoleRequest } from "@/lib/sina-data";
 import { AdminAcademicSetup } from "@/components/admin-academic-setup";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -47,6 +47,35 @@ function AdminArea() {
   const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [accountSearch, setAccountSearch] = useState("");
+  const roleRequests = useQuery({
+    queryKey: ["admin-role-requests"],
+    queryFn: loadAccountRoleRequests,
+    enabled: role.data === true,
+  });
+  const [approvalRoles, setApprovalRoles] = useState<Record<string, "student" | "teacher">>({});
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
+
+  async function reviewRequest(requestId: string, decision: "approved" | "rejected", requestedRole: "student" | "teacher") {
+    setBusyId(requestId);
+    setMessage("");
+    try {
+      const roleToApprove = approvalRoles[requestId] ?? requestedRole;
+      await reviewAccountRoleRequest(requestId, decision, roleToApprove, reviewNotes[requestId] ?? "");
+      setMessage(decision === "approved" ? "Cadastro aprovado com sucesso." : "Solicitação rejeitada.");
+      toast.success(decision === "approved" ? "Cadastro aprovado." : "Solicitação rejeitada.");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-role-requests"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-accounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-audit"] }),
+      ]);
+    } catch (error) {
+      setMessage(errorText(error));
+      toast.error(errorText(error));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   const audit = useQuery({
     queryKey: ["admin-audit"],
     queryFn: async () => {
@@ -155,7 +184,7 @@ function AdminArea() {
         </div>
         <nav aria-label="Navegação administrativa móvel" className="flex gap-1 overflow-x-auto border-t border-brand-border/60 px-4 py-2 sm:hidden">
           <a href="#inicio" className="flex shrink-0 items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground"><LayoutDashboard className="size-4 text-primary" /> Visão geral</a>
-          <a href="#autorizacao" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><Users className="size-4" /> Contas</a>
+          <a href="#aprovacoes" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><UserRoundCheck className="size-4" /> Aprovações</a><a href="#autorizacao" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><Users className="size-4" /> Contas</a>
           <a href="#historico" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><ShieldCheck className="size-4" /> Histórico</a>
         </nav>
       </header>
@@ -171,6 +200,60 @@ function AdminArea() {
         <section className="grid gap-4 sm:grid-cols-2">
           <div className="sina-card sina-card-hover sina-interactive p-5"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Contas cadastradas</p><p className="mt-1 font-display text-3xl font-semibold">{accounts.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">Contas no SINA</p></div>
           <div className="sina-card sina-card-hover sina-interactive p-5"><ShieldCheck className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Professores</p><p className="mt-1 font-display text-3xl font-semibold">{teacherCount}</p><p className="mt-1 text-xs text-muted-foreground">Contas autorizadas a lançar dados</p></div>
+        </section>
+
+        <section id="aprovacoes" className="sina-card sina-card-hover scroll-mt-28 p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3"><UserRoundCheck className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Solicitações de acesso</h2><p className="mt-1 text-sm text-muted-foreground">Revise como a pessoa se identificou no cadastro e libere a função acadêmica somente depois da análise.</p></div></div>
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{roleRequests.data?.filter(item => item.status === "pending").length ?? 0} pendentes</span>
+          </div>
+
+          {roleRequests.isPending ? <p className="mt-5 text-sm text-muted-foreground">Carregando solicitações…</p> :
+            roleRequests.error ? <p role="alert" className="mt-5 text-sm text-destructive">{errorText(roleRequests.error)}</p> :
+            (roleRequests.data?.filter(item => item.status === "pending").length ?? 0) > 0 ? (
+              <div className="mt-5 space-y-3">
+                {roleRequests.data?.filter(item => item.status === "pending").map(request => (
+                  <article key={request.id} className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <p className="font-semibold">{request.display_name || request.email}</p>
+                        <p className="text-sm text-muted-foreground">{request.email}</p>
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                          <span className="rounded-full bg-background px-2.5 py-1 font-semibold">Solicitou: {request.requested_role === "teacher" ? "Professor" : "Aluno"}</span>
+                          <span className="rounded-full bg-background px-2.5 py-1 text-muted-foreground">{new Date(request.created_at).toLocaleString("pt-BR")}</span>
+                        </div>
+                      </div>
+                      <div className="grid w-full gap-2 lg:max-w-sm">
+                        <select
+                          value={approvalRoles[request.id] ?? request.requested_role}
+                          onChange={e => setApprovalRoles(prev => ({ ...prev, [request.id]: e.target.value as "student" | "teacher" }))}
+                          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                          aria-label={`Função para aprovar ${request.display_name || request.email}`}
+                        >
+                          <option value="student">Aprovar como aluno</option>
+                          <option value="teacher">Aprovar como professor</option>
+                        </select>
+                        <Input
+                          placeholder="Observação opcional"
+                          value={reviewNotes[request.id] ?? ""}
+                          onChange={e => setReviewNotes(prev => ({ ...prev, [request.id]: e.target.value }))}
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button disabled={busyId === request.id} onClick={() => void reviewRequest(request.id, "approved", request.requested_role)}>
+                            <UserCheck className="mr-2 size-4" />Aprovar
+                          </Button>
+                          <Button disabled={busyId === request.id} variant="outline" onClick={() => void reviewRequest(request.id, "rejected", request.requested_role)}>
+                            <XCircle className="mr-2 size-4" />Rejeitar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5 rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground">Nenhuma solicitação pendente. Novos cadastros aparecerão aqui antes de receberem acesso acadêmico.</div>
+            )}
         </section>
 
         <section id="autorizacao" className="sina-card sina-card-hover scroll-mt-28 p-6">
