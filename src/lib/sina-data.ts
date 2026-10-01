@@ -8,6 +8,16 @@ export type AcademicArea = "/aluno" | "/professor" | "/admin";
 export async function getRole(): Promise<UserRole> {
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) throw new Error("Entre na sua conta para continuar.");
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("status")
+    .eq("user_id", auth.user.id)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (profile?.status === "suspended") {
+    throw new Error("Sua conta está suspensa. Procure o administrador da instituição.");
+  }
+
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")
@@ -24,8 +34,18 @@ export async function getRole(): Promise<UserRole> {
 export function routeForRole(role: UserRole): AcademicArea {
   return role === "admin" ? "/admin" : role === "teacher" ? "/professor" : "/aluno";
 }
-export async function loadStudents(): Promise<Student[]> {
-  const { data, error } = await supabase.rpc("teacher_list_students");
+export type TeacherStudent = {
+  id: string;
+  full_name: string;
+  enrollment: string;
+  classroom: string;
+  classroom_id: string | null;
+  attendance: number | null;
+  teacher_id: string | null;
+};
+
+export async function loadStudents(): Promise<TeacherStudent[]> {
+  const { data, error } = await supabase.rpc("teacher_list_roster");
   if (error) throw error;
   return data ?? [];
 }
@@ -113,6 +133,26 @@ export async function setTaskCompleted(taskId: string, completed: boolean): Prom
   const { data, error } = await supabase.rpc("student_set_task_completed", {
     _task_id: taskId,
     _completed: completed,
+  });
+  if (error) throw error;
+  return data ?? false;
+}
+
+
+export type StudentNotification = Tables<"notifications">;
+
+export async function loadNotifications(unreadOnly = false): Promise<StudentNotification[]> {
+  const { data, error } = await supabase.rpc("student_list_notifications", {
+    _unread_only: unreadOnly,
+    _limit: 30,
+  });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function markNotificationRead(notificationId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("student_mark_notification_read", {
+    _id: notificationId,
   });
   if (error) throw error;
   return data ?? false;
