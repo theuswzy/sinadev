@@ -289,6 +289,71 @@ export type Database = {
         Args: { _completed: boolean; _task_id: string }
         Returns: boolean
       }
+      teacher_list_roster: {
+        Args: never
+        Returns: {
+          attendance: number | null
+          classroom: string
+          classroom_id: string | null
+          enrollment: string
+          full_name: string
+          id: string
+          teacher_id: string | null
+        }[]
+      }
+      teacher_link_roster_student: {
+        Args: { _classroom: string; _enrollment: string; _student_id: string }
+        Returns: {
+          attendance: number | null
+          classroom: string
+          classroom_id: string | null
+          enrollment: string
+          full_name: string
+          id: string
+          teacher_id: string | null
+        }[]
+      }
+      teacher_unlink_roster_student: {
+        Args: { _student_id: string }
+        Returns: boolean
+      }
+      teacher_bulk_upsert_grades: {
+        Args: {
+          _classroom_id: string
+          _period: number
+          _rows: Json
+          _subject: string
+        }
+        Returns: number
+      }
+      student_list_notifications: {
+        Args: { _limit?: number; _unread_only?: boolean }
+        Returns: {
+          body: string
+          created_at: string
+          id: string
+          link: string | null
+          metadata: Json
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      student_mark_notification_read: {
+        Args: { _id: string }
+        Returns: boolean
+      }
+      admin_set_account_status: {
+        Args: { _status: string; _user_id: string }
+        Returns: boolean
+      }
       teacher_list_announcements: {
         Args: never
         Returns: {
