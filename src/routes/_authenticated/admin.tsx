@@ -269,9 +269,9 @@ function AdminArea() {
                     <p className="break-all text-sm text-muted-foreground">{account.email}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       {account.is_administrator && <span className="inline-flex items-center gap-1 text-xs font-medium text-primary"><ShieldCheck className="size-3" /> Administrador</span>}
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${account.account_status === "suspended" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${account.account_status === "suspended" ? "bg-destructive/10 text-destructive" : account.account_status === "pending" ? "bg-amber-500/10 text-amber-700 dark:text-amber-300" : "bg-primary/10 text-primary"}`}>
                         {account.account_status === "suspended" ? <Ban className="size-3" /> : <UserCheck className="size-3" />}
-                        {account.account_status === "suspended" ? "Suspensa" : "Ativa"}
+                        {account.account_status === "suspended" ? "Suspensa" : account.account_status === "pending" ? "Pendente" : "Ativa"}
                       </span>
                     </div>
                   </div>
