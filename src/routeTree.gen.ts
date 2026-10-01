@@ -87,10 +87,10 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/aluno': typeof AuthenticatedAlunoRouteWithChildren
+  '/aluno': typeof AuthenticatedAlunoRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/professor': typeof AuthenticatedProfessorRoute
-  '/aluno/perfil': typeof AuthenticatedAlunoPerfilRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,7 +103,7 @@ export interface FileRoutesById {
   '/_authenticated/aluno': typeof AuthenticatedAlunoRouteWithChildren
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/professor': typeof AuthenticatedProfessorRoute
-  '/_authenticated/aluno/perfil': typeof AuthenticatedAlunoPerfilRoute
+  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -116,7 +116,7 @@ export interface FileRouteTypes {
     | '/aluno'
     | '/painel'
     | '/professor'
-    | '/aluno/perfil'
+    | '/perfil'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -139,7 +139,7 @@ export interface FileRouteTypes {
     | '/_authenticated/aluno'
     | '/_authenticated/painel'
     | '/_authenticated/professor'
-    | '/_authenticated/aluno/perfil'
+    | '/_authenticated/perfil'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -215,12 +215,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfessorRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/aluno/perfil': {
-      id: '/_authenticated/aluno/perfil'
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
       path: '/perfil'
-      fullPath: '/aluno/perfil'
+      fullPath: '/perfil'
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
-      parentRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
