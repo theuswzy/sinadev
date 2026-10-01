@@ -190,6 +190,13 @@ export interface FileRoutesByTo {
   '/aluno': typeof AuthenticatedAlunoRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/professor': typeof AuthenticatedProfessorRoute
+  '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
+  '/professor/notas': typeof AuthenticatedProfessorNotasRoute
+  '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
+  '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
+  '/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
+  '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
+  '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
   '/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
@@ -209,6 +216,13 @@ export interface FileRoutesById {
   '/_authenticated/aluno': typeof AuthenticatedAlunoRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/professor': typeof AuthenticatedProfessorRoute
+  '/_authenticated/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
+  '/_authenticated/professor/notas': typeof AuthenticatedProfessorNotasRoute
+  '/_authenticated/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
+  '/_authenticated/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
+  '/_authenticated/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
+  '/_authenticated/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
+  '/_authenticated/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
   '/_authenticated/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
@@ -403,55 +417,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfessorComunicacaoRouteImport,
       parentRoute: typeof AuthenticatedProfessorRoute
     }
-    '/_authenticated/professor/turmas': {
-      id: '/_authenticated/professor/turmas',
-      path: '/turmas',
-      fullPath: '/professor/turmas',
-      preLoaderRoute: typeof AuthenticatedProfessorTurmasRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute
-    },
-    '/_authenticated/professor/notas': {
-      id: '/_authenticated/professor/notas',
-      path: '/notas',
-      fullPath: '/professor/notas',
-      preLoaderRoute: typeof AuthenticatedProfessorNotasRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute
-    },
-    '/_authenticated/professor/frequencia': {
-      id: '/_authenticated/professor/frequencia',
-      path: '/frequencia',
-      fullPath: '/professor/frequencia',
-      preLoaderRoute: typeof AuthenticatedProfessorFrequenciaRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute
-    },
-    '/_authenticated/professor/avaliacoes': {
-      id: '/_authenticated/professor/avaliacoes',
-      path: '/avaliacoes',
-      fullPath: '/professor/avaliacoes',
-      preLoaderRoute: typeof AuthenticatedProfessorAvaliacoesRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute
-    },
-    '/_authenticated/professor/atividades': {
-      id: '/_authenticated/professor/atividades',
-      path: '/atividades',
-      fullPath: '/professor/atividades',
-      preLoaderRoute: typeof AuthenticatedProfessorAtividadesRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute
-    },
-    '/_authenticated/professor/agenda': {
-      id: '/_authenticated/professor/agenda',
-      path: '/agenda',
-      fullPath: '/professor/agenda',
-      preLoaderRoute: typeof AuthenticatedProfessorAgendaRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute
-    },
-    '/_authenticated/professor/comunicacao': {
-      id: '/_authenticated/professor/comunicacao',
-      path: '/comunicacao',
-      fullPath: '/professor/comunicacao',
-      preLoaderRoute: typeof AuthenticatedProfessorComunicacaoRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute
-    },
     '/_authenticated/perfil': {
       id: '/_authenticated/perfil'
       path: '/perfil'
