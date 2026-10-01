@@ -214,14 +214,23 @@ begin
   on conflict ((institution_id), (lower(name))) do nothing;
 
   update public.grades g
-     set institution_id = s.institution_id,
-         subject_id = coalesce(g.subject_id, sub.id)
-    from public.students s
-    left join public.subjects sub
-      on sub.institution_id = s.institution_id
-     and lower(sub.name) = lower(trim(g.subject))
-   where s.id = g.student_id
-     and (g.institution_id is null or g.subject_id is null);
+     set institution_id = (
+           select s.institution_id from public.students s
+           where s.id = g.student_id
+         ),
+         subject_id = coalesce(
+           g.subject_id,
+           (
+             select sub.id
+             from public.subjects sub
+             where sub.institution_id = (
+               select s2.institution_id from public.students s2 where s2.id = g.student_id
+             )
+               and lower(sub.name) = lower(trim(g.subject))
+             limit 1
+           )
+         )
+   where g.institution_id is null or g.subject_id is null;
 end
 $$;
 
