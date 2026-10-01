@@ -930,6 +930,26 @@ export type Database = {
         assessment_count: number
       }[]
     }
+    ensure_account_onboarding: {
+      Args: { _requested_role?: string | null }
+      Returns: Json
+    }
+    account_get_onboarding_state: {
+      Args: Record<PropertyKey, never>
+      Returns: Json
+    }
+    account_resubmit_role_request: {
+      Args: { _requested_role: string }
+      Returns: boolean
+    }
+    admin_list_role_requests: {
+      Args: Record<PropertyKey, never>
+      Returns: Json
+    }
+    admin_review_role_request: {
+      Args: { _request_id: string; _decision: string; _approved_role: string; _note: string }
+      Returns: boolean
+    }
     Enums: {
       app_role: "student" | "teacher" | "admin"
     }
