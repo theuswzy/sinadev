@@ -14,6 +14,7 @@ import {
   loadTeacherAcademicOptions,
   loadTeacherAssessments,
   loadTeacherCalendar,
+  loadTeacherClassReport,
   loadTeacherClassrooms,
   saveAttendance,
   type AttendanceRow,
@@ -45,6 +46,7 @@ export function TeacherAcademicCenter() {
     enabled: !!classroomId,
   });
   const [attendanceDraft, setAttendanceDraft] = useState<Record<string, { status: AttendanceRow["status"]; note: string }>>({});
+  const classReport = useQuery({ queryKey: ["teacher-class-report", classroomId], queryFn: () => loadTeacherClassReport(classroomId), enabled: !!classroomId });
 
   useEffect(() => {
     if (!classroomId && classrooms.data?.length) setClassroomId(classrooms.data.find(c => c.status === "active")?.id ?? classrooms.data[0].id);
@@ -203,6 +205,20 @@ export function TeacherAcademicCenter() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Diário de classe</p><h3 className="mt-1 font-semibold">{selectedClass?.name}</h3></div><div className="flex flex-wrap gap-2"><Input type="date" value={attendanceDate} onChange={e => setAttendanceDate(e.target.value)} /><Button onClick={() => void saveDay()} disabled={attendance.isFetching}><Save className="mr-2 size-4" />Salvar frequência</Button></div></div>
         <div className="mt-4 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-primary/10 px-3 py-1.5 text-primary">{presentCount} presentes/atrasados</span><span className="rounded-full bg-destructive/10 px-3 py-1.5 text-destructive">{absentCount} faltas</span><span className="rounded-full bg-secondary px-3 py-1.5">{attendance.data?.length ?? 0} alunos</span></div>
         <div className="mt-5 overflow-x-auto rounded-2xl border border-border"><table className="w-full min-w-[680px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-3 text-left">Aluno</th><th className="p-3 text-left">Matrícula</th><th className="p-3 text-left">Situação</th><th className="p-3 text-left">Observação</th></tr></thead><tbody>{(attendance.data ?? []).map(row => <tr key={row.student_id} className="border-t border-border"><td className="p-3 font-medium">{row.full_name}</td><td className="p-3 text-muted-foreground">{row.enrollment}</td><td className="p-3"><select value={attendanceDraft[row.student_id]?.status ?? row.status} onChange={e => setAttendanceDraft(v => ({ ...v, [row.student_id]: { ...(v[row.student_id] ?? { note: "" }), status: e.target.value as AttendanceRow["status"] } }))} className="h-9 rounded-md border border-input bg-background px-2 text-sm"><option value="present">Presente</option><option value="late">Atrasado</option><option value="absent">Falta</option><option value="excused">Justificada</option></select></td><td className="p-3"><Input value={attendanceDraft[row.student_id]?.note ?? ""} onChange={e => setAttendanceDraft(v => ({ ...v, [row.student_id]: { ...(v[row.student_id] ?? { status: "present" }), note: e.target.value } }))} placeholder="Opcional" /></td></tr>)}</tbody></table></div>
+      </div>
+
+      <div className="sina-card p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div><div className="flex items-center gap-3"><FileSpreadsheet className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Relatório da turma</p><h3 className="font-semibold">Visão consolidada</h3></div></div><p className="mt-2 text-sm text-muted-foreground">Frequência, média de notas e quantidade de avaliações por aluno.</p></div>
+          <Button variant="outline" onClick={() => {
+            const rows = classReport.data ?? [];
+            const csv = ["Aluno;Matrícula;Frequência;Média;Avaliações", ...rows.map(item => [item.student_name,item.enrollment,item.attendance_percent == null ? "" : String(item.attendance_percent).replace(".", ","),String(item.grade_average).replace(".", ","),String(item.assessment_count)].join(";"))].join("\\n");
+            const blob = new Blob(["\\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a"); a.href = url; a.download = `sina-${selectedClass?.name ?? "turma"}-relatorio.csv`; a.click(); URL.revokeObjectURL(url);
+          }} disabled={!classReport.data?.length}><FileSpreadsheet className="mr-2 size-4" />Exportar CSV</Button>
+        </div>
+        <div className="mt-5 overflow-x-auto rounded-xl border border-border"><table className="w-full min-w-[700px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-3 text-left">Aluno</th><th className="p-3 text-left">Matrícula</th><th className="p-3 text-left">Frequência</th><th className="p-3 text-left">Média</th><th className="p-3 text-left">Avaliações</th></tr></thead><tbody>{(classReport.data ?? []).map(item => <tr key={item.student_id} className="border-t border-border"><td className="p-3 font-medium">{item.student_name}</td><td className="p-3 text-muted-foreground">{item.enrollment}</td><td className="p-3">{item.attendance_percent == null ? "—" : `${item.attendance_percent.toLocaleString("pt-BR")}%`}</td><td className="p-3 font-semibold">{item.grade_average ? item.grade_average.toLocaleString("pt-BR") : "—"}</td><td className="p-3">{item.assessment_count}</td></tr>)}</tbody></table></div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
