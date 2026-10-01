@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, CalendarRange, Layers3, Save, Archive } from "lucide-react";
+import { BookOpen, CalendarRange, Layers3, Save, Archive, Users } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,17 @@ import {
   adminUpsertTerm,
   errorText,
   loadAdminAcademicSetup,
+  loadAdminInstitutionTeachers,
+  loadAdminTeacherAssignments,
+  adminAssignTeacherToClassroom,
+  adminUnassignTeacherFromClassroom,
 } from "@/lib/sina-data";
 
 export function AdminAcademicSetup() {
   const qc = useQueryClient();
   const setup = useQuery({ queryKey: ["admin-academic-setup"], queryFn: loadAdminAcademicSetup });
+  const teachers = useQuery({ queryKey: ["admin-institution-teachers"], queryFn: loadAdminInstitutionTeachers });
+  const assignments = useQuery({ queryKey: ["admin-teacher-classroom-assignments"], queryFn: loadAdminTeacherAssignments });
   const [classroomName, setClassroomName] = useState("");
   const [classroomCode, setClassroomCode] = useState("");
   const [subjectName, setSubjectName] = useState("");
@@ -24,8 +30,25 @@ export function AdminAcademicSetup() {
   const [termStart, setTermStart] = useState("");
   const [termEnd, setTermEnd] = useState("");
   const [termCurrent, setTermCurrent] = useState(true);
+  const [teacherId, setTeacherId] = useState("");
+  const [teacherClassroomId, setTeacherClassroomId] = useState("");
 
-  async function refresh() { await qc.invalidateQueries({ queryKey: ["admin-academic-setup"] }); }
+  async function refresh() {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["admin-academic-setup"] }),
+      qc.invalidateQueries({ queryKey: ["admin-teacher-classroom-assignments"] }),
+      qc.invalidateQueries({ queryKey: ["admin-institution-teachers"] }),
+    ]);
+  }
+  async function assignTeacher() {
+    if (!teacherId || !teacherClassroomId) return;
+    try { await adminAssignTeacherToClassroom(teacherId, teacherClassroomId); setTeacherId(""); setTeacherClassroomId(""); await refresh(); toast.success("Professor vinculado à turma."); }
+    catch (error) { toast.error(errorText(error)); }
+  }
+  async function unassignTeacher(teacher: string, classroom: string) {
+    try { await adminUnassignTeacherFromClassroom(teacher, classroom); await refresh(); toast.success("Professor desvinculado da turma."); }
+    catch (error) { toast.error(errorText(error)); }
+  }
 
   async function saveClassroom() {
     try { await adminUpsertClassroom(null, classroomName.trim(), classroomCode.trim()); setClassroomName(""); setClassroomCode(""); await refresh(); toast.success("Turma criada."); }
@@ -55,6 +78,26 @@ export function AdminAcademicSetup() {
             <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><BookOpen className="size-4 text-primary" /><p className="font-semibold">Disciplinas</p></div><div className="mt-4 space-y-2"><Input placeholder="Nome da disciplina" value={subjectName} onChange={e => setSubjectName(e.target.value)} /><Input placeholder="Código (opcional)" value={subjectCode} onChange={e => setSubjectCode(e.target.value)} /><Button onClick={() => void saveSubject()} disabled={!subjectName.trim()}><Save className="mr-2 size-4" />Criar disciplina</Button></div><div className="mt-4 space-y-2">{setup.data?.subjects.map(s => <div key={s.id} className="rounded-xl bg-secondary/50 p-3 text-sm"><p className="font-medium">{s.name}</p><p className="text-xs text-muted-foreground">{s.code || "Sem código"} · {s.status === "active" ? "Ativa" : "Inativa"}</p></div>)}</div></div>
 
             <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><CalendarRange className="size-4 text-primary" /><p className="font-semibold">Períodos</p></div><div className="mt-4 space-y-2"><Input placeholder="Ex.: 1º Bimestre" value={termName} onChange={e => setTermName(e.target.value)} /><div className="grid grid-cols-2 gap-2"><Input type="date" value={termStart} onChange={e => setTermStart(e.target.value)} /><Input type="date" value={termEnd} onChange={e => setTermEnd(e.target.value)} /></div><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={termCurrent} onChange={e => setTermCurrent(e.target.checked)} /> Marcar como período atual</label><Button onClick={() => void saveTerm()} disabled={!termName.trim()}><Save className="mr-2 size-4" />Criar período</Button></div><div className="mt-4 space-y-2">{setup.data?.terms.map(t => <div key={t.id} className="rounded-xl bg-secondary/50 p-3 text-sm"><div className="flex items-center justify-between gap-2"><p className="font-medium">{t.name}</p>{t.is_current && <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">Atual</span>}</div><p className="text-xs text-muted-foreground">{t.starts_at || "Sem início"} · {t.ends_at || "Sem fim"}</p></div>)}</div></div>
+          </div>
+
+          <div className="rounded-2xl border border-border p-4">
+            <div className="flex items-center gap-2"><Users className="size-4 text-primary" /><p className="font-semibold">Professores e turmas</p></div>
+            <p className="mt-1 text-sm text-muted-foreground">Vincule professores às turmas para liberar lançamento de notas, frequência, atividades e avisos.</p>
+            <div className="mt-4 grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+              <select value={teacherId} onChange={e => setTeacherId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                <option value="">Selecione o professor</option>
+                {(teachers.data ?? []).map(t => <option key={t.user_id} value={t.user_id}>{t.display_name || t.email}</option>)}
+              </select>
+              <select value={teacherClassroomId} onChange={e => setTeacherClassroomId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                <option value="">Selecione a turma</option>
+                {(setup.data?.classrooms ?? []).filter(c => c.status === "active").map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <Button onClick={() => void assignTeacher()} disabled={!teacherId || !teacherClassroomId}>Vincular</Button>
+            </div>
+            <div className="mt-4 space-y-2">
+              {(assignments.data ?? []).map(a => <div key={a.classroom_id + a.teacher_id} className="flex items-center justify-between gap-3 rounded-xl bg-secondary/50 p-3 text-sm"><div><p className="font-medium">{a.teacher_name || a.teacher_email}</p><p className="text-xs text-muted-foreground">{a.classroom_name}</p></div><Button size="sm" variant="ghost" onClick={() => void unassignTeacher(a.teacher_id, a.classroom_id)}>Remover</Button></div>)}
+              {!assignments.isPending && !assignments.data?.length && <p className="text-sm text-muted-foreground">Nenhum professor vinculado a uma turma ainda.</p>}
+            </div>
           </div>
         </div>
       )}
