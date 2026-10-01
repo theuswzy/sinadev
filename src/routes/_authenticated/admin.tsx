@@ -320,6 +320,9 @@ function AdminArea() {
                         <p className="text-sm text-muted-foreground">{request.email}</p>
                         <div className="mt-2 flex flex-wrap gap-2 text-xs">
                           <span className="rounded-full bg-background px-2.5 py-1 font-semibold">Solicitou: {request.requested_role === "teacher" ? "Professor" : "Aluno"}</span>
+                          <span className="rounded-full bg-background px-2.5 py-1 font-semibold">
+                            Escola: {request.school_name ?? "Não informada"}
+                          </span>
                           <span className="rounded-full bg-background px-2.5 py-1 text-muted-foreground">{new Date(request.created_at).toLocaleString("pt-BR")}</span>
                         </div>
                       </div>
