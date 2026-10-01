@@ -738,3 +738,122 @@ where municipality='Salvador'
   and network_type='municipal'
   and source='Prefeitura de Salvador'
   and source_year=2026;
+
+
+-- Fix direct grade entry and classroom discovery so every write is institution-scoped.
+create or replace function public.teacher_upsert_grade(
+  _student_id uuid,
+  _subject text,
+  _period integer,
+  _score numeric,
+  _absences integer
+)
+returns public.grades
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  result_row public.grades;
+  inst uuid;
+begin
+  if not public.has_role(auth.uid(),'teacher'::public.app_role) then
+    raise exception 'Acesso reservado a professores autorizados.';
+  end if;
+
+  inst := sina_private.current_institution('teacher'::public.app_role);
+  if inst is null then raise exception 'Professor sem instituição ativa.'; end if;
+  if nullif(trim(_subject),'') is null then raise exception 'Informe a disciplina.'; end if;
+  if _period < 1 or _period > 4 or _score < 0 or _score > 10 or _absences < 0 then
+    raise exception 'Dados da nota inválidos.';
+  end if;
+
+  if not exists(
+    select 1
+    from public.students s
+    where s.id=_student_id
+      and s.teacher_id=auth.uid()
+      and s.institution_id=inst
+  ) then
+    raise exception 'Aluno não vinculado a este professor nesta instituição.';
+  end if;
+
+  insert into public.grades(student_id,subject,period,score,absences,institution_id)
+  values(_student_id,trim(_subject),_period,_score,_absences,inst)
+  on conflict(student_id,subject,period)
+  do update set score=excluded.score,absences=excluded.absences,
+                institution_id=excluded.institution_id,updated_at=now()
+  returning * into result_row;
+
+  return result_row;
+end;
+$$;
+
+revoke all on function public.teacher_upsert_grade(uuid,text,integer,numeric,integer) from public,anon;
+grant execute on function public.teacher_upsert_grade(uuid,text,integer,numeric,integer) to authenticated;
+
+create or replace function public.teacher_list_classrooms()
+returns table(id uuid,name text,code text,status text,student_count bigint)
+language sql stable security definer set search_path to ''
+as $$
+  select c.id,c.name,c.code,c.status,count(s.id)::bigint
+  from public.classrooms c
+  join public.classroom_teachers ct
+    on ct.classroom_id=c.id
+   and ct.user_id=auth.uid()
+  left join public.students s
+    on s.classroom_id=c.id
+   and s.teacher_id=auth.uid()
+   and s.institution_id=c.institution_id
+  where c.institution_id=sina_private.current_institution('teacher'::public.app_role)
+    and c.status='active'
+  group by c.id
+  order by c.name;
+$$;
+
+revoke all on function public.teacher_list_classrooms() from public,anon;
+grant execute on function public.teacher_list_classrooms() to authenticated;
+
+-- A rejected request keeps its selected school when the user resubmits.
+create or replace function public.account_resubmit_role_request(_requested_role text)
+returns boolean
+language plpgsql security definer set search_path to ''
+as $$
+declare
+  uid uuid:=auth.uid();
+  v_school uuid;
+begin
+  if uid is null then raise exception 'Usuário não autenticado.'; end if;
+  if _requested_role not in ('student','teacher') then raise exception 'Função solicitada inválida.'; end if;
+  if exists(
+    select 1 from public.user_roles r
+    where r.user_id=uid and r.role in ('admin','teacher','student')
+  ) then
+    return false;
+  end if;
+
+  select school_directory_id into v_school
+  from public.account_role_requests
+  where user_id=uid
+  order by created_at desc
+  limit 1;
+
+  update public.account_role_requests
+  set status='cancelled',updated_at=now()
+  where user_id=uid and status='pending';
+
+  insert into public.account_role_requests(
+    user_id,requested_role,status,school_directory_id
+  )
+  values(uid,_requested_role::public.app_role,'pending',v_school);
+
+  update public.profiles
+  set status='pending',updated_at=now()
+  where user_id=uid;
+
+  return true;
+end;
+$$;
+
+revoke all on function public.account_resubmit_role_request(text) from public,anon;
+grant execute on function public.account_resubmit_role_request(text) to authenticated;
