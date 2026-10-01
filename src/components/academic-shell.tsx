@@ -74,6 +74,7 @@ export function AcademicShell({
       ? [
           { href: "/professor", label: "Dashboard", Icon: LayoutDashboard, route: true },
           { href: "/professor/turmas", label: "Turmas", Icon: Users, route: true },
+          { href: "/professor/disciplinas", label: "Disciplinas", Icon: BookOpen, route: true },
           { href: "/professor/notas", label: "Notas", Icon: BarChart3, route: true },
           { href: "/professor/frequencia", label: "Frequência", Icon: CheckCircle2, route: true },
           { href: "/professor/avaliacoes", label: "Avaliações", Icon: ClipboardCheck, route: true },
