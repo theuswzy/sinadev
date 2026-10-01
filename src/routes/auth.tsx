@@ -60,7 +60,7 @@ function AuthPage() {
         if (error) throw error;
         setMessage("Se este e-mail estiver cadastrado, você receberá um link de recuperação.");
       } else if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin, data: { display_name: name.trim() } } });
+        const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth`, data: { display_name: name.trim() } } });
         if (error) throw error;
         if (data.session) await navigateAfterAuth(navigate);
         else setMessage("Confira seu e-mail para confirmar sua conta antes de entrar.");
@@ -79,7 +79,7 @@ function AuthPage() {
   async function google() {
     setMessage("");
     setBusy(true);
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}/auth` });
     if (result.error) {
       setMessage(authErrorMessage(result.error));
       setBusy(false);
