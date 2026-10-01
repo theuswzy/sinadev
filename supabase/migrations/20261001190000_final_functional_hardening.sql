@@ -9,7 +9,8 @@ begin
     from pg_constraint
     where conrelid='public.students'::regclass
       and contype='u'
-      and conkey = array[(select attnum from pg_attribute where attrelid='public.students'::regclass and attname='user_id' and not attisdropped)]
+      and array_length(conkey,1)=1
+      and conkey[1]=(select attnum from pg_attribute where attrelid='public.students'::regclass and attname='user_id' and not attisdropped)
   loop
     execute format('alter table public.students drop constraint if exists %I',r.conname);
   end loop;
@@ -19,7 +20,8 @@ begin
     from pg_index
     where indrelid='public.students'::regclass
       and indisunique
-      and indkey = array[(select attnum from pg_attribute where attrelid='public.students'::regclass and attname='user_id' and not attisdropped)]
+      and indnkeyatts=1
+      and indkey[0]=(select attnum from pg_attribute where attrelid='public.students'::regclass and attname='user_id' and not attisdropped)
   loop
     execute format('drop index if exists %s',r.index_name);
   end loop;
