@@ -167,3 +167,262 @@ export async function markNotificationRead(notificationId: string): Promise<bool
   if (error) throw error;
   return data ?? false;
 }
+
+export type TeacherClassroom = {
+  id: string;
+  name: string;
+  code: string | null;
+  status: string;
+  student_count: number;
+};
+
+export type AttendanceRow = {
+  student_id: string;
+  full_name: string;
+  enrollment: string;
+  status: "present" | "absent" | "late" | "excused";
+  note: string;
+};
+
+export type TeacherAssessment = {
+  id: string;
+  title: string;
+  assessment_type: string;
+  weight: number;
+  max_score: number;
+  due_at: string | null;
+  status: string;
+  subject_id: string | null;
+  subject_name: string;
+  term_id: string | null;
+  term_name: string;
+};
+
+export type StudentAssessment = {
+  id: string;
+  title: string;
+  assessment_type: string;
+  weight: number;
+  max_score: number;
+  due_at: string | null;
+  status: string;
+  subject_name: string;
+  term_name: string;
+  score: number | null;
+  feedback: string | null;
+};
+
+export type TaskSubmission = {
+  id: string;
+  task_id: string;
+  student_id: string;
+  student_name: string;
+  enrollment: string;
+  content: string;
+  status: string;
+  submitted_at: string;
+  score: number | null;
+  feedback: string | null;
+};
+
+export type StudentTaskSubmission = {
+  id: string;
+  task_id: string;
+  content: string;
+  attachment_path: string | null;
+  attachment_name: string | null;
+  status: string;
+  submitted_at: string;
+  score: number | null;
+  feedback: string | null;
+};
+
+export type CalendarEvent = {
+  id: string;
+  classroom_id: string | null;
+  classroom_name: string | null;
+  title: string;
+  description: string;
+  start_at: string;
+  end_at: string | null;
+  event_type: string;
+  status: string;
+};
+
+export type AcademicOptions = {
+  subjects: { id: string; name: string; code: string | null }[];
+  terms: { id: string; name: string; starts_at: string | null; ends_at: string | null; is_current: boolean }[];
+};
+
+export type AdminAcademicSetup = {
+  classrooms: { id: string; name: string; code: string | null; status: string }[];
+  subjects: { id: string; name: string; code: string | null; status: string }[];
+  terms: { id: string; name: string; starts_at: string | null; ends_at: string | null; is_current: boolean }[];
+};
+
+export async function loadTeacherClassrooms(): Promise<TeacherClassroom[]> {
+  const { data, error } = await supabase.rpc("teacher_list_classrooms");
+  if (error) throw error;
+  return (data ?? []) as TeacherClassroom[];
+}
+
+export async function loadAttendance(classroomId: string, date: string): Promise<AttendanceRow[]> {
+  const { data, error } = await supabase.rpc("teacher_get_attendance", { _classroom_id: classroomId, _date: date });
+  if (error) throw error;
+  return (data ?? []) as AttendanceRow[];
+}
+
+export async function saveAttendance(classroomId: string, date: string, rows: Pick<AttendanceRow, "student_id" | "status" | "note">[]): Promise<number> {
+  const { data, error } = await supabase.rpc("teacher_save_attendance", {
+    _classroom_id: classroomId,
+    _date: date,
+    _rows: rows,
+  });
+  if (error) throw error;
+  return data ?? 0;
+}
+
+export async function loadTeacherAcademicOptions(): Promise<AcademicOptions> {
+  const { data, error } = await supabase.rpc("teacher_list_academic_options");
+  if (error) throw error;
+  return (data ?? { subjects: [], terms: [] }) as AcademicOptions;
+}
+
+export async function loadTeacherAssessments(classroomId: string): Promise<TeacherAssessment[]> {
+  const { data, error } = await supabase.rpc("teacher_list_assessments", { _classroom_id: classroomId });
+  if (error) throw error;
+  return (data ?? []) as TeacherAssessment[];
+}
+
+export async function createAssessment(args: {
+  classroomId: string;
+  subjectId: string | null;
+  termId: string | null;
+  title: string;
+  type: string;
+  weight: number;
+  maxScore: number;
+  dueAt: string | null;
+}) {
+  const { data, error } = await supabase.rpc("teacher_create_assessment", {
+    _classroom_id: args.classroomId,
+    _subject_id: args.subjectId,
+    _term_id: args.termId,
+    _title: args.title,
+    _type: args.type,
+    _weight: args.weight,
+    _max_score: args.maxScore,
+    _due_at: args.dueAt,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function loadStudentAssessments(): Promise<StudentAssessment[]> {
+  const { data, error } = await supabase.rpc("student_list_assessments");
+  if (error) throw error;
+  return (data ?? []) as StudentAssessment[];
+}
+
+export async function submitTask(taskId: string, content: string) {
+  const { data, error } = await supabase.rpc("student_submit_task", { _task_id: taskId, _content: content });
+  if (error) throw error;
+  return data;
+}
+
+export async function loadStudentTaskSubmissions(): Promise<StudentTaskSubmission[]> {
+  const { data, error } = await supabase.rpc("student_list_task_submissions");
+  if (error) throw error;
+  return (data ?? []) as StudentTaskSubmission[];
+}
+
+export async function loadTaskSubmissions(taskId: string): Promise<TaskSubmission[]> {
+  const { data, error } = await supabase.rpc("teacher_list_task_submissions", { _task_id: taskId });
+  if (error) throw error;
+  return (data ?? []) as TaskSubmission[];
+}
+
+export async function gradeTaskSubmission(submissionId: string, score: number | null, feedback: string) {
+  const { data, error } = await supabase.rpc("teacher_grade_submission", {
+    _submission_id: submissionId,
+    _score: score,
+    _feedback: feedback,
+  });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function loadStudentAttendance(): Promise<{ attendance_date: string; status: string; note: string | null; classroom: string }[]> {
+  const { data, error } = await supabase.rpc("student_list_attendance", { _limit: 90 });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function loadTeacherCalendar(from: string, to: string): Promise<CalendarEvent[]> {
+  const { data, error } = await supabase.rpc("teacher_list_calendar", { _from: from, _to: to });
+  if (error) throw error;
+  return (data ?? []) as CalendarEvent[];
+}
+
+export async function loadStudentCalendar(from: string, to: string): Promise<CalendarEvent[]> {
+  const { data, error } = await supabase.rpc("student_list_calendar", { _from: from, _to: to });
+  if (error) throw error;
+  return (data ?? []) as CalendarEvent[];
+}
+
+export async function createTeacherCalendarEvent(args: {
+  classroomId: string | null;
+  title: string;
+  description: string;
+  startAt: string;
+  endAt: string | null;
+  eventType: string;
+}) {
+  const { data, error } = await supabase.rpc("teacher_create_calendar_event", {
+    _classroom_id: args.classroomId,
+    _title: args.title,
+    _description: args.description,
+    _start_at: args.startAt,
+    _end_at: args.endAt,
+    _event_type: args.eventType,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function loadAdminAcademicSetup(): Promise<AdminAcademicSetup> {
+  const { data, error } = await supabase.rpc("admin_list_academic_setup");
+  if (error) throw error;
+  return (data ?? { classrooms: [], subjects: [], terms: [] }) as AdminAcademicSetup;
+}
+
+export async function adminUpsertClassroom(id: string | null, name: string, code: string) {
+  const { data, error } = await supabase.rpc("admin_upsert_classroom", { _id: id, _name: name, _code: code });
+  if (error) throw error;
+  return data;
+}
+
+export async function adminArchiveClassroom(id: string) {
+  const { data, error } = await supabase.rpc("admin_archive_classroom", { _id: id });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function adminUpsertSubject(id: string | null, name: string, code: string) {
+  const { data, error } = await supabase.rpc("admin_upsert_subject", { _id: id, _name: name, _code: code });
+  if (error) throw error;
+  return data;
+}
+
+export async function adminUpsertTerm(id: string | null, name: string, startsAt: string | null, endsAt: string | null, isCurrent: boolean) {
+  const { data, error } = await supabase.rpc("admin_upsert_term", {
+    _id: id,
+    _name: name,
+    _starts_at: startsAt,
+    _ends_at: endsAt,
+    _is_current: isCurrent,
+  });
+  if (error) throw error;
+  return data;
+}
+
