@@ -198,6 +198,29 @@ function StudentArea() {
         </div>
       </section>
 
+      <section aria-label="Acesso rápido" className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <a href="#tarefas" className="group rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
+          <ClipboardCheck className="size-5 text-primary transition-transform group-hover:scale-105" />
+          <p className="mt-3 text-sm font-semibold">Tarefas</p>
+          <p className="mt-1 text-xs text-muted-foreground">Veja o que precisa ser entregue.</p>
+        </a>
+        <a href="#disciplinas" className="group rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
+          <GraduationCap className="size-5 text-primary transition-transform group-hover:scale-105" />
+          <p className="mt-3 text-sm font-semibold">Disciplinas</p>
+          <p className="mt-1 text-xs text-muted-foreground">Consulte médias e desempenho.</p>
+        </a>
+        <a href="#notas" className="group rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
+          <TrendingUp className="size-5 text-primary transition-transform group-hover:scale-105" />
+          <p className="mt-3 text-sm font-semibold">Notas</p>
+          <p className="mt-1 text-xs text-muted-foreground">Acompanhe seus lançamentos.</p>
+        </a>
+        <a href="#academico" className="group rounded-2xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm">
+          <CalendarDays className="size-5 text-primary transition-transform group-hover:scale-105" />
+          <p className="mt-3 text-sm font-semibold">Vida acadêmica</p>
+          <p className="mt-1 text-xs text-muted-foreground">Frequência, avaliações e agenda.</p>
+        </a>
+      </section>
+
       {recentNotifications.length > 0 && (
         <section className="mt-5 sina-card p-6" aria-label="Notificações">
           <div className="flex items-center justify-between gap-4">
