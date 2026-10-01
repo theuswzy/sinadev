@@ -1,4 +1,6 @@
 -- SINA: harden multi-institution administration and school onboarding
+
+drop function if exists public.admin_create_institution(text,text);
 -- Every administrative operation below is scoped to the administrator's active institution.
 
 create or replace function public.admin_create_institution(
