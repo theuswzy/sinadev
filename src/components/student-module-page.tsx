@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, CheckCircle2, ClipboardList, FileText, Megaphone, BookOpen, Clock3, Send } from "lucide-react";
+import { CalendarDays, CheckCircle2, ClipboardList, Megaphone, BookOpen, Send } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,20 +89,13 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
   return (
     <AcademicShell title={title.title} subtitle={title.subtitle}>
-      <div className="mt-7 flex flex-wrap gap-2 border-b border-border pb-4">
-        {(["tarefas","disciplinas","notas","frequencia","agenda","avisos"] as StudentModule[]).map((item) => (
-          <a key={item} href={item === "tarefas" ? "/aluno/tarefas" : `/aluno/${item}`} className={item === module ? "rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground" : "rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"}>
-            {meta[item].title}
-          </a>
-        ))}
-      </div>
+
 
       {module === "tarefas" && (
         <section className="mt-6 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="sina-card p-5"><ClipboardList className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Pendentes</p><p className="mt-1 text-3xl font-semibold">{pendingTasks.length}</p></div>
-            <div className="sina-card p-5"><CheckCircle2 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Concluídas</p><p className="mt-1 text-3xl font-semibold">{(tasks.data ?? []).filter(t => t.completed).length}</p></div>
-            <div className="sina-card p-5"><Send className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Entregas</p><p className="mt-1 text-3xl font-semibold">{submissions.data?.length ?? 0}</p></div>
+          <div className="flex items-end justify-between gap-3">
+            <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Atividades</p><h2 className="mt-1 text-xl font-semibold">Suas tarefas e entregas</h2><p className="mt-1 text-sm text-muted-foreground">Abra uma atividade, responda e acompanhe a correção.</p></div>
+            <span className="hidden rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold sm:inline-flex">{pendingTasks.length} pendente{pendingTasks.length === 1 ? "" : "s"}</span>
           </div>
           {(tasks.data ?? []).length ? (tasks.data ?? []).map((task) => {
             const submission = submissions.data?.find((item) => item.task_id === task.id);
@@ -141,7 +134,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
       {module === "notas" && (
         <section className="mt-6 space-y-4">
-          <div className="sina-card p-5"><p className="text-sm text-muted-foreground">Confira suas notas por disciplina e cada avaliação lançada.</p></div>
+          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-xl font-semibold">Notas e avaliações</h2><p className="mt-1 text-sm text-muted-foreground">Consulte cada lançamento e o resultado das avaliações.</p></div>
           <div className="sina-card overflow-hidden">
             <div className="overflow-x-auto"><table className="w-full min-w-[620px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-4 text-left">Disciplina</th><th className="p-4 text-left">Período</th><th className="p-4 text-left">Nota</th><th className="p-4 text-left">Faltas</th></tr></thead><tbody>{(grades.data ?? []).map((g) => <tr key={g.id} className="border-t border-border"><td className="p-4 font-medium">{g.subject}</td><td className="p-4">{g.period}º</td><td className="p-4 font-semibold">{formatScore(g.score)}</td><td className="p-4">{g.absences}</td></tr>)}</tbody></table></div>
           </div>
@@ -151,10 +144,9 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
       {module === "frequencia" && (
         <section className="mt-6 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="sina-card p-5"><Clock3 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Registros</p><p className="mt-1 text-3xl font-semibold">{attendance.data?.length ?? 0}</p></div>
-            <div className="sina-card p-5"><CheckCircle2 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Presenças</p><p className="mt-1 text-3xl font-semibold">{attendance.data?.filter(a => a.status === "present").length ?? 0}</p></div>
-            <div className="sina-card p-5"><Clock3 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-3xl font-semibold">{attendance.data?.filter(a => a.status === "absent").length ?? 0}</p></div>
+          <div className="flex items-end justify-between gap-3">
+            <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Histórico</p><h2 className="mt-1 text-xl font-semibold">Registro de frequência</h2><p className="mt-1 text-sm text-muted-foreground">Consulte presença, faltas, atrasos e justificativas por data.</p></div>
+            <span className="hidden rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold sm:inline-flex">{attendance.data?.length ?? 0} registro{attendance.data?.length === 1 ? "" : "s"}</span>
           </div>
           <div className="sina-card divide-y divide-border">{(attendance.data ?? []).map((item, index) => <div key={item.attendance_date + index} className="flex items-center justify-between gap-4 p-4"><div><p className="font-medium">{new Date(item.attendance_date + "T12:00:00").toLocaleDateString("pt-BR")}</p><p className="text-xs text-muted-foreground">{item.classroom}{item.note ? ` · ${item.note}` : ""}</p></div><span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold">{item.status === "absent" ? "Falta" : item.status === "late" ? "Atrasado" : item.status === "excused" ? "Justificada" : "Presente"}</span></div>)}</div>
         </section>
