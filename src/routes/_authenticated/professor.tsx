@@ -7,7 +7,7 @@ import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { errorText, formatScore, getRole, loadGrades, loadStudents, type Student } from "@/lib/sina-data";
+import { errorText, formatScore, getRole, routeForRole, loadGrades, loadStudents, type Student } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/professor")({
   head: () => ({ meta: [{ title: "Área do professor — SINA" }, { name: "description", content: "Vincule alunos a turmas e matrículas e registre dados acadêmicos." }] }),
@@ -200,7 +200,7 @@ function TeacherArea() {
   return <AcademicShell title="Área do professor" subtitle="Turmas e acompanhamento acadêmico">
     {role.isPending ? <p className="mt-8 text-muted-foreground">Verificando acesso…</p> : role.error ? <p role="alert" className="mt-8 text-destructive">{errorText(role.error)}</p> : role.data !== "teacher" ? (
       <div className="mt-8 sina-card sina-card-hover p-6">
-        <ShieldCheck className="size-6 text-primary" /><p className="mt-3 font-semibold">Acesso reservado a professores autorizados.</p><p className="mt-1 text-sm text-muted-foreground">Sua conta não possui autorização de professor. O painel do aluno continua disponível normalmente.</p><Link to="/aluno" className="mt-4 inline-block text-sm text-primary underline">Voltar para minha área</Link>
+        <ShieldCheck className="size-6 text-primary" /><p className="mt-3 font-semibold">Acesso reservado a professores autorizados.</p><p className="mt-1 text-sm text-muted-foreground">Sua conta não possui autorização de professor.</p><Link to={routeForRole(role.data)} className="mt-4 inline-block text-sm text-primary underline">Voltar para minha área</Link>
       </div>
     ) : <>
       {students.isPending && (
