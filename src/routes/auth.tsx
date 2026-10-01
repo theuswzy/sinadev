@@ -124,11 +124,17 @@ function AuthPage() {
 
       const storedRole = window.localStorage.getItem("sina-requested-role");
       const storedSchoolId = window.localStorage.getItem("sina-school-directory-id");
+      const metadataRole = data.user.user_metadata?.requested_role;
+      const metadataSchoolId = data.user.user_metadata?.school_directory_id;
 
       try {
         await finishAuth(
-          storedRole === "teacher" || storedRole === "student" ? storedRole : undefined,
-          storedSchoolId || undefined,
+          storedRole === "teacher" || storedRole === "student"
+            ? storedRole
+            : metadataRole === "teacher" || metadataRole === "student"
+              ? metadataRole
+              : undefined,
+          storedSchoolId || (typeof metadataSchoolId === "string" ? metadataSchoolId : undefined),
         );
       } catch (error) {
         setMessage(authErrorMessage(error));
@@ -155,6 +161,10 @@ function AuthPage() {
           setMessage("Escolha se você é aluno ou professor antes de criar a conta.");
           return;
         }
+        if (!selectedSchool) {
+          setMessage("Selecione sua escola antes de criar a conta.");
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -168,10 +178,6 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-
-        if (!selectedSchool) {
-          throw new Error("Selecione sua escola antes de criar a conta.");
-        }
 
         if (data.session) {
           await finishAuth(requestedRole, selectedSchool.id);
