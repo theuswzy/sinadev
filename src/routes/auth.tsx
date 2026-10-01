@@ -45,6 +45,17 @@ export const Route = createFileRoute("/auth")({
 
 type AuthMode = "login" | "signup" | "forgot" | "pending";
 type RequestedRole = "student" | "teacher";
+type SignupStep = 1 | 2 | 3;
+
+function passwordChecks(password: string) {
+  return {
+    length: password.length >= 8,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    number: /\d/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
+  };
+}
 
 function roleLabel(role: RequestedRole | null) {
   return role === "teacher" ? "Professor" : "Aluno";
@@ -63,6 +74,8 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [requestedRole, setRequestedRole] = useState<RequestedRole | null>(null);
+  const [signupStep, setSignupStep] = useState<SignupStep>(1);
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [selectedSchool, setSelectedSchool] = useState<SchoolDirectoryEntry | null>(null);
   const [schoolSearch, setSchoolSearch] = useState("");
   const [schoolNetwork, setSchoolNetwork] = useState<SchoolDirectoryEntry["network_type"] | "all">("all");
@@ -160,10 +173,28 @@ function AuthPage() {
       if (mode === "signup") {
         if (!requestedRole) {
           setMessage("Escolha se você é aluno ou professor antes de criar a conta.");
+          setSignupStep(1);
           return;
         }
         if (!selectedSchool) {
-          setMessage("Selecione sua escola antes de criar a conta.");
+          setMessage("Selecione sua instituição antes de criar a conta.");
+          setSignupStep(2);
+          return;
+        }
+        const checks = passwordChecks(password);
+        if (!name.trim()) {
+          setMessage("Informe seu nome completo.");
+          setSignupStep(3);
+          return;
+        }
+        if (!checks.length || !checks.upper || !checks.lower || !checks.number || !checks.special) {
+          setMessage("Crie uma senha com pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial.");
+          setSignupStep(3);
+          return;
+        }
+        if (password !== passwordConfirm) {
+          setMessage("As senhas não coincidem.");
+          setSignupStep(3);
           return;
         }
         const { data, error } = await supabase.auth.signUp({
@@ -200,22 +231,31 @@ function AuthPage() {
 
   async function google() {
     setMessage("");
-    if (!requestedRole) {
-      setMode("signup");
-      setMessage("Antes de continuar com o Google, escolha se você é aluno ou professor.");
-      return;
-    }
     setBusy(true);
-    if (!selectedSchool) {
-      setMessage("Selecione sua escola antes de continuar com o Google.");
-      setBusy(false);
-      return;
+
+    const isSignup = mode === "signup";
+    if (isSignup) {
+      if (!requestedRole) {
+        setMessage("Escolha se você é aluno ou professor antes de continuar.");
+        setBusy(false);
+        return;
+      }
+      if (!selectedSchool) {
+        setMessage("Selecione sua instituição antes de continuar.");
+        setBusy(false);
+        return;
+      }
+      window.localStorage.setItem("sina-requested-role", requestedRole);
+      window.localStorage.setItem("sina-school-directory-id", selectedSchool.id);
+    } else {
+      window.localStorage.removeItem("sina-requested-role");
+      window.localStorage.removeItem("sina-school-directory-id");
     }
-    window.localStorage.setItem("sina-requested-role", requestedRole);
-    window.localStorage.setItem("sina-school-directory-id", selectedSchool.id);
+
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: `${window.location.origin}/auth`,
     });
+
     if (result.error) {
       window.localStorage.removeItem("sina-requested-role");
       window.localStorage.removeItem("sina-school-directory-id");
@@ -223,9 +263,13 @@ function AuthPage() {
       setBusy(false);
       return;
     }
+
     if (!result.redirected) {
       try {
-        await finishAuth(requestedRole, selectedSchool.id);
+        await finishAuth(
+          isSignup ? requestedRole ?? undefined : undefined,
+          isSignup ? selectedSchool?.id : undefined,
+        );
       } catch (error) {
         setMessage(authErrorMessage(error));
       } finally {
@@ -356,103 +400,190 @@ function AuthPage() {
             ) : (
               <>
                 {mode === "signup" && (
-                  <div className="mt-6 space-y-3">
-                    <p className="text-sm font-semibold">Como você participa da instituição?</p>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {(["student", "teacher"] as const).map(role => (
-                        <button
-                          key={role}
-                          type="button"
-                          onClick={() => setRequestedRole(role)}
-                          className={`rounded-2xl border p-4 text-left transition ${requestedRole === role ? "border-primary bg-primary/5 ring-2 ring-primary/15" : "border-border hover:bg-secondary/60"}`}
-                        >
-                          <div className="flex items-center gap-2">
-                            {role === "student" ? <UserRound className="size-5 text-primary" /> : <UsersRound className="size-5 text-primary" />}
-                            <span className="font-semibold">{roleLabel(role)}</span>
-                          </div>
-                          <p className="mt-2 text-xs leading-5 text-muted-foreground">{roleDescription(role)}</p>
-                        </button>
+                  <div className="mt-6 space-y-5">
+                    <div className="flex items-center gap-2">
+                      {[1, 2, 3].map(step => (
+                        <div key={step} className="flex flex-1 items-center gap-2">
+                          <span className={`flex size-7 items-center justify-center rounded-full text-xs font-bold ${signupStep >= step ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                            {step}
+                          </span>
+                          {step < 3 && <span className={`h-px flex-1 ${signupStep > step ? "bg-primary" : "bg-border"}`} />}
+                        </div>
                       ))}
                     </div>
-                    <p className="text-xs leading-5 text-muted-foreground">A função escolhida é uma solicitação. O acesso só é liberado depois da aprovação do administrador.</p>
-                  </div>
-                )}
 
-                {mode === "signup" && (
-                  <div className="mt-5 space-y-3">
-                    <div>
-                      <p className="text-sm font-semibold">Qual é a sua escola?</p>
-                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        Pesquise uma escola pública de Salvador. A aprovação será encaminhada para a instituição escolhida.
-                      </p>
-                    </div>
+                    {signupStep === 1 && (
+                      <div>
+                        <p className="text-sm font-semibold">Como você participa da instituição?</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Escolha o perfil que será analisado pelo administrador.</p>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          {(["student", "teacher"] as const).map(role => (
+                            <button
+                              key={role}
+                              type="button"
+                              onClick={() => { setRequestedRole(role); setMessage(""); }}
+                              className={`rounded-2xl border p-4 text-left transition ${requestedRole === role ? "border-primary bg-primary/5 ring-2 ring-primary/15" : "border-border hover:bg-secondary/60"}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                {role === "student" ? <UserRound className="size-5 text-primary" /> : <UsersRound className="size-5 text-primary" />}
+                                <span className="font-semibold">{roleLabel(role)}</span>
+                              </div>
+                              <p className="mt-2 text-xs leading-5 text-muted-foreground">{roleDescription(role)}</p>
+                            </button>
+                          ))}
+                        </div>
+                        <Button
+                          type="button"
+                          className="mt-4 h-11 w-full"
+                          disabled={!requestedRole}
+                          onClick={() => { setMessage(""); setSignupStep(2); }}
+                        >
+                          Continuar <ArrowRight />
+                        </Button>
+                      </div>
+                    )}
 
-                    {selectedSchool ? (
-                      <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold">{selectedSchool.name}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {selectedSchool.network_type === "municipal" ? "Rede municipal" : selectedSchool.network_type === "estadual" ? "Rede estadual" : "Rede federal"} · {selectedSchool.municipality} - {selectedSchool.state}
-                            </p>
+                    {signupStep === 2 && (
+                      <div>
+                        <p className="text-sm font-semibold">Qual é a sua instituição?</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Pesquise e selecione a escola onde você estuda ou trabalha.</p>
+
+                        {selectedSchool ? (
+                          <div className="mt-3 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="font-semibold">{selectedSchool.name}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {selectedSchool.network_type === "municipal" ? "Rede municipal" : selectedSchool.network_type === "estadual" ? "Rede estadual" : "Rede federal"} · {selectedSchool.municipality} - {selectedSchool.state}
+                                </p>
+                              </div>
+                              <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedSchool(null)}>Trocar</Button>
+                            </div>
                           </div>
-                          <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedSchool(null)}>Trocar</Button>
+                        ) : (
+                          <div className="relative mt-3">
+                            <div className="grid gap-2 sm:grid-cols-[1fr_150px]">
+                              <Input value={schoolSearch} onChange={e => setSchoolSearch(e.target.value)} placeholder="Digite o nome da instituição..." className="h-11" autoComplete="off" />
+                              <select value={schoolNetwork} onChange={e => setSchoolNetwork(e.target.value as SchoolDirectoryEntry["network_type"] | "all")} className="h-11 rounded-md border border-input bg-background px-3 text-sm" aria-label="Filtrar rede de ensino">
+                                <option value="all">Todas as redes</option>
+                                <option value="municipal">Municipal</option>
+                                <option value="estadual">Estadual</option>
+                                <option value="federal">Federal</option>
+                              </select>
+                            </div>
+                            <div className="mt-2 max-h-52 overflow-auto rounded-2xl border border-border bg-card">
+                              {schoolLoading ? (
+                                <p className="px-4 py-3 text-sm text-muted-foreground">Pesquisando instituições…</p>
+                              ) : schoolResults.length ? (
+                                schoolResults.map(school => (
+                                  <button
+                                    key={school.id}
+                                    type="button"
+                                    onClick={() => { setSelectedSchool(school); setSchoolSearch(school.name); setMessage(""); }}
+                                    className="flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-secondary/60"
+                                  >
+                                    <GraduationCap className="mt-0.5 size-4 shrink-0 text-primary" />
+                                    <span>
+                                      <span className="block text-sm font-semibold">{school.name}</span>
+                                      <span className="mt-1 block text-xs text-muted-foreground">
+                                        {school.network_type === "municipal" ? "Municipal" : school.network_type === "estadual" ? "Estadual" : "Federal"} · {school.municipality} - {school.state}
+                                      </span>
+                                    </span>
+                                  </button>
+                                ))
+                              ) : (
+                                <p className="px-4 py-3 text-sm text-muted-foreground">Nenhuma instituição encontrada.</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <Button type="button" variant="outline" className="h-11" onClick={() => { setMessage(""); setSignupStep(1); }}>
+                            Voltar
+                          </Button>
+                          <Button type="button" className="h-11" disabled={!selectedSchool} onClick={() => { setMessage(""); setSignupStep(3); }}>
+                            Continuar <ArrowRight />
+                          </Button>
                         </div>
                       </div>
-                    ) : (
-                      <div className="relative">
-                        <div className="grid gap-2 sm:grid-cols-[1fr_170px]">
-                          <Input
-                            value={schoolSearch}
-                            onChange={e => setSchoolSearch(e.target.value)}
-                            placeholder="Digite o nome da escola..."
-                            className="h-11"
-                            autoComplete="off"
-                          />
-                          <select
-                            value={schoolNetwork}
-                            onChange={e => setSchoolNetwork(e.target.value as SchoolDirectoryEntry["network_type"] | "all")}
-                            className="h-11 rounded-md border border-input bg-background px-3 text-sm"
-                            aria-label="Filtrar rede de ensino"
-                          >
-                            <option value="all">Todas as redes</option>
-                            <option value="municipal">Municipal</option>
-                            <option value="estadual">Estadual</option>
-                            <option value="federal">Federal</option>
-                          </select>
+                    )}
+
+                    {signupStep === 3 && (
+                      <div>
+                        <div className="rounded-2xl border border-border bg-secondary/50 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Cadastro como</p>
+                              <p className="font-semibold">{roleLabel(requestedRole)}</p>
+                            </div>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => setSignupStep(1)}>Alterar</Button>
+                          </div>
+                          <div className="mt-3 border-t border-border pt-3">
+                            <p className="text-xs text-muted-foreground">Instituição</p>
+                            <p className="mt-1 text-sm font-semibold">{selectedSchool?.name}</p>
+                            <Button type="button" variant="link" className="h-auto px-0 text-xs" onClick={() => setSignupStep(2)}>Trocar instituição</Button>
+                          </div>
                         </div>
-                        <div className="mt-2 max-h-56 overflow-auto rounded-2xl border border-border bg-card">
-                          {schoolLoading ? (
-                            <p className="px-4 py-3 text-sm text-muted-foreground">Pesquisando escolas…</p>
-                          ) : schoolResults.length ? (
-                            schoolResults.map(school => (
-                              <button
-                                key={school.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedSchool(school);
-                                  setSchoolSearch(school.name);
-                                }}
-                                className="flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-secondary/60"
-                              >
-                                <GraduationCap className="mt-0.5 size-4 shrink-0 text-primary" />
-                                <span>
-                                  <span className="block text-sm font-semibold">{school.name}</span>
-                                  <span className="mt-1 block text-xs text-muted-foreground">
-                                    {school.network_type === "municipal" ? "Municipal" : school.network_type === "estadual" ? "Estadual" : "Federal"} · {school.municipality} - {school.state}
-                                  </span>
-                                </span>
-                              </button>
-                            ))
-                          ) : (
-                            <p className="px-4 py-3 text-sm text-muted-foreground">
-                              Nenhuma escola encontrada com esse nome.
-                            </p>
-                          )}
+
+                        <div className="mt-4 space-y-4">
+                          <label className="block text-sm font-medium">
+                            Nome completo
+                            <Input required value={name} onChange={e => setName(e.target.value)} className="mt-2 h-11" autoComplete="name" placeholder="Seu nome completo" />
+                          </label>
+                          <label className="block text-sm font-medium">
+                            E-mail
+                            <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 h-11" autoComplete="email" placeholder="voce@exemplo.com" />
+                          </label>
+                          <div>
+                            <label className="block text-sm font-medium">
+                              Senha
+                              <div className="relative mt-2">
+                                <Input required type="password" minLength={8} value={password} onChange={e => setPassword(e.target.value)} className="h-11 pr-10" autoComplete="new-password" placeholder="Crie uma senha forte" />
+                              </div>
+                            </label>
+                            {password && (() => {
+                              const checks = passwordChecks(password);
+                              const score = Object.values(checks).filter(Boolean).length;
+                              return (
+                                <div className="mt-2 rounded-xl border border-border bg-secondary/40 p-3">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="font-semibold">Força da senha</span>
+                                    <span className="text-muted-foreground">{score <= 2 ? "Fraca" : score < 5 ? "Boa" : "Forte"}</span>
+                                  </div>
+                                  <div className="mt-2 grid grid-cols-5 gap-1">
+                                    {Array.from({length: 5}).map((_, index) => <span key={index} className={`h-1 rounded-full ${index < score ? "bg-primary" : "bg-border"}`} />)}
+                                  </div>
+                                  <div className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+                                    <span>{checks.length ? "✓" : "○"} Pelo menos 8 caracteres</span>
+                                    <span>{checks.upper ? "✓" : "○"} Uma letra maiúscula</span>
+                                    <span>{checks.lower ? "✓" : "○"} Uma letra minúscula</span>
+                                    <span>{checks.number ? "✓" : "○"} Um número</span>
+                                    <span>{checks.special ? "✓" : "○"} Um caractere especial</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                          <label className="block text-sm font-medium">
+                            Confirmar senha
+                            <Input required type="password" minLength={8} value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} className="mt-2 h-11" autoComplete="new-password" placeholder="Digite a senha novamente" />
+                          </label>
+                          {passwordConfirm && password !== passwordConfirm && <p className="text-xs font-medium text-destructive">As senhas não coincidem.</p>}
+
+                          {message && <div role="status" className="rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">{message}</div>}
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button type="button" variant="outline" className="h-11" onClick={() => { setMessage(""); setSignupStep(2); }}>Voltar</Button>
+                            <Button disabled={busy} className="h-11 font-semibold" type="submit">
+                              {busy ? "Enviando…" : "Enviar cadastro"} <ArrowRight />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
+                )}
 
                 <form onSubmit={submit} className="mt-6 space-y-4">
                   {mode === "signup" && <label className="block text-sm font-medium">Nome completo<Input required value={name} onChange={e => setName(e.target.value)} className="mt-2 h-11" autoComplete="name" /></label>}
@@ -465,11 +596,52 @@ function AuthPage() {
                   </Button>
                 </form>
 
-                {mode !== "forgot" && (
+                {mode !== "pending" && mode !== "forgot" && mode !== "signup" && (
+                  <>
+                    {message && <div role="status" className="mt-4 rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">{message}</div>}
+                    <form onSubmit={submit} className="mt-6 space-y-4">
+                      <label className="block text-sm font-medium">
+                        E-mail
+                        <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 h-11" autoComplete="email" placeholder="voce@exemplo.com" />
+                      </label>
+                      <label className="block text-sm font-medium">
+                        Senha
+                        <Input required type="password" minLength={6} value={password} onChange={e => setPassword(e.target.value)} className="mt-2 h-11" autoComplete="current-password" placeholder="Sua senha" />
+                      </label>
+                      <Button disabled={busy} className="h-11 w-full font-semibold" type="submit">
+                        {busy ? "Entrando…" : "Entrar no SINA"} <ArrowRight />
+                      </Button>
+                    </form>
+
+                    <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
+                    <Button type="button" variant="outline" onClick={() => void google()} disabled={busy} className="h-11 w-full">
+                      Continuar com Google
+                    </Button>
+                  </>
+                )}
+
+                {mode === "forgot" && (
+                  <>
+                    {message && <div role="status" className="mt-4 rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">{message}</div>}
+                    <form onSubmit={submit} className="mt-6 space-y-4">
+                      <label className="block text-sm font-medium">
+                        E-mail
+                        <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 h-11" autoComplete="email" placeholder="voce@exemplo.com" />
+                      </label>
+                      <Button disabled={busy} className="h-11 w-full font-semibold" type="submit">
+                        {busy ? "Enviando…" : "Enviar link de recuperação"} <ArrowRight />
+                      </Button>
+                    </form>
+                  </>
+                )}
+
+                {mode === "signup" && signupStep === 3 && (
                   <>
                     <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
-                    <Button type="button" variant="outline" onClick={google} disabled={busy} className="h-11 w-full">Continuar com Google</Button>
-                    <p className="mt-2 text-center text-xs leading-5 text-muted-foreground">Ao criar uma conta nova com Google, você precisará informar se é aluno ou professor antes da aprovação.</p>
+                    <Button type="button" variant="outline" onClick={() => void google()} disabled={busy} className="h-11 w-full">
+                      Continuar com Google
+                    </Button>
+                    <p className="mt-2 text-center text-xs leading-5 text-muted-foreground">Sua função e instituição serão mantidas durante o cadastro com Google e também passarão por aprovação.</p>
                   </>
                 )}
 
