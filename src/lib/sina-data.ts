@@ -400,6 +400,30 @@ export async function saveAttendance(classroomId: string, date: string, rows: Pi
 
 export type TeacherSubject = { id: string; name: string; code: string | null; status: string; created_by: string | null };
 
+export type TeacherSubjectAssignment = { id: string; classroom_id: string; classroom_name: string; subject_id: string; subject_name: string; teacher_id: string };
+export type StudentSubject = { id: string; name: string; code: string | null; classroom_id: string; classroom_name: string; teacher_id: string; teacher_name: string };
+
+export async function loadTeacherSubjectAssignments(): Promise<TeacherSubjectAssignment[]> {
+  const { data, error } = await supabase.rpc("teacher_list_subject_assignments");
+  if (error) throw error;
+  return (data ?? []) as TeacherSubjectAssignment[];
+}
+export async function assignTeacherSubjectToClass(subjectId: string, classroomId: string) {
+  const { data, error } = await supabase.rpc("teacher_assign_subject_to_class", { _subject_id: subjectId, _classroom_id: classroomId });
+  if (error) throw error;
+  return data;
+}
+export async function unassignTeacherSubjectFromClass(id: string) {
+  const { data, error } = await supabase.rpc("teacher_unassign_subject_from_class", { _id: id });
+  if (error) throw error;
+  return data ?? false;
+}
+export async function loadStudentSubjects(): Promise<StudentSubject[]> {
+  const { data, error } = await supabase.rpc("student_list_subjects");
+  if (error) throw error;
+  return (data ?? []) as StudentSubject[];
+}
+
 export async function loadTeacherSubjects(): Promise<TeacherSubject[]> {
   const { data, error } = await supabase.rpc("teacher_list_subjects");
   if (error) throw error;
