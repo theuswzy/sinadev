@@ -19,6 +19,7 @@ export type Database = {
           absences: number
           created_at: string
           id: string
+          institution_id: string
           period: number
           score: number
           student_id: string
@@ -29,6 +30,7 @@ export type Database = {
           absences?: number
           created_at?: string
           id?: string
+          institution_id: string
           period: number
           score: number
           student_id: string
@@ -39,6 +41,7 @@ export type Database = {
           absences?: number
           created_at?: string
           id?: string
+          institution_id?: string
           period?: number
           score?: number
           student_id?: string
@@ -200,6 +203,8 @@ export type Database = {
           teacher_id: string | null
           updated_at: string
           user_id: string | null
+          institution_id: string | null
+          classroom_id: string | null
         }
         Insert: {
           attendance?: number | null
@@ -213,6 +218,8 @@ export type Database = {
           teacher_id?: string | null
           updated_at?: string
           user_id?: string | null
+          institution_id: string
+          classroom_id?: string | null
         }
         Update: {
           attendance?: number | null
@@ -226,6 +233,8 @@ export type Database = {
           teacher_id?: string | null
           updated_at?: string
           user_id?: string | null
+          institution_id?: string
+          classroom_id?: string | null
         }
         Relationships: []
       }
@@ -998,6 +1007,34 @@ export type Database = {
         school_directory_id: string | null
         school_name: string | null
         school_network_type: string | null
+      }[]
+    }
+    teacher_list_grades: {
+      Args: { _student_id: string }
+      Returns: {
+        absences: number
+        created_at: string
+        id: string
+        institution_id: string
+        period: number
+        score: number
+        student_id: string
+        subject: string
+        updated_at: string
+      }[]
+    }
+    student_list_grades: {
+      Args: Record<PropertyKey, never>
+      Returns: {
+        absences: number
+        created_at: string
+        id: string
+        institution_id: string
+        period: number
+        score: number
+        student_id: string
+        subject: string
+        updated_at: string
       }[]
     }
     Enums: {
