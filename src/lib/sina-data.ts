@@ -139,7 +139,17 @@ export async function setTaskCompleted(taskId: string, completed: boolean): Prom
 }
 
 
-export type StudentNotification = Tables<"notifications">;
+export type StudentNotification = {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  link: string | null;
+  metadata: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+};
 
 export async function loadNotifications(unreadOnly = false): Promise<StudentNotification[]> {
   const { data, error } = await supabase.rpc("student_list_notifications", {
