@@ -1073,3 +1073,56 @@ with check (
       and c.status = 'active'
   )
 );
+
+
+-- SECURITY DEFINER functions in public are explicit application APIs.
+revoke execute on function public.admin_list_accounts() from public, anon;
+grant execute on function public.admin_list_accounts() to authenticated;
+
+revoke execute on function public.admin_set_account_status(uuid,text) from public, anon;
+grant execute on function public.admin_set_account_status(uuid,text) to authenticated;
+
+revoke execute on function public.student_list_announcements() from public, anon;
+grant execute on function public.student_list_announcements() to authenticated;
+
+revoke execute on function public.student_list_tasks() from public, anon;
+grant execute on function public.student_list_tasks() to authenticated;
+
+revoke execute on function public.student_set_task_completed(uuid,boolean) from public, anon;
+grant execute on function public.student_set_task_completed(uuid,boolean) to authenticated;
+
+revoke execute on function public.teacher_bulk_upsert_grades(uuid,text,integer,jsonb) from public, anon;
+grant execute on function public.teacher_bulk_upsert_grades(uuid,text,integer,jsonb) to authenticated;
+
+revoke execute on function public.teacher_create_announcement(text,text,text,text,text,bigint,text) from public, anon;
+grant execute on function public.teacher_create_announcement(text,text,text,text,text,bigint,text) to authenticated;
+
+revoke execute on function public.teacher_create_task(text,text,text,text,timestamptz,text,text,bigint,text) from public, anon;
+grant execute on function public.teacher_create_task(text,text,text,text,timestamptz,text,text,bigint,text) to authenticated;
+
+revoke execute on function public.teacher_delete_announcement(uuid) from public, anon;
+grant execute on function public.teacher_delete_announcement(uuid) to authenticated;
+
+revoke execute on function public.teacher_delete_task(uuid) from public, anon;
+grant execute on function public.teacher_delete_task(uuid) to authenticated;
+
+revoke execute on function public.teacher_link_roster_student(uuid,text,text) from public, anon;
+grant execute on function public.teacher_link_roster_student(uuid,text,text) to authenticated;
+
+revoke execute on function public.teacher_list_announcements() from public, anon;
+grant execute on function public.teacher_list_announcements() to authenticated;
+
+revoke execute on function public.teacher_list_roster() from public, anon;
+grant execute on function public.teacher_list_roster() to authenticated;
+
+revoke execute on function public.teacher_list_tasks() from public, anon;
+grant execute on function public.teacher_list_tasks() to authenticated;
+
+revoke execute on function public.teacher_unlink_roster_student(uuid) from public, anon;
+grant execute on function public.teacher_unlink_roster_student(uuid) to authenticated;
+
+revoke execute on function public.teacher_update_announcement(uuid,text,text,text,text,text,bigint,text) from public, anon;
+grant execute on function public.teacher_update_announcement(uuid,text,text,text,text,text,bigint,text) to authenticated;
+
+revoke execute on function public.teacher_update_task(uuid,text,text,text,text,timestamptz,text,text,bigint,text) from public, anon;
+grant execute on function public.teacher_update_task(uuid,text,text,text,text,timestamptz,text,text,bigint,text) to authenticated;
