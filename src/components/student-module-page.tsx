@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, CheckCircle2, ClipboardList, Megaphone, BookOpen, Send } from "lucide-react";
+import { CalendarDays, Megaphone, BookOpen } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
