@@ -212,8 +212,8 @@ export function TeacherAcademicCenter() {
           <div><div className="flex items-center gap-3"><FileSpreadsheet className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Relatório da turma</p><h3 className="font-semibold">Visão consolidada</h3></div></div><p className="mt-2 text-sm text-muted-foreground">Frequência, média de notas e quantidade de avaliações por aluno.</p></div>
           <Button variant="outline" onClick={() => {
             const rows = classReport.data ?? [];
-            const csv = ["Aluno;Matrícula;Frequência;Média;Avaliações", ...rows.map(item => [item.student_name,item.enrollment,item.attendance_percent == null ? "" : String(item.attendance_percent).replace(".", ","),String(item.grade_average).replace(".", ","),String(item.assessment_count)].join(";"))].join("\\n");
-            const blob = new Blob(["\\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+            const csv = ["Aluno;Matrícula;Frequência;Média;Avaliações", ...rows.map(item => [item.student_name,item.enrollment,item.attendance_percent == null ? "" : String(item.attendance_percent).replace(".", ","),String(item.grade_average).replace(".", ","),String(item.assessment_count)].join(";"))].join("\n");
+            const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a"); a.href = url; a.download = `sina-${selectedClass?.name ?? "turma"}-relatorio.csv`; a.click(); URL.revokeObjectURL(url);
           }} disabled={!classReport.data?.length}><FileSpreadsheet className="mr-2 size-4" />Exportar CSV</Button>
