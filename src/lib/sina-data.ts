@@ -24,17 +24,19 @@ export async function getRole(): Promise<UserRole> {
     throw new Error("Sua conta está suspensa. Procure o administrador da instituição.");
   }
 
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", auth.user.id)
-    .in("role", ["admin", "teacher"]);
-  if (error) throw error;
+  // Resolve the role from the active institution, not from the global role table.
+  // A user can belong to more than one institution and must not inherit another
+  // institution's role while switching the active context.
+  const { data: institutions, error: institutionError } = await supabase.rpc("account_list_institutions");
+  if (institutionError) throw institutionError;
 
-  const roles = data?.map((item) => item.role) ?? [];
-  if (roles.includes("admin")) return "admin";
-  if (roles.includes("teacher")) return "teacher";
-  return "student";
+  const active = (institutions ?? []).find((item) => item.is_active) ?? institutions?.[0];
+  const activeRole = active?.role as UserRole | undefined;
+  if (activeRole === "admin" || activeRole === "teacher" || activeRole === "student") {
+    return activeRole;
+  }
+
+  throw new Error("Sua conta ainda não possui uma função acadêmica ativa.");
 }
 
 
