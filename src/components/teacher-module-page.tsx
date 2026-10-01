@@ -143,13 +143,127 @@ function UnlinkedStudents({students,classes,onLinked}:{students:TeacherStudent[]
 
 function ClassSelect({classes,value,onChange}:{classes:any[];value:string;onChange:(v:string)=>void}){return <div className="sina-card p-5"><label className="text-sm font-medium">Turma<select value={value} onChange={e=>onChange(e.target.value)} className="mt-2 h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{classes.map(c=><option key={c.id} value={c.id}>{c.name}{c.code?" · "+c.code:""} · {c.student_count} aluno(s)</option>)}</select></label></div>}
 function BulkGradeForm({students,qc}:{students:TeacherStudent[];qc:any}){
+  const subjects=useQuery({queryKey:["teacher-grade-subjects"],queryFn:loadTeacherSubjects});
   const [subject,setSubject]=useState("");const [period,setPeriod]=useState("1");const [scores,setScores]=useState<Record<string,string>>({});const [saving,setSaving]=useState(false);
-  async function save(){setSaving(true);try{for(const s of students){const raw=scores[s.id];if(raw==null||raw==="")continue;const {error}=await supabase.rpc("teacher_upsert_grade",{_student_id:s.id,_subject:subject,_period:Number(period),_score:Number(raw),_absences:0});if(error)throw error;}await qc.invalidateQueries({queryKey:["teacher-module-grades"]});setScores({});}finally{setSaving(false)}}
-  return <section className="sina-card p-6"><div><h2 className="font-semibold">Lançamento rápido da turma</h2><p className="mt-1 text-sm text-muted-foreground">Lance a mesma disciplina e período para vários alunos de uma vez.</p></div><div className="mt-4 grid gap-3 md:grid-cols-[1fr_150px_auto]"><Input value={subject} onChange={e=>setSubject(e.target.value)} placeholder="Disciplina"/><select value={period} onChange={e=>setPeriod(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">{[1,2,3,4].map(n=><option key={n} value={n}>{n}º período</option>)}</select><Button disabled={!subject.trim()||!Object.values(scores).some(Boolean)||saving} onClick={()=>void save()}>{saving?"Salvando…":"Salvar notas"}</Button></div><div className="mt-4 grid gap-2 md:grid-cols-2">{students.map(s=><div key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3"><div><p className="font-medium">{s.full_name}</p><p className="text-xs text-muted-foreground">{s.enrollment}</p></div><Input className="max-w-28" type="number" min="0" max="10" step=".01" value={scores[s.id]??""} onChange={e=>setScores(v=>({...v,[s.id]:e.target.value}))} placeholder="Nota"/></div>)}</div></section>;
+  async function save(){
+    setSaving(true);
+    try{
+      for(const s of students){
+        const raw=scores[s.id];if(raw==null||raw==="")continue;
+        const score=Number(raw);if(score<0||score>10)throw new Error("As notas devem estar entre 0 e 10.");
+        const {error}=await supabase.rpc("teacher_upsert_grade",{_student_id:s.id,_subject:subject,_period:Number(period),_score:score,_absences:0});
+        if(error)throw error;
+      }
+      await qc.invalidateQueries({queryKey:["teacher-module-grades"]});setScores({});
+    }catch(error){window.alert(errorText(error));}
+    finally{setSaving(false);}
+  }
+  return <section className="sina-card p-6"><div><h2 className="font-semibold">Lançamento rápido da turma</h2><p className="mt-1 text-sm text-muted-foreground">Lance a mesma disciplina e período para vários alunos de uma vez.</p></div><div className="mt-4 grid gap-3 md:grid-cols-[1fr_150px_auto]"><select value={subject} onChange={e=>setSubject(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Disciplina</option>{(subjects.data||[]).map(x=><option key={x.id} value={x.name}>{x.name}</option>)}</select><select value={period} onChange={e=>setPeriod(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">{[1,2,3,4].map(n=><option key={n} value={n}>{n}º período</option>)}</select><Button disabled={!subject||!Object.values(scores).some(Boolean)||saving} onClick={()=>void save()}>{saving?"Salvando…":"Salvar notas"}</Button></div><div className="mt-4 grid gap-2 md:grid-cols-2">{students.map(s=><div key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3"><div><p className="font-medium">{s.full_name}</p><p className="text-xs text-muted-foreground">{s.enrollment}</p></div><Input className="max-w-28" type="number" min="0" max="10" step=".01" value={scores[s.id]??""} onChange={e=>setScores(v=>({...v,[s.id]:e.target.value}))} placeholder="Nota"/></div>)}</div></section>;
 }
-function GradeForm({student,qc}:{student:any;qc:any}){return <section className="sina-card p-6"><h2 className="font-semibold">Lançar nota — {student.full_name}</h2><form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={async e=>{e.preventDefault();const fd=new FormData(e.currentTarget);const {error}=await supabase.rpc("teacher_upsert_grade",{_student_id:student.id,_subject:String(fd.get("subject")), _period:Number(fd.get("period")),_score:Number(fd.get("score")),_absences:Number(fd.get("absences"))});if(error)throw error;await qc.invalidateQueries({queryKey:["teacher-module-grades",student.id]});e.currentTarget.reset()}}><Input name="subject" required placeholder="Disciplina"/><select name="period" className="h-10 rounded-md border border-input bg-background px-3 text-sm">{[1,2,3,4].map(n=><option key={n}>{n}</option>)}</select><Input name="score" type="number" min="0" max="10" step=".01" required placeholder="Nota"/><Input name="absences" type="number" min="0" required placeholder="Faltas"/><Button className="sm:col-span-2">Salvar nota</Button></form></section>}
+function GradeForm({student,qc}:{student:TeacherStudent;qc:any}){
+  const subjects=useQuery({queryKey:["teacher-single-grade-subjects"],queryFn:loadTeacherSubjects});
+  const [subject,setSubject]=useState("");const [period,setPeriod]=useState("1");const [score,setScore]=useState("");const [absences,setAbsences]=useState("");const [saving,setSaving]=useState(false);
+  async function save(){
+    const n=Number(score),f=Number(absences||0);
+    if(!subject||Number.isNaN(n)||n<0||n>10||Number.isNaN(f)||f<0)return;
+    setSaving(true);
+    try{
+      const {error}=await supabase.rpc("teacher_upsert_grade",{_student_id:student.id,_subject:subject,_period:Number(period),_score:n,_absences:f});
+      if(error)throw error;
+      await qc.invalidateQueries({queryKey:["teacher-module-grades",student.id]});
+      setScore("");setAbsences("");
+    }catch(error){window.alert(errorText(error));}
+    finally{setSaving(false);}
+  }
+  return <section className="sina-card p-6"><h2 className="font-semibold">Lançar nota — {student.full_name}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2"><select value={subject} onChange={e=>setSubject(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Disciplina</option>{(subjects.data||[]).map(x=><option key={x.id} value={x.name}>{x.name}</option>)}</select><select value={period} onChange={e=>setPeriod(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">{[1,2,3,4].map(n=><option key={n} value={n}>{n}º período</option>)}</select><Input value={score} onChange={e=>setScore(e.target.value)} type="number" min="0" max="10" step=".01" placeholder="Nota"/><Input value={absences} onChange={e=>setAbsences(e.target.value)} type="number" min="0" step="1" placeholder="Faltas"/><Button className="sm:col-span-2" disabled={!subject||!score||saving} onClick={()=>void save()}>{saving?"Salvando…":"Salvar nota"}</Button></div></section>;
+}
 function AttendanceBox({classes,active,onChange,data,qc}:{classes:any[];active:string;onChange:(v:string)=>void;data:AttendanceRow[];qc:any}){const [draft,setDraft]=useState<Record<string,{status:AttendanceRow["status"];note:string}>>({});return <div className="mt-6 space-y-5"><ClassSelect classes={classes} value={active} onChange={onChange}/><section className="sina-card p-6"><div className="flex items-center justify-between"><div><h2 className="font-semibold">Diário de frequência</h2><p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("pt-BR")}</p></div><Button onClick={async()=>{await saveAttendance(active,new Date().toISOString().slice(0,10),Object.entries(draft).map(([student_id,v])=>({student_id,...v})));await qc.invalidateQueries({queryKey:["teacher-module-attendance",active]})}}>Salvar frequência</Button></div><div className="mt-4 divide-y divide-border">{data.map(r=>{const v=draft[r.student_id]||{status:r.status,note:r.note||""};return <div key={r.student_id} className="grid gap-2 py-3 sm:grid-cols-[1fr_170px_1fr] sm:items-center"><div><p className="font-medium">{r.full_name}</p><p className="text-xs text-muted-foreground">{r.enrollment}</p></div><select value={v.status} onChange={e=>setDraft(d=>({...d,[r.student_id]:{...v,status:e.target.value as AttendanceRow["status"]}}))} className="h-9 rounded-md border border-input bg-background px-2 text-sm"><option value="present">Presente</option><option value="late">Atrasado</option><option value="absent">Falta</option><option value="excused">Justificada</option></select><Input value={v.note} onChange={e=>setDraft(d=>({...d,[r.student_id]:{...v,note:e.target.value}}))} placeholder="Observação"/></div>})}</div></section></div>}
-function AssessmentsBox({classes,active,onChange}:{classes:any[];active:string;onChange:(v:string)=>void}){const o=useQuery({queryKey:["teacher-options"],queryFn:loadTeacherAcademicOptions});const a=useQuery({queryKey:["teacher-assessments",active],queryFn:()=>loadTeacherAssessments(active),enabled:!!active});const s=useQuery({queryKey:["teacher-assessment-students",active],queryFn:loadStudents,enabled:!!active});const [title,setTitle]=useState("");const [selected,setSelected]=useState("");const [scores,setScores]=useState<Record<string,string>>({});return <div className="mt-6 space-y-5"><section className="sina-card p-6"><h2 className="font-semibold">Nova avaliação</h2><div className="mt-4 grid gap-3 md:grid-cols-2"><ClassSelect classes={classes} value={active} onChange={v=>{onChange(v);setSelected("");}}/><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Título"/><select id="subject" className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Disciplina</option>{(o.data?.subjects||[]).map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select><Button disabled={!title||!active} onClick={async()=>{const el=document.getElementById("subject") as HTMLSelectElement;await createAssessment({classroomId:active,subjectId:el.value||null,termId:null,title,type:"prova",weight:1,maxScore:10,dueAt:null});setTitle("");await a.refetch()}}>Criar avaliação</Button></div></section><section className="sina-card p-6"><h2 className="font-semibold">Avaliações da turma</h2><div className="mt-4 space-y-2">{(a.data||[]).map(x=><article key={x.id} className="rounded-xl border border-border p-4"><button type="button" onClick={()=>setSelected(x.id)} className="w-full text-left"><p className="font-medium">{x.title}</p><p className="mt-1 text-xs text-muted-foreground">{x.subject_name||"Sem disciplina"} · máximo {x.max_score}</p></button></article>)}</div></section>{selected&&<section className="sina-card p-6"><h2 className="font-semibold">Lançar resultados</h2><div className="mt-4 divide-y divide-border">{(s.data||[]).filter(x=>x.classroom_id===active).map(student=><div key={student.id} className="grid gap-2 py-3 md:grid-cols-[1fr_120px_auto] md:items-center"><div><p className="font-medium">{student.full_name}</p><p className="text-xs text-muted-foreground">{student.enrollment}</p></div><Input type="number" min="0" max="100" step=".01" value={scores[student.id]??""} onChange={e=>setScores(v=>({...v,[student.id]:e.target.value}))} placeholder="Nota"/><Button disabled={scores[student.id]===undefined||scores[student.id]===""} onClick={async()=>{await supabase.rpc("teacher_upsert_assessment_score",{_assessment_id:selected,_student_id:student.id,_score:Number(scores[student.id]),_feedback:null});}}>Salvar</Button></div>)}</div></section>}</div>}
+function AssessmentsBox({classes,active,onChange}:{classes:any[];active:string;onChange:(v:string)=>void}){
+  const o=useQuery({queryKey:["teacher-options"],queryFn:loadTeacherAcademicOptions});
+  const subjects=useQuery({queryKey:["teacher-assessment-subjects"],queryFn:loadTeacherSubjects});
+  const a=useQuery({queryKey:["teacher-assessments",active],queryFn:()=>loadTeacherAssessments(active),enabled:!!active});
+  const s=useQuery({queryKey:["teacher-assessment-students",active],queryFn:loadStudents,enabled:!!active});
+  const [title,setTitle]=useState("");
+  const [subjectId,setSubjectId]=useState("");
+  const [termId,setTermId]=useState("");
+  const [type,setType]=useState("prova");
+  const [weight,setWeight]=useState("1");
+  const [maxScore,setMaxScore]=useState("10");
+  const [dueAt,setDueAt]=useState("");
+  const [selected,setSelected]=useState("");
+  const [scores,setScores]=useState<Record<string,string>>({});
+  const [busy,setBusy]=useState(false);
+
+  async function create(){
+    if(!title.trim()||!active)return;
+    setBusy(true);
+    try{
+      await createAssessment({
+        classroomId:active,
+        subjectId:subjectId||null,
+        termId:termId||null,
+        title:title.trim(),
+        type,
+        weight:Number(weight)||1,
+        maxScore:Number(maxScore)||10,
+        dueAt:dueAt?new Date(dueAt).toISOString():null,
+      });
+      setTitle("");setSubjectId("");setTermId("");setDueAt("");
+      await a.refetch();
+    }catch(error){window.alert(errorText(error));}
+    finally{setBusy(false);}
+  }
+
+  const selectedAssessment=(a.data||[]).find(x=>x.id===selected);
+  const classStudents=(s.data||[]).filter(x=>x.classroom_id===active);
+
+  async function saveScore(studentId:string){
+    const raw=scores[studentId];
+    if(raw==null||raw==="")return;
+    const max=Number(selectedAssessment?.max_score??10);
+    const score=Number(raw);
+    if(score<0||score>max){window.alert("A nota deve estar entre 0 e "+max+".");return;}
+    try{
+      const {error}=await supabase.rpc("teacher_upsert_assessment_score",{_assessment_id:selected,_student_id:studentId,_score:score,_feedback:null});
+      if(error)throw error;
+      await a.refetch();
+    }catch(error){window.alert(errorText(error));}
+  }
+
+  return <div className="mt-6 space-y-5">
+    <section className="sina-card p-6">
+      <h2 className="font-semibold">Nova avaliação</h2>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <ClassSelect classes={classes} value={active} onChange={v=>{onChange(v);setSelected("");}}/>
+        <Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Título da avaliação"/>
+        <select value={subjectId} onChange={e=>setSubjectId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+          <option value="">Disciplina (opcional)</option>{(subjects.data||o.data?.subjects||[]).map((x:any)=><option key={x.id} value={x.id}>{x.name}{x.code?" · "+x.code:""}</option>)}
+        </select>
+        <select value={termId} onChange={e=>setTermId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+          <option value="">Período letivo (opcional)</option>{(o.data?.terms||[]).map((x:any)=><option key={x.id} value={x.id}>{x.name}</option>)}
+        </select>
+        <select value={type} onChange={e=>setType(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+          <option value="prova">Prova</option><option value="trabalho">Trabalho</option><option value="atividade">Atividade</option><option value="seminario">Seminário</option>
+        </select>
+        <Input type="number" min="0.1" step="0.1" value={weight} onChange={e=>setWeight(e.target.value)} placeholder="Peso"/>
+        <Input type="number" min="0.1" step="0.1" value={maxScore} onChange={e=>setMaxScore(e.target.value)} placeholder="Nota máxima"/>
+        <Input type="datetime-local" value={dueAt} onChange={e=>setDueAt(e.target.value)}/>
+        <Button disabled={!title.trim()||!active||busy} onClick={()=>void create()}>{busy?"Criando…":"Criar avaliação"}</Button>
+      </div>
+    </section>
+    <section className="sina-card p-6">
+      <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">Avaliações da turma</h2><p className="text-sm text-muted-foreground">Selecione uma avaliação para lançar as notas.</p></div><span className="text-xs text-muted-foreground">{a.data?.length||0} avaliação(ões)</span></div>
+      <div className="mt-4 space-y-2">{(a.data||[]).map(x=><article key={x.id} className={"rounded-xl border p-4 "+(selected===x.id?"border-primary bg-primary/5":"border-border")}><button type="button" onClick={()=>setSelected(x.id)} className="w-full text-left"><div className="flex items-center justify-between gap-3"><p className="font-medium">{x.title}</p><span className="text-xs text-muted-foreground">máx. {x.max_score}</span></div><p className="mt-1 text-xs text-muted-foreground">{x.subject_name||"Sem disciplina"} · {x.term_name||"Sem período"} · peso {x.weight}</p></button></article>)}</div>
+      {!a.isPending&&!a.data?.length&&<p className="mt-4 text-sm text-muted-foreground">Nenhuma avaliação cadastrada para esta turma.</p>}
+    </section>
+    {selected&&selectedAssessment&&<section className="sina-card p-6">
+      <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">Lançar resultados — {selectedAssessment.title}</h2><p className="text-sm text-muted-foreground">Nota máxima: {selectedAssessment.max_score}</p></div></div>
+      <div className="mt-4 divide-y divide-border">{classStudents.map(student=><div key={student.id} className="grid gap-2 py-3 md:grid-cols-[1fr_120px_auto] md:items-center"><div><p className="font-medium">{student.full_name}</p><p className="text-xs text-muted-foreground">{student.enrollment}</p></div><Input type="number" min="0" max={selectedAssessment.max_score} step=".01" value={scores[student.id]??""} onChange={e=>setScores(v=>({...v,[student.id]:e.target.value}))} placeholder={"0–"+selectedAssessment.max_score}/><Button disabled={scores[student.id]===undefined||scores[student.id]===""} onClick={()=>void saveScore(student.id)}>Salvar</Button></div>)}</div>
+      {!classStudents.length&&<p className="mt-4 text-sm text-muted-foreground">Nenhum aluno está vinculado a esta turma.</p>}
+    </section>}
+  </div>;
+}
+
 function AgendaBox({classes}:{classes:any[]}){
   const q=useQuery({queryKey:["teacher-agenda-module"],queryFn:()=>{const a=new Date(),b=new Date();b.setMonth(b.getMonth()+2);return loadTeacherCalendar(a.toISOString(),b.toISOString())}});
   const [title,setTitle]=useState("");const [start,setStart]=useState("");const [classroom,setClassroom]=useState("");const [type,setType]=useState("aula");
