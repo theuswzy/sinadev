@@ -16,6 +16,7 @@ import {
   loadStudentTaskSubmissions,
   loadTasks,
   loadAnnouncements,
+  loadStudentSubjects,
   submitTask,
 } from "@/lib/sina-data";
 
@@ -33,6 +34,7 @@ const meta: Record<StudentModule, { title: string; subtitle: string }> = {
 export function StudentModulePage({ module }: { module: StudentModule }) {
   const student = useQuery({ queryKey: ["my-student"], queryFn: loadMyStudent });
   const tasks = useQuery({ queryKey: ["student-module-tasks"], queryFn: loadTasks, enabled: module === "tarefas" });
+  const studentSubjects = useQuery({ queryKey: ["student-module-subjects"], queryFn: loadStudentSubjects, enabled: module === "disciplinas" });
   const grades = useQuery({ queryKey: ["student-module-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id && (module === "disciplinas" || module === "notas") });
   const assessments = useQuery({ queryKey: ["student-module-assessments"], queryFn: loadStudentAssessments, enabled: module === "notas" });
   const attendance = useQuery({ queryKey: ["student-module-attendance"], queryFn: loadStudentAttendance, enabled: module === "frequencia" });
@@ -119,20 +121,22 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
       {module === "disciplinas" && (
         <section className="mt-6">
+          <div className="mb-4"><p className="text-xs font-bold uppercase tracking-wide text-primary">Grade acadêmica</p><h2 className="mt-1 text-xl font-semibold">Suas disciplinas</h2><p className="mt-1 text-sm text-muted-foreground">Veja as disciplinas, turmas e professores vinculados a você.</p></div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {subjects.length ? subjects.map((item) => (
-              <article key={item.subject} className="sina-card p-5">
+            {(studentSubjects.data ?? []).map((item) => {
+              const performance = subjects.find((s) => s.subject === item.name);
+              return <article key={item.id + item.classroom_id} className="sina-card p-5">
                 <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><BookOpen className="size-5"/></div>
-                <h2 className="mt-4 font-semibold">{item.subject}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">{item.periods} lançamento{item.periods === 1 ? "" : "s"} · {item.absences} falta{item.absences === 1 ? "" : "s"}</p>
-                <div className="mt-5 flex items-end justify-between"><span className="text-xs text-muted-foreground">Média</span><strong className="text-2xl">{formatScore(item.average)}</strong></div>
-                <div className="mt-2 h-2 rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{width: `${Math.min(100, item.average * 10)}%`}}/></div>
-              </article>
-            )) : <div className="sina-card p-8 text-sm text-muted-foreground">Nenhuma disciplina com notas registrada ainda.</div>}
+                <h2 className="mt-4 font-semibold">{item.name}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{item.classroom_name} · {item.teacher_name || "Professor não informado"}</p>
+                <p className="mt-3 text-xs text-muted-foreground">{performance ? `${performance.periods} lançamento(s) · ${performance.absences} falta(s)` : "Nenhuma nota lançada ainda."}</p>
+                {performance && <><div className="mt-4 flex items-end justify-between"><span className="text-xs text-muted-foreground">Média</span><strong className="text-2xl">{formatScore(performance.average)}</strong></div><div className="mt-2 h-2 rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{width: `${Math.min(100, performance.average * 10)}%`}}/></div></>}
+              </article>;
+            })}
           </div>
+          {!studentSubjects.isPending && !studentSubjects.data?.length && <div className="sina-card p-8 text-sm text-muted-foreground">Nenhuma disciplina foi associada à sua turma ainda.</div>}
         </section>
       )}
-
       {module === "notas" && (
         <section className="mt-6 space-y-4">
           <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-xl font-semibold">Notas e avaliações</h2><p className="mt-1 text-sm text-muted-foreground">Consulte cada lançamento e o resultado das avaliações.</p></div>
