@@ -2,19 +2,21 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { CheckCircle2, GraduationCap, LogOut, ShieldCheck, UserPlus, UserRoundX, Users, LayoutDashboard } from "lucide-react";
+import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { errorText } from "@/lib/sina-data";
 
-type TeacherAccount = { user_id: string; email: string; display_name: string; created_at: string };
-
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [
     { title: "Administração — SINA" },
-    { name: "description", content: "Gerencie autorizações de professores no SINA." },
+    { name: "description", content: "Gerencie as funções de alunos e professores no SINA." },
+    { property: "og:title", content: "Administração — SINA" },
+    { property: "og:description", content: "Gerencie as funções acadêmicas no SINA." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
   ] }),
   component: AdminArea,
 });
@@ -31,19 +33,18 @@ function AdminArea() {
       return Boolean(data);
     },
   });
-  const teachers = useQuery({
-    queryKey: ["admin-teachers"],
-    queryFn: async (): Promise<TeacherAccount[]> => {
-      const { data, error } = await supabase.rpc("admin_list_teachers");
+  const accounts = useQuery({
+    queryKey: ["admin-accounts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_list_accounts");
       if (error) throw error;
-      return (data ?? []) as TeacherAccount[];
+      return data ?? [];
     },
     enabled: role.data === true,
   });
-  const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [teacherSearch, setTeacherSearch] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [accountSearch, setAccountSearch] = useState("");
   const audit = useQuery({
     queryKey: ["admin-audit"],
     queryFn: async () => {
@@ -54,30 +55,30 @@ function AdminArea() {
     enabled: role.data === true,
   });
 
-  async function setAccess(targetEmail: string, enabled: boolean) {
-    setBusy(true);
+  async function setAcademicRole(userId: string, nextRole: "student" | "teacher") {
+    setBusyId(userId);
     setMessage("");
-    const { data, error } = await supabase.rpc("admin_set_teacher_access", {
-      _email: targetEmail.trim(),
-      _enabled: enabled,
+    const { data, error } = await supabase.rpc("admin_set_academic_role", {
+      _user_id: userId,
+      _role: nextRole,
     });
-    setBusy(false);
+    setBusyId(null);
     if (error) {
       setMessage(errorText(error));
       toast.error(errorText(error));
       return;
     }
     if (!data) {
-      setMessage("Conta não encontrada. O usuário precisa criar a conta no SINA antes da autorização.");
+      setMessage("Conta não encontrada. Atualize a página e tente novamente.");
       return;
     }
-    setEmail("");
-    setMessage(enabled ? "Acesso de professor autorizado." : "Acesso de professor revogado.");
-    toast.success(enabled ? "Professor autorizado com sucesso." : "Acesso de professor revogado.");
-    await queryClient.invalidateQueries({ queryKey: ["admin-teachers"] });
+    setMessage(nextRole === "teacher" ? "Conta definida como professor." : "Conta definida como aluno.");
+    toast.success(nextRole === "teacher" ? "Professor autorizado." : "Conta definida como aluno.");
+    await queryClient.invalidateQueries({ queryKey: ["admin-accounts"] });
   }
 
-  const filteredTeachers = useMemo(() => teachers.data?.filter(teacher => `${teacher.display_name} ${teacher.email}`.toLowerCase().includes(teacherSearch.toLowerCase())) ?? [], [teachers.data, teacherSearch]);
+  const filteredAccounts = useMemo(() => accounts.data?.filter(account => `${account.display_name} ${account.email}`.toLowerCase().includes(accountSearch.toLowerCase())) ?? [], [accounts.data, accountSearch]);
+  const teacherCount = accounts.data?.filter(account => account.academic_role === "teacher").length ?? 0;
 
   async function logout() {
     await supabase.auth.signOut();
@@ -129,7 +130,7 @@ function AdminArea() {
         </div>
         <nav aria-label="Navegação administrativa móvel" className="flex gap-1 overflow-x-auto border-t border-brand-border/60 px-4 py-2 sm:hidden">
           <a href="#inicio" className="flex shrink-0 items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground"><LayoutDashboard className="size-4 text-primary" /> Visão geral</a>
-          <a href="#autorizacao" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><UserPlus className="size-4" /> Professores</a>
+          <a href="#autorizacao" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><Users className="size-4" /> Contas</a>
           <a href="#historico" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><ShieldCheck className="size-4" /> Histórico</a>
         </nav>
       </header>
@@ -138,22 +139,32 @@ function AdminArea() {
         <section className="rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm md:p-8">
           <div className="flex items-start gap-4">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary"><ShieldCheck className="size-6" /></div>
-            <div><p className="text-xs font-bold uppercase tracking-wide text-brand-muted">Controle de acesso</p><h1 className="mt-1 font-display text-2xl font-bold">Administração de professores</h1><p className="mt-2 max-w-2xl text-sm text-brand-muted">Autorize ou revogue quem pode acessar a área de professores e lançar dados acadêmicos.</p></div>
+            <div><p className="text-xs font-bold uppercase tracking-wide text-brand-muted">Controle de acesso</p><h1 className="mt-1 font-display text-2xl font-bold">Administração de contas</h1><p className="mt-2 max-w-2xl text-sm text-brand-muted">Defina quem acessa a área do aluno e quem pode lançar dados como professor.</p></div>
           </div>
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2">
-          <div className="sina-card sina-card-hover sina-interactive p-5"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Professores autorizados</p><p className="mt-1 font-display text-3xl font-semibold">{teachers.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">Contas com acesso ativo</p></div>
-          <div className="sina-card sina-card-hover sina-interactive p-5"><ShieldCheck className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Controle de acesso</p><p className="mt-1 text-sm font-semibold">Permissões centralizadas</p><p className="mt-1 text-xs text-muted-foreground">Autorize ou revogue professores pelo painel.</p></div>
+          <div className="sina-card sina-card-hover sina-interactive p-5"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Contas cadastradas</p><p className="mt-1 font-display text-3xl font-semibold">{accounts.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">Contas no SINA</p></div>
+          <div className="sina-card sina-card-hover sina-interactive p-5"><ShieldCheck className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Professores</p><p className="mt-1 font-display text-3xl font-semibold">{teacherCount}</p><p className="mt-1 text-xs text-muted-foreground">Contas autorizadas a lançar dados</p></div>
         </section>
 
         <section id="autorizacao" className="sina-card sina-card-hover scroll-mt-28 p-6">
-          <div className="flex items-start gap-3"><UserPlus className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Autorizar professor</h2><p className="mt-1 text-sm text-muted-foreground">Informe o e-mail de uma conta já cadastrada no SINA.</p></div></div>
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <Input type="email" placeholder="professor@exemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <Button disabled={busy || !email.trim()} onClick={() => void setAccess(email, true)} className="sm:w-48"><CheckCircle2 className="mr-2 size-4" />Autorizar</Button>
-          </div>
+          <div className="flex items-start gap-3"><Users className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Funções acadêmicas</h2><p className="mt-1 text-sm text-muted-foreground">Escolha aluno ou professor para cada conta cadastrada.</p></div></div>
+          <div className="relative mt-5 max-w-md"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar contas" placeholder="Buscar por nome ou e-mail" className="pl-9" value={accountSearch} onChange={(e) => setAccountSearch(e.target.value)} /></div>
           {message && <p role="status" className="mt-4 text-sm">{message}</p>}
+          {accounts.isPending ? <p className="mt-5 text-sm text-muted-foreground">Carregando contas…</p> : accounts.error ? <p role="alert" className="mt-5 text-sm text-destructive">{errorText(accounts.error)}</p> : filteredAccounts.length ? (
+            <div className="mt-5 divide-y divide-border border-t border-border">
+              {filteredAccounts.map(account => (
+                <div key={account.user_id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0"><p className="font-semibold">{account.display_name || account.email}</p><p className="break-all text-sm text-muted-foreground">{account.email}</p>{account.is_administrator && <span className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary"><ShieldCheck className="size-3" /> Administrador</span>}</div>
+                  <div className="flex shrink-0 gap-1 rounded-md border border-border p-1" aria-label={`Função acadêmica de ${account.email}`}>
+                    <Button size="sm" variant={account.academic_role === "student" ? "default" : "ghost"} disabled={account.is_administrator || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "student")}>Aluno</Button>
+                    <Button size="sm" variant={account.academic_role === "teacher" ? "default" : "ghost"} disabled={account.is_administrator || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "teacher")}>Professor</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : <p className="mt-5 text-sm text-muted-foreground">{accountSearch ? "Nenhuma conta encontrada." : "Nenhuma conta cadastrada."}</p>}
         </section>
 
         <section id="historico" className="sina-card sina-card-hover scroll-mt-28">
@@ -179,19 +190,6 @@ function AdminArea() {
           ) : <p className="p-8 text-center text-sm text-muted-foreground">Nenhuma alteração registrada ainda.</p>}
         </section>
 
-        <section className="sina-card sina-card-hover">
-          <div className="flex items-center justify-between border-b border-border p-6"><div className="flex items-center gap-3"><Users className="size-5 text-primary" /><div><h2 className="font-semibold">Contas autorizadas</h2><p className="mt-1 text-sm text-muted-foreground">Contas que atualmente possuem permissão para lançar dados acadêmicos.</p></div></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{teachers.data?.length ?? 0} professor(es)</span></div>
-          {teachers.isPending ? <p className="p-6 text-sm text-muted-foreground">Carregando permissões…</p> : teachers.error ? <p role="alert" className="p-6 text-sm text-destructive">{errorText(teachers.error)}</p> : teachers.data?.length ? (
-            <div className="divide-y divide-border">
-              {teachers.data.map((teacher) => (
-                <div key={teacher.user_id} className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0"><p className="font-semibold">{teacher.display_name || "Sem nome informado"}</p><p className="mt-1 truncate text-sm text-muted-foreground">{teacher.email}</p></div>
-                  <Button variant="outline" disabled={busy} onClick={() => void setAccess(teacher.email, false)} className="w-full text-destructive hover:text-destructive sm:w-auto"><UserRoundX className="mr-2 size-4" />Revogar acesso</Button>
-                </div>
-              ))}
-            </div>
-          ) : <div className="p-8 text-center"><Users className="mx-auto size-8 text-muted-foreground" /><p className="mt-3 text-sm font-medium">{teachers.data?.length ? "Nenhum professor encontrado." : "Nenhum professor autorizado."}</p><p className="mt-1 text-xs text-muted-foreground">Use o campo acima para liberar uma conta.</p></div>}
-        </section>
       </main>
     </div>
   );
