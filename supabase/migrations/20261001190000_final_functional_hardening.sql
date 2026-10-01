@@ -152,7 +152,6 @@ as $$
 declare
   inst uuid;
   v_classroom_id uuid;
-  result_row public.students;
 begin
   if not public.has_role(auth.uid(),'teacher'::public.app_role) then
     raise exception 'Acesso reservado a professores autorizados.';
