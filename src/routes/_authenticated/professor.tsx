@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { UserRoundPlus, Link2, Users, ClipboardList, Save, ShieldCheck, Search, CheckCircle2, AlertCircle, BarChart3, Megaphone, ClipboardCheck, Filter, UsersRound, Paperclip, UserMinus, ArrowRightLeft, X } from "lucide-react";
+import { UserRoundPlus, Link2, Users, ClipboardList, Save, ShieldCheck, Search, CheckCircle2, AlertCircle, BarChart3, Megaphone, ClipboardCheck, Filter, UsersRound, Paperclip, UserMinus, ArrowRightLeft, X, Pencil, Trash2, Copy, CalendarClock } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,26 @@ function TeacherArea() {
   const [taskDescription, setTaskDescription] = useState("");
   const [taskDueAt, setTaskDueAt] = useState("");
   const [taskFile, setTaskFile] = useState<File | null>(null);
+  const teacherAnnouncements = useQuery({
+    queryKey: ["teacher-announcements"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("teacher_list_announcements");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: role.data === "teacher",
+  });
+  const teacherTasks = useQuery({
+    queryKey: ["teacher-tasks"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("teacher_list_tasks");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: role.data === "teacher",
+  });
+  const [editingNoticeId, setEditingNoticeId] = useState<string | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   async function linkStudent(e: FormEvent) {
     e.preventDefault();
@@ -251,32 +271,67 @@ function TeacherArea() {
     await supabase.storage.from("academic-attachments").remove([path]);
   }
 
-  async function createAnnouncement(e: FormEvent) {
+  function resetAnnouncementForm() {
+    setEditingNoticeId(null);
+    setNoticeClassroom("");
+    setNoticeTitle("");
+    setNoticeContent("");
+    setNoticeFile(null);
+  }
+
+  function editAnnouncement(item: NonNullable<typeof teacherAnnouncements.data>[number]) {
+    setEditingNoticeId(item.id);
+    setNoticeClassroom(item.classroom);
+    setNoticeTitle(item.title);
+    setNoticeContent(item.content);
+    setNoticeFile(null);
+    document.getElementById("comunicacao")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function duplicateAnnouncement(item: NonNullable<typeof teacherAnnouncements.data>[number]) {
+    setEditingNoticeId(null);
+    setNoticeClassroom(item.classroom);
+    setNoticeTitle(item.title + " (cópia)");
+    setNoticeContent(item.content);
+    setNoticeFile(null);
+    document.getElementById("comunicacao")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function saveAnnouncement(e: FormEvent) {
     e.preventDefault();
     setBusy(true); setMessage(""); setMessageType("success");
     let uploadedPath: string | null = null;
 
     try {
+      const current = editingNoticeId
+        ? teacherAnnouncements.data?.find(item => item.id === editingNoticeId) ?? null
+        : null;
       const attachment = noticeFile ? await uploadAcademicAttachment(noticeFile) : null;
       uploadedPath = attachment?.path ?? null;
-
-      const { error } = await supabase.rpc("teacher_create_announcement", {
+      const payload = {
         _classroom: noticeClassroom.trim(),
         _title: noticeTitle.trim(),
         _content: noticeContent.trim(),
-        _attachment_path: attachment?.path ?? null,
-        _attachment_name: attachment?.name ?? null,
-        _attachment_size: attachment?.size ?? null,
-        _attachment_type: attachment?.type ?? null,
-      });
+        _attachment_path: attachment?.path ?? current?.attachment_path ?? null,
+        _attachment_name: attachment?.name ?? current?.attachment_name ?? null,
+        _attachment_size: attachment?.size ?? current?.attachment_size ?? null,
+        _attachment_type: attachment?.type ?? current?.attachment_type ?? null,
+      };
+
+      const { error } = editingNoticeId
+        ? await supabase.rpc("teacher_update_announcement", { _id: editingNoticeId, ...payload })
+        : await supabase.rpc("teacher_create_announcement", payload);
 
       if (error) throw error;
 
-      setNoticeTitle("");
-      setNoticeContent("");
-      setNoticeFile(null);
-      setMessage("Aviso publicado para a turma.");
-      toast.success("Aviso publicado para a turma.");
+      if (editingNoticeId && noticeFile && current?.attachment_path) {
+        await removeAcademicAttachment(current.attachment_path);
+      }
+
+      resetAnnouncementForm();
+      setMessage(editingNoticeId ? "Aviso atualizado." : "Aviso publicado para a turma.");
+      toast.success(editingNoticeId ? "Aviso atualizado." : "Aviso publicado.");
+      await queryClient.invalidateQueries({ queryKey: ["teacher-announcements"] });
     } catch (error) {
       if (uploadedPath) await removeAcademicAttachment(uploadedPath);
       setMessageType("error");
@@ -287,37 +342,95 @@ function TeacherArea() {
     }
   }
 
-  async function createTask(e: FormEvent) {
+  async function deleteAnnouncement(item: NonNullable<typeof teacherAnnouncements.data>[number]) {
+    if (!window.confirm("Excluir este aviso? Essa ação não pode ser desfeita.")) return;
+    setBusy(true); setMessage(""); setMessageType("success");
+    const { error } = await supabase.rpc("teacher_delete_announcement", { _id: item.id });
+    setBusy(false);
+    if (error) {
+      setMessageType("error");
+      setMessage(errorText(error));
+      toast.error(errorText(error));
+      return;
+    }
+
+    if (item.attachment_path) await removeAcademicAttachment(item.attachment_path);
+    if (editingNoticeId === item.id) resetAnnouncementForm();
+    await queryClient.invalidateQueries({ queryKey: ["teacher-announcements"] });
+    setMessage("Aviso excluído.");
+    toast.success("Aviso excluído.");
+  }
+
+  function resetTaskForm() {
+    setEditingTaskId(null);
+    setTaskClassroom("");
+    setTaskSubject("");
+    setTaskTitle("");
+    setTaskDescription("");
+    setTaskDueAt("");
+    setTaskFile(null);
+  }
+
+  function editTask(item: NonNullable<typeof teacherTasks.data>[number]) {
+    setEditingTaskId(item.id);
+    setTaskClassroom(item.classroom);
+    setTaskSubject(item.subject);
+    setTaskTitle(item.title);
+    setTaskDescription(item.description);
+    setTaskDueAt(item.due_at ? new Date(item.due_at).toISOString().slice(0, 16) : "");
+    setTaskFile(null);
+    document.getElementById("comunicacao")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function duplicateTask(item: NonNullable<typeof teacherTasks.data>[number]) {
+    setEditingTaskId(null);
+    setTaskClassroom(item.classroom);
+    setTaskSubject(item.subject);
+    setTaskTitle(item.title + " (cópia)");
+    setTaskDescription(item.description);
+    setTaskDueAt("");
+    setTaskFile(null);
+    document.getElementById("comunicacao")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function saveTask(e: FormEvent) {
     e.preventDefault();
     setBusy(true); setMessage(""); setMessageType("success");
     let uploadedPath: string | null = null;
 
     try {
+      const current = editingTaskId
+        ? teacherTasks.data?.find(item => item.id === editingTaskId) ?? null
+        : null;
       const due = taskDueAt ? new Date(taskDueAt).toISOString() : null;
       const attachment = taskFile ? await uploadAcademicAttachment(taskFile) : null;
       uploadedPath = attachment?.path ?? null;
-
-      const { error } = await supabase.rpc("teacher_create_task", {
+      const payload = {
         _classroom: taskClassroom.trim(),
         _subject: taskSubject.trim(),
         _title: taskTitle.trim(),
         _description: taskDescription.trim(),
         _due_at: due,
-        _attachment_path: attachment?.path ?? null,
-        _attachment_name: attachment?.name ?? null,
-        _attachment_size: attachment?.size ?? null,
-        _attachment_type: attachment?.type ?? null,
-      });
+        _attachment_path: attachment?.path ?? current?.attachment_path ?? null,
+        _attachment_name: attachment?.name ?? current?.attachment_name ?? null,
+        _attachment_size: attachment?.size ?? current?.attachment_size ?? null,
+        _attachment_type: attachment?.type ?? current?.attachment_type ?? null,
+      };
+
+      const { error } = editingTaskId
+        ? await supabase.rpc("teacher_update_task", { _id: editingTaskId, ...payload })
+        : await supabase.rpc("teacher_create_task", payload);
 
       if (error) throw error;
 
-      setTaskSubject("");
-      setTaskTitle("");
-      setTaskDescription("");
-      setTaskDueAt("");
-      setTaskFile(null);
-      setMessage("Atividade publicada para a turma.");
-      toast.success("Atividade publicada para a turma.");
+      if (editingTaskId && taskFile && current?.attachment_path) {
+        await removeAcademicAttachment(current.attachment_path);
+      }
+
+      resetTaskForm();
+      setMessage(editingTaskId ? "Atividade atualizada." : "Atividade publicada para a turma.");
+      toast.success(editingTaskId ? "Atividade atualizada." : "Atividade publicada.");
+      await queryClient.invalidateQueries({ queryKey: ["teacher-tasks"] });
     } catch (error) {
       if (uploadedPath) await removeAcademicAttachment(uploadedPath);
       setMessageType("error");
@@ -326,6 +439,33 @@ function TeacherArea() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function deleteTask(item: NonNullable<typeof teacherTasks.data>[number]) {
+    if (!window.confirm("Excluir esta atividade? As marcações de conclusão dos alunos também serão removidas.")) return;
+    setBusy(true); setMessage(""); setMessageType("success");
+    const { error } = await supabase.rpc("teacher_delete_task", { _id: item.id });
+    setBusy(false);
+    if (error) {
+      setMessageType("error");
+      setMessage(errorText(error));
+      toast.error(errorText(error));
+      return;
+    }
+
+    if (item.attachment_path) await removeAcademicAttachment(item.attachment_path);
+    if (editingTaskId === item.id) resetTaskForm();
+    await queryClient.invalidateQueries({ queryKey: ["teacher-tasks"] });
+    setMessage("Atividade excluída.");
+    toast.success("Atividade excluída.");
+  }
+
+  async function createAnnouncement(e: FormEvent) {
+    await saveAnnouncement(e);
+  }
+
+  async function createTask(e: FormEvent) {
+    await saveTask(e);
   }
 
 
@@ -502,7 +642,7 @@ function TeacherArea() {
       </section>}
       <section id="comunicacao" className="mt-6 scroll-mt-28 grid gap-5 lg:grid-cols-2">
         <div className="sina-card sina-card-hover p-6 shadow-sm">
-          <div className="flex items-center gap-3"><Megaphone className="size-5 text-primary" /><div><h2 className="font-semibold">Quadro de avisos</h2><p className="mt-1 text-sm text-muted-foreground">Publique um comunicado para uma das suas turmas.</p></div></div>
+          <div className="flex items-center gap-3"><Megaphone className="size-5 text-primary" /><div><h2 className="font-semibold">{editingNoticeId ? "Editar aviso" : "Quadro de avisos"}</h2><p className="mt-1 text-sm text-muted-foreground">{editingNoticeId ? "Atualize o comunicado e salve as alterações." : "Publique um comunicado para uma das suas turmas."}</p></div></div>
           <form onSubmit={createAnnouncement} className="mt-5 space-y-3">
             <select required value={noticeClassroom} onChange={e => setNoticeClassroom(e.target.value)} disabled={!classrooms.length} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60">
               <option value="">{classrooms.length ? "Selecione a turma" : "Nenhuma turma disponível"}</option>
@@ -522,11 +662,11 @@ function TeacherArea() {
               {noticeFile && <p className="mt-2 truncate text-xs text-muted-foreground">{noticeFile.name} · {(noticeFile.size / 1024 / 1024).toFixed(1)} MB</p>}
               <p className="mt-2 text-[11px] text-muted-foreground">PDF, imagem, Word, PowerPoint, Excel ou TXT · até 20 MB.</p>
             </div>
-            <Button type="submit" disabled={busy || !noticeClassroom}><Megaphone className="mr-2 size-4" />{busy ? "Publicando…" : "Publicar aviso"}</Button>
+            <div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy || !noticeClassroom}><Megaphone className="mr-2 size-4" />{busy ? "Salvando…" : editingNoticeId ? "Salvar alterações" : "Publicar aviso"}</Button>{editingNoticeId && <Button type="button" variant="outline" onClick={resetAnnouncementForm} disabled={busy}>Cancelar edição</Button>}</div>
           </form>
         </div>
         <div className="sina-card sina-card-hover p-6 shadow-sm">
-          <div className="flex items-center gap-3"><ClipboardCheck className="size-5 text-primary" /><div><h2 className="font-semibold">Nova tarefa</h2><p className="mt-1 text-sm text-muted-foreground">Crie uma atividade com disciplina e prazo.</p></div></div>
+          <div className="flex items-center gap-3"><ClipboardCheck className="size-5 text-primary" /><div><h2 className="font-semibold">{editingTaskId ? "Editar atividade" : "Nova atividade"}</h2><p className="mt-1 text-sm text-muted-foreground">{editingTaskId ? "Atualize a atividade e salve as alterações." : "Crie uma atividade com disciplina e prazo."}</p></div></div>
           <form onSubmit={createTask} className="mt-5 space-y-3">
             <select required value={taskClassroom} onChange={e => setTaskClassroom(e.target.value)} disabled={!classrooms.length} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60">
               <option value="">{classrooms.length ? "Selecione a turma" : "Nenhuma turma disponível"}</option>
@@ -547,8 +687,75 @@ function TeacherArea() {
               {taskFile && <p className="mt-2 truncate text-xs text-muted-foreground">{taskFile.name} · {(taskFile.size / 1024 / 1024).toFixed(1)} MB</p>}
               <p className="mt-2 text-[11px] text-muted-foreground">PDF, imagem, Word, PowerPoint, Excel ou TXT · até 20 MB.</p>
             </div>
-            <Button type="submit" disabled={busy || !taskClassroom}><ClipboardCheck className="mr-2 size-4" />{busy ? "Publicando…" : "Publicar atividade"}</Button>
+            <div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy || !taskClassroom}><ClipboardCheck className="mr-2 size-4" />{busy ? "Salvando…" : editingTaskId ? "Salvar alterações" : "Publicar atividade"}</Button>{editingTaskId && <Button type="button" variant="outline" onClick={resetTaskForm} disabled={busy}>Cancelar edição</Button>}</div>
           </form>
+        </div>
+      </section>
+
+      <section className="mt-5 grid gap-5 lg:grid-cols-2">
+        <div className="sina-card sina-card-hover p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-primary">Publicados</p>
+              <h2 className="mt-1 font-semibold">Meus avisos</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Edite ou exclua comunicados enviados para suas turmas.</p>
+            </div>
+            <Megaphone className="size-5 text-primary" />
+          </div>
+          <div className="mt-5 space-y-3">
+            {teacherAnnouncements.isPending ? <p className="text-sm text-muted-foreground">Carregando avisos…</p> :
+              teacherAnnouncements.data?.length ? teacherAnnouncements.data.map(item => (
+                <article key={item.id} className="rounded-2xl border border-border p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{item.title}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Turma {item.classroom} · {new Date(item.created_at).toLocaleDateString("pt-BR")}</p>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button type="button" size="icon" variant="ghost" onClick={() => editAnnouncement(item)} aria-label="Editar aviso"><Pencil /></Button>
+                      <Button type="button" size="icon" variant="ghost" onClick={() => duplicateAnnouncement(item)} aria-label="Duplicar aviso"><Copy /></Button>
+                      <Button type="button" size="icon" variant="ghost" onClick={() => void deleteAnnouncement(item)} aria-label="Excluir aviso" className="text-destructive hover:text-destructive"><Trash2 /></Button>
+                    </div>
+                  </div>
+                  <p className="mt-3 line-clamp-3 text-sm text-muted-foreground">{item.content}</p>
+                  {item.attachment_name && <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-xs"><Paperclip className="size-3.5" />{item.attachment_name}</div>}
+                </article>
+              )) :
+              <div className="rounded-xl bg-secondary/50 p-4 text-sm text-muted-foreground">Nenhum aviso publicado ainda.</div>}
+          </div>
+        </div>
+
+        <div className="sina-card sina-card-hover p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-primary">Publicadas</p>
+              <h2 className="mt-1 font-semibold">Minhas atividades</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Edite, duplique ou exclua atividades das suas turmas.</p>
+            </div>
+            <ClipboardCheck className="size-5 text-primary" />
+          </div>
+          <div className="mt-5 space-y-3">
+            {teacherTasks.isPending ? <p className="text-sm text-muted-foreground">Carregando atividades…</p> :
+              teacherTasks.data?.length ? teacherTasks.data.map(item => (
+                <article key={item.id} className="rounded-2xl border border-border p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{item.title}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{item.subject} · Turma {item.classroom}</p>
+                      {item.due_at && <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><CalendarClock className="size-3.5" />Entrega {new Date(item.due_at).toLocaleString("pt-BR")}</p>}
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button type="button" size="icon" variant="ghost" onClick={() => editTask(item)} aria-label="Editar atividade"><Pencil /></Button>
+                      <Button type="button" size="icon" variant="ghost" onClick={() => duplicateTask(item)} aria-label="Duplicar atividade"><Copy /></Button>
+                      <Button type="button" size="icon" variant="ghost" onClick={() => void deleteTask(item)} aria-label="Excluir atividade" className="text-destructive hover:text-destructive"><Trash2 /></Button>
+                    </div>
+                  </div>
+                  {item.description && <p className="mt-3 line-clamp-3 text-sm text-muted-foreground">{item.description}</p>}
+                  {item.attachment_name && <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-xs"><Paperclip className="size-3.5" />{item.attachment_name}</div>}
+                </article>
+              )) :
+              <div className="rounded-xl bg-secondary/50 p-4 text-sm text-muted-foreground">Nenhuma atividade publicada ainda.</div>}
+          </div>
         </div>
       </section>
 
