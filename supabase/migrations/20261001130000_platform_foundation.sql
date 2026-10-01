@@ -1126,3 +1126,10 @@ grant execute on function public.teacher_update_announcement(uuid,text,text,text
 
 revoke execute on function public.teacher_update_task(uuid,text,text,text,text,timestamptz,text,text,bigint,text) from public, anon;
 grant execute on function public.teacher_update_task(uuid,text,text,text,text,timestamptz,text,text,bigint,text) to authenticated;
+
+-- Invoker notification readers are authenticated-only application APIs too.
+revoke execute on function public.student_list_notifications(boolean,integer) from public, anon;
+grant execute on function public.student_list_notifications(boolean,integer) to authenticated;
+
+revoke execute on function public.student_mark_notification_read(uuid) from public, anon;
+grant execute on function public.student_mark_notification_read(uuid) to authenticated;
