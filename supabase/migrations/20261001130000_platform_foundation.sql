@@ -871,4 +871,4 @@ grant execute on function public.student_mark_notification_read(uuid) to authent
 grant execute on function public.admin_set_account_status(uuid,text) to authenticated;
 grant execute on function public.admin_list_accounts() to authenticated;
 grant execute on function public.teacher_create_announcement(text,text,text,text,text,bigint,text) to authenticated;
-grant execute on function public.teacher_create_task(text,text,text,timestamptz,text,text,bigint,text) to authenticated;
+grant execute on function public.teacher_create_task(text,text,text,text,timestamptz,text,text,bigint,text) to authenticated;
