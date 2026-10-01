@@ -180,9 +180,12 @@ export async function loadMyStudent(): Promise<Student | null> {
   return refreshed?.[0] ?? null;
 }
 export async function loadGrades(studentId: string): Promise<Grade[]> {
-  const { data, error } = await supabase.from("grades").select("*").eq("student_id", studentId).order("subject").order("period");
+  const role = await getRole();
+  const { data, error } = role === "teacher"
+    ? await supabase.rpc("teacher_list_grades", { _student_id: studentId })
+    : await supabase.rpc("student_list_grades");
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as Grade[];
 }
 export const formatScore = (n: number) => n.toFixed(1).replace(".", ",");
 export const errorText = (err: unknown) => err instanceof Error ? err.message : "Não foi possível concluir. Tente novamente.";
