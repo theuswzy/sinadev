@@ -370,6 +370,11 @@ export type AcademicOptions = {
   terms: { id: string; name: string; starts_at: string | null; ends_at: string | null; is_current: boolean }[];
 };
 
+export type AdminStudentClassroom = { id: string; user_id: string; full_name: string; enrollment: string | null; classroom_id: string | null; classroom_name: string | null; status: string };
+export async function loadAdminStudents(): Promise<AdminStudentClassroom[]> { const {data,error}=await supabase.rpc("admin_list_students"); if(error) throw error; return (data??[]) as AdminStudentClassroom[]; }
+export async function adminAssignStudentToClassroom(studentId:string,classroomId:string,enrollment:string) { const {data,error}=await supabase.rpc("admin_assign_student_to_classroom",{_student_id:studentId,_classroom_id:classroomId,_enrollment:enrollment||null}); if(error) throw error; return data??false; }
+export async function adminRemoveStudentFromClassroom(studentId:string) { const {data,error}=await supabase.rpc("admin_remove_student_from_classroom",{_student_id:studentId}); if(error) throw error; return data??false; }
+
 export type AdminTeacherAssignment = { classroom_id: string; classroom_name: string; teacher_id: string; teacher_name: string; teacher_email: string };
 export type AdminTeacher = { user_id: string; display_name: string; email: string };
 
