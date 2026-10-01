@@ -78,18 +78,6 @@ function StudentDashboard() {
         </div>
       </section>
 
-      <section className="mt-7">
-        <div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Acesso rápido</p><h2 className="mt-1 text-lg font-semibold">O que você quer acessar?</h2></div><span className="hidden text-xs text-muted-foreground sm:block">Navegue pelas áreas do SINA</span></div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {[
-            ["/aluno/tarefas","Tarefas",ClipboardList],
-            ["/aluno/disciplinas","Disciplinas",BookOpen],
-            ["/aluno/notas","Notas",BarChart3],
-            ["/aluno/frequencia","Frequência",CheckCircle2],
-            ["/aluno/agenda","Agenda",CalendarDays],
-          ].map(([href,label,Icon]) => <Link key={String(href)} to={href as never} className="sina-card sina-card-hover flex items-center gap-3 p-4"><Icon className="size-5 text-primary"/><span className="text-sm font-semibold">{String(label)}</span><ArrowRight className="ml-auto size-4 text-muted-foreground"/></Link>)}
-        </div>
-      </section>
     </AcademicShell>
   );
 }
