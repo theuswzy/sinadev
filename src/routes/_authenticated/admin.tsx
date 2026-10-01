@@ -54,6 +54,29 @@ function AdminArea() {
   });
   const [approvalRoles, setApprovalRoles] = useState<Record<string, "student" | "teacher">>({});
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
+  const [institutionName, setInstitutionName] = useState("");
+  const [institutionSlug, setInstitutionSlug] = useState("");
+  const [creatingInstitution, setCreatingInstitution] = useState(false);
+
+  async function createInstitution() {
+    if (!institutionName.trim() || !institutionSlug.trim()) return;
+    setCreatingInstitution(true);
+    try {
+      const { error } = await supabase.rpc("admin_create_institution", {
+        _name: institutionName.trim(),
+        _slug: institutionSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+      });
+      if (error) throw error;
+      setInstitutionName("");
+      setInstitutionSlug("");
+      toast.success("Instituição criada. Ela já está disponível no seletor do cabeçalho.");
+      await queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setCreatingInstitution(false);
+    }
+  }
 
   async function reviewRequest(requestId: string, decision: "approved" | "rejected", requestedRole: "student" | "teacher") {
     setBusyId(requestId);
@@ -194,6 +217,23 @@ function AdminArea() {
           <div className="flex items-start gap-4">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary"><ShieldCheck className="size-6" /></div>
             <div><p className="text-xs font-bold uppercase tracking-wide text-brand-muted">Controle de acesso</p><h1 className="mt-1 font-display text-2xl font-bold">Administração de contas</h1><p className="mt-2 max-w-2xl text-sm text-brand-muted">Defina quem acessa a área do aluno e quem pode lançar dados como professor.</p></div>
+          </div>
+        </section>
+
+        <section className="sina-card p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-primary">Multi-instituição</p>
+              <h2 className="mt-1 font-semibold">Cadastrar uma nova escola</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Cada instituição terá sua própria estrutura acadêmica, turmas, usuários e dados.</p>
+            </div>
+            <div className="grid w-full gap-3 sm:grid-cols-2 lg:max-w-2xl">
+              <Input value={institutionName} onChange={e => setInstitutionName(e.target.value)} placeholder="Nome da instituição" />
+              <Input value={institutionSlug} onChange={e => setInstitutionSlug(e.target.value)} placeholder="Identificador, ex.: escola-centro" />
+              <Button className="sm:col-span-2 lg:col-span-2" onClick={() => void createInstitution()} disabled={creatingInstitution || !institutionName.trim() || !institutionSlug.trim()}>
+                {creatingInstitution ? "Criando…" : "Criar instituição"}
+              </Button>
+            </div>
           </div>
         </section>
 
