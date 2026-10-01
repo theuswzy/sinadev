@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { errorText, loadAccountRoleRequests, reviewAccountRoleRequest, searchSchoolDirectory, type SchoolDirectoryEntry } from "@/lib/sina-data";
 import { AdminAcademicSetup } from "@/components/admin-academic-setup";
+import { AdminStudentClassroom } from "@/components/admin-student-classroom";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [
@@ -447,6 +448,10 @@ function AdminArea() {
 
         <section id="configuracao-academica" className="scroll-mt-28">
           <AdminAcademicSetup />
+        </section>
+
+        <section id="alunos-turmas" className="scroll-mt-28">
+          <AdminStudentClassroom />
         </section>
 
         <section id="historico" className="sina-card sina-card-hover scroll-mt-28">
