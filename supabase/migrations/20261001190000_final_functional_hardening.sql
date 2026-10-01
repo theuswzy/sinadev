@@ -137,12 +137,14 @@ begin
 end;
 $$;
 
+drop function if exists public.teacher_link_roster_student(uuid,text,text);
+
 create or replace function public.teacher_link_roster_student(
   _student_id uuid,
   _enrollment text,
   _classroom text
 )
-returns public.students
+returns setof public.students
 language plpgsql
 security definer
 set search_path to ''
@@ -173,10 +175,9 @@ begin
   where id=_student_id and institution_id=inst;
 
   if not found then raise exception 'Aluno não encontrado nesta instituição.'; end if;
-  select * into result_row from public.students where id=_student_id;
-  return result_row;
+  return query select * from public.students where id=_student_id;
 end;
-$$;
+$;
 
 create or replace function public.teacher_list_grades(_student_id uuid)
 returns setof public.grades
