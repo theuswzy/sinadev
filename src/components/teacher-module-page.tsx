@@ -17,7 +17,23 @@ function Metric({label,value,icon:Icon}:{label:string;value:number;icon:typeof U
 export function TeacherModulePage({module}:{module:TeacherModule}){return <Guard><AcademicShell title={meta[module].title} subtitle={meta[module].subtitle}><ModuleContent module={module}/></AcademicShell></Guard>}
 function ModuleContent({module}:{module:TeacherModule}){const qc=useQueryClient();const classes=useQuery({queryKey:["teacher-module-classes"],queryFn:loadTeacherClassrooms});const [classId,setClassId]=useState("");const active=classId||(classes.data?.[0]?.id||"");const students=useQuery({queryKey:["teacher-module-students"],queryFn:loadStudents,enabled:["turmas","notas"].includes(module)});const [studentId,setStudentId]=useState("");const student=(students.data||[]).find(x=>x.id===studentId)||(students.data||[]).find(x=>!!x.teacher_id);const grades=useQuery({queryKey:["teacher-module-grades",student?.id],queryFn:()=>loadGrades(student?.id||""),enabled:module==="notas"&&!!student?.id});const day=new Date().toISOString().slice(0,10);const attendance=useQuery({queryKey:["teacher-module-attendance",active,day],queryFn:()=>loadAttendance(active,day),enabled:module==="frequencia"&&!!active});
 if(classes.isPending)return <div className="sina-card mt-6 p-6">Carregando dados…</div>;
-if(module==="turmas")return <div className="mt-6 space-y-5"><ClassSelect classes={classes.data||[]} value={active} onChange={setClassId}/><section className="sina-card p-6"><h2 className="font-semibold">Alunos da turma</h2><div className="mt-4 divide-y divide-border">{(students.data||[]).filter(x=>x.teacher_id&&(!active||x.classroom_id===active)).map(x=><div key={x.id} className="flex items-center justify-between gap-3 py-3"><div><p className="font-medium">{x.full_name}</p><p className="text-xs text-muted-foreground">{x.enrollment} · {x.classroom}</p></div><span className="rounded-full bg-secondary px-2.5 py-1 text-xs">{x.attendance==null?"Freq. —":"Freq. "+formatScore(x.attendance)+"%"}</span></div>)}</div></section></div>;
+if(module==="turmas")return <div className="mt-6 space-y-5">
+  <ClassSelect classes={classes.data||[]} value={active} onChange={setClassId}/>
+  <section className="sina-card p-6">
+    <h2 className="font-semibold">Alunos da turma</h2>
+    <div className="mt-4 divide-y divide-border">
+      {(students.data||[]).filter(x=>x.teacher_id&&(!active||x.classroom_id===active)).map(x=>
+        <div key={x.id} className="flex items-center justify-between gap-3 py-3">
+          <div><p className="font-medium">{x.full_name}</p><p className="text-xs text-muted-foreground">{x.enrollment} · {x.classroom}</p></div>
+          <span className="rounded-full bg-secondary px-2.5 py-1 text-xs">{x.attendance==null?"Freq. —":"Freq. "+formatScore(x.attendance)+"%"}</span>
+        </div>
+      )}
+      {!students.isPending && !(students.data||[]).some(x=>x.teacher_id&&(!active||x.classroom_id===active)) &&
+        <p className="py-4 text-sm text-muted-foreground">Nenhum aluno vinculado a esta turma ainda.</p>}
+    </div>
+  </section>
+  <UnlinkedStudents students={(students.data||[]).filter(x=>!x.teacher_id)} classes={classes.data||[]} onLinked={()=>void students.refetch()}/>
+</div>;
 if(module==="notas")return <div className="mt-6 space-y-5"><section className="sina-card p-5"><label className="text-sm font-medium">Aluno<select value={student?.id||""} onChange={e=>setStudentId(e.target.value)} className="mt-2 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Selecione</option>{(students.data||[]).filter(x=>x.teacher_id).map(x=><option key={x.id} value={x.id}>{x.full_name} · {x.classroom}</option>)}</select></label></section>{student&&<><GradeForm student={student} qc={qc}/><section className="sina-card p-6"><h2 className="font-semibold">Histórico de notas</h2><div className="mt-4 overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-border text-left"><th className="py-2">Disciplina</th><th className="py-2">Período</th><th className="py-2">Nota</th><th className="py-2">Faltas</th></tr></thead><tbody>{(grades.data||[]).map(g=><tr key={g.id} className="border-b border-border"><td className="py-2">{g.subject}</td><td className="py-2">{g.period}º</td><td className="py-2 font-semibold">{formatScore(g.score)}</td><td className="py-2">{g.absences}</td></tr>)}</tbody></table></div></section></>}</div>;
 if(module==="frequencia")return <AttendanceBox classes={classes.data||[]} active={active} onChange={setClassId} data={attendance.data||[]} qc={qc}/>;
 if(module==="avaliacoes")return <AssessmentsBox classes={classes.data||[]} active={active} onChange={setClassId}/>;
@@ -25,6 +41,55 @@ if(module==="agenda")return <AgendaBox classes={classes.data||[]}/>;
 if(module==="atividades")return <PublishBox kind="task" classes={classes.data||[]}/>;
 return <PublishBox kind="notice" classes={classes.data||[]}/>;
 }
+function UnlinkedStudents({students,classes,onLinked}:{students:TeacherStudent[];classes:TeacherClassroom[];onLinked:()=>void}){
+  const [enrollments,setEnrollments]=useState<Record<string,string>>({});
+  const [classrooms,setClassrooms]=useState<Record<string,string>>({});
+  const [busy,setBusy]=useState<string|null>(null);
+
+  if(!students.length)return null;
+
+  async function link(student:TeacherStudent){
+    const classroomId=classrooms[student.id]||classes[0]?.id||"";
+    const classroom=classes.find(x=>x.id===classroomId);
+    const enrollment=(enrollments[student.id]??student.enrollment).trim();
+    if(!classroom||!enrollment)return;
+    setBusy(student.id);
+    try{
+      const {error}=await supabase.rpc("teacher_link_roster_student",{
+        _student_id:student.id,
+        _enrollment:enrollment,
+        _classroom:classroom.name,
+      });
+      if(error)throw error;
+      onLinked();
+    }catch(error){
+      window.alert(errorText(error));
+    }finally{
+      setBusy(null);
+    }
+  }
+
+  return <section className="sina-card p-6">
+    <div>
+      <p className="text-xs font-bold uppercase tracking-wide text-primary">Aguardando vínculo</p>
+      <h2 className="mt-1 font-semibold">Alunos que ainda precisam de turma</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Escolha a turma e informe a matrícula para liberar o aluno para notas e frequência.</p>
+    </div>
+    <div className="mt-4 divide-y divide-border">
+      {students.map(student=><div key={student.id} className="grid gap-2 py-4 md:grid-cols-[1fr_170px_170px_auto] md:items-center">
+        <div><p className="font-medium">{student.full_name}</p><p className="text-xs text-muted-foreground">{student.enrollment||"Sem matrícula"}</p></div>
+        <Input value={enrollments[student.id]??student.enrollment} onChange={e=>setEnrollments(v=>({...v,[student.id]:e.target.value}))} placeholder="Matrícula"/>
+        <select value={classrooms[student.id]??classes[0]?.id??""} onChange={e=>setClassrooms(v=>({...v,[student.id]:e.target.value}))} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+          {classes.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
+        <Button disabled={busy===student.id||!classes.length||!(enrollments[student.id]??student.enrollment).trim()} onClick={()=>void link(student)}>
+          {busy===student.id?"Vinculando…":"Vincular"}
+        </Button>
+      </div>)}
+    </div>
+  </section>;
+}
+
 function ClassSelect({classes,value,onChange}:{classes:any[];value:string;onChange:(v:string)=>void}){return <div className="sina-card p-5"><label className="text-sm font-medium">Turma<select value={value} onChange={e=>onChange(e.target.value)} className="mt-2 h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{classes.map(c=><option key={c.id} value={c.id}>{c.name}{c.code?" · "+c.code:""} · {c.student_count} aluno(s)</option>)}</select></label></div>}
 function GradeForm({student,qc}:{student:any;qc:any}){return <section className="sina-card p-6"><h2 className="font-semibold">Lançar nota — {student.full_name}</h2><form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={async e=>{e.preventDefault();const fd=new FormData(e.currentTarget);const {error}=await supabase.rpc("teacher_upsert_grade",{_student_id:student.id,_subject:String(fd.get("subject")), _period:Number(fd.get("period")),_score:Number(fd.get("score")),_absences:Number(fd.get("absences"))});if(error)throw error;await qc.invalidateQueries({queryKey:["teacher-module-grades",student.id]});e.currentTarget.reset()}}><Input name="subject" required placeholder="Disciplina"/><select name="period" className="h-10 rounded-md border border-input bg-background px-3 text-sm">{[1,2,3,4].map(n=><option key={n}>{n}</option>)}</select><Input name="score" type="number" min="0" max="10" step=".01" required placeholder="Nota"/><Input name="absences" type="number" min="0" required placeholder="Faltas"/><Button className="sm:col-span-2">Salvar nota</Button></form></section>}
 function AttendanceBox({classes,active,onChange,data,qc}:{classes:any[];active:string;onChange:(v:string)=>void;data:AttendanceRow[];qc:any}){const [draft,setDraft]=useState<Record<string,{status:AttendanceRow["status"];note:string}>>({});return <div className="mt-6 space-y-5"><ClassSelect classes={classes} value={active} onChange={onChange}/><section className="sina-card p-6"><div className="flex items-center justify-between"><div><h2 className="font-semibold">Diário de frequência</h2><p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("pt-BR")}</p></div><Button onClick={async()=>{await saveAttendance(active,new Date().toISOString().slice(0,10),Object.entries(draft).map(([student_id,v])=>({student_id,...v})));await qc.invalidateQueries({queryKey:["teacher-module-attendance",active]})}}>Salvar frequência</Button></div><div className="mt-4 divide-y divide-border">{data.map(r=>{const v=draft[r.student_id]||{status:r.status,note:r.note||""};return <div key={r.student_id} className="grid gap-2 py-3 sm:grid-cols-[1fr_170px_1fr] sm:items-center"><div><p className="font-medium">{r.full_name}</p><p className="text-xs text-muted-foreground">{r.enrollment}</p></div><select value={v.status} onChange={e=>setDraft(d=>({...d,[r.student_id]:{...v,status:e.target.value as AttendanceRow["status"]}}))} className="h-9 rounded-md border border-input bg-background px-2 text-sm"><option value="present">Presente</option><option value="late">Atrasado</option><option value="absent">Falta</option><option value="excused">Justificada</option></select><Input value={v.note} onChange={e=>setDraft(d=>({...d,[r.student_id]:{...v,note:e.target.value}}))} placeholder="Observação"/></div>})}</div></section></div>}
