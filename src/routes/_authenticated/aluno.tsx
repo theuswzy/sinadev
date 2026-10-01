@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { GraduationCap, CalendarDays, CircleAlert, TrendingUp, UserRound, Megaphone, ClipboardCheck, Clock3, CheckCircle2, ArrowUpRight } from "lucide-react";
+import { GraduationCap, CalendarDays, CircleAlert, TrendingUp, UserRound, Megaphone, ClipboardCheck, Clock3, CheckCircle2, ArrowUpRight, Bell, Check } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { supabase } from "@/integrations/supabase/client";
-import { errorText, formatScore, getRole, loadGrades, loadMyStudent, loadAnnouncements, loadTasks, setTaskCompleted } from "@/lib/sina-data";
+import { errorText, formatScore, getRole, loadGrades, loadMyStudent, loadAnnouncements, loadTasks, setTaskCompleted, loadNotifications, markNotificationRead } from "@/lib/sina-data";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -39,6 +39,12 @@ function StudentArea() {
   const tasks = useQuery({
     queryKey: ["my-tasks", student.data?.classroom],
     queryFn: loadTasks,
+    enabled: !!student.data?.id,
+    refetchOnWindowFocus: true,
+  });
+  const notifications = useQuery({
+    queryKey: ["my-notifications"],
+    queryFn: () => loadNotifications(false),
     enabled: !!student.data?.id,
     refetchOnWindowFocus: true,
   });
@@ -93,12 +99,22 @@ function StudentArea() {
         { event: "*", schema: "public", table: "task_completions" },
         () => { void tasks.refetch(); },
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${student.data.id}`,
+        },
+        () => { void notifications.refetch(); },
+      )
       .subscribe();
 
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [student.data?.id, student.refetch, grades.refetch, announcements.refetch, tasks.refetch]);
+  }, [student.data?.id, student.refetch, grades.refetch, announcements.refetch, tasks.refetch, notifications.refetch]);
 
   const average = grades.data?.length
     ? grades.data.reduce((sum, grade) => sum + grade.score, 0) / grades.data.length
@@ -106,6 +122,8 @@ function StudentArea() {
   const totalAbsences = grades.data?.reduce((sum, grade) => sum + grade.absences, 0) ?? 0;
   const linked = Boolean(student.data?.teacher_id && student.data?.enrollment && student.data?.classroom);
   const pendingTasks = tasks.data?.filter(task => !task.completed).length ?? 0;
+  const unreadNotifications = notifications.data?.filter(notification => !notification.read_at).length ?? 0;
+  const recentNotifications = notifications.data?.slice(0, 5) ?? [];
   const recentAnnouncements = announcements.data?.slice(0, 3) ?? [];
   const recentTasks = tasks.data?.filter(task => !task.completed).slice(0, 4) ?? [];
   const subjectPerformance = Array.from(new Set(grades.data?.map(g => g.subject) ?? [])).map(subject => {
@@ -178,6 +196,51 @@ function StudentArea() {
           <span className="rounded-full border border-brand-border bg-brand-panel px-3 py-1.5">{linked ? "Dados atualizados automaticamente" : "Aguardando vínculo acadêmico"}</span>
         </div>
       </section>
+
+      {recentNotifications.length > 0 && (
+        <section className="mt-5 sina-card p-6" aria-label="Notificações">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><Bell className="size-5" /></div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-primary">Central de notificações</p>
+                <h2 className="mt-1 text-lg font-semibold">{unreadNotifications ? `${unreadNotifications} nova${unreadNotifications === 1 ? "" : "s"} notificação${unreadNotifications === 1 ? "" : "ões"}` : "Tudo em dia"}</h2>
+              </div>
+            </div>
+            {unreadNotifications > 0 && <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{unreadNotifications} nova{unreadNotifications === 1 ? "" : "s"}</span>}
+          </div>
+          <div className="mt-4 divide-y divide-border rounded-2xl border border-border">
+            {recentNotifications.map(notification => (
+              <div key={notification.id} className="flex items-start gap-3 p-4">
+                <div className="mt-0.5 rounded-full bg-secondary p-2 text-primary"><Bell className="size-4" /></div>
+                <div className="min-w-0 flex-1">
+                  <p className={`text-sm ${notification.read_at ? "font-medium" : "font-semibold"}`}>{notification.title}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{notification.body}</p>
+                  <p className="mt-2 text-[11px] text-muted-foreground">{new Date(notification.created_at).toLocaleString("pt-BR")}</p>
+                </div>
+                {!notification.read_at && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    aria-label="Marcar notificação como lida"
+                    onClick={async () => {
+                      try {
+                        await markNotificationRead(notification.id);
+                        await notifications.refetch();
+                      } catch (error) {
+                        toast.error(errorText(error));
+                      }
+                    }}
+                  >
+                    <Check className="size-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {!linked && (
         <section className="mt-5 overflow-hidden rounded-2xl border border-primary/30 bg-primary/5 p-6">
