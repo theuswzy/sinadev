@@ -64,65 +64,92 @@ begin
 end;
 $$;
 
+drop function if exists public.teacher_create_task(text,text,text,text,timestamptz);
+drop function if exists public.teacher_create_announcement(text,text,text);
+
 create or replace function public.teacher_create_task(
-  _classroom text,_subject text,_title text,_description text,_due_at timestamptz
+  _classroom text,_subject text,_title text,_description text,_due_at timestamptz,
+  _attachment_path text default null,_attachment_name text default null,
+  _attachment_size bigint default null,_attachment_type text default null
 )
-returns uuid
+returns public.tasks
 language plpgsql security definer set search_path=''
 as $$
-declare inst uuid; classroom_id uuid; task_id uuid;
+declare result_row public.tasks; inst uuid; classroom_id uuid;
 begin
   if not public.has_role(auth.uid(),'teacher'::public.app_role) then raise exception 'Acesso restrito a professores.'; end if;
   inst:=sina_private.current_institution('teacher'::public.app_role);
+  if inst is null then raise exception 'Professor sem instituição ativa.'; end if;
+  if nullif(trim(_classroom),'') is null then raise exception 'Selecione uma turma.'; end if;
+  if nullif(trim(_subject),'') is null then raise exception 'Informe a disciplina.'; end if;
+  if nullif(trim(_title),'') is null then raise exception 'Informe o título da atividade.'; end if;
+
   select c.id into classroom_id
   from public.classrooms c
   join public.classroom_teachers ct on ct.classroom_id=c.id and ct.user_id=auth.uid()
   where c.institution_id=inst and c.status='active' and lower(c.name)=lower(trim(_classroom))
   limit 1;
-  if classroom_id is null then raise exception 'A turma não pertence a você.'; end if;
-  if nullif(trim(_title),'') is null then raise exception 'Informe o título da atividade.'; end if;
-  insert into public.tasks(institution_id,teacher_id,classroom_id,classroom,subject,title,description,due_at)
-  values(inst,auth.uid(),classroom_id,trim(_classroom),coalesce(nullif(trim(_subject),''),'Geral'),trim(_title),coalesce(_description,''),_due_at)
-  returning id into task_id;
+  if classroom_id is null then raise exception 'A turma selecionada não pertence a você.'; end if;
+
+  insert into public.tasks(
+    teacher_id,classroom,subject,title,description,due_at,
+    attachment_path,attachment_name,attachment_size,attachment_type,
+    institution_id,classroom_id
+  )
+  values(
+    auth.uid(),trim(_classroom),trim(_subject),trim(_title),coalesce(_description,''),_due_at,
+    nullif(trim(_attachment_path),''),nullif(trim(_attachment_name),''),_attachment_size,nullif(trim(_attachment_type),''),
+    inst,classroom_id
+  )
+  returning * into result_row;
+
   perform sina_private.create_classroom_notifications(
-    classroom_id,
-    'task',
-    'Nova atividade: '||trim(_title),
-    coalesce(nullif(trim(_description),''),'Uma nova atividade foi publicada.'),
-    '/aluno/tarefas'
+    auth.uid(),classroom_id,'task','Nova atividade: '||trim(_title),
+    coalesce(nullif(trim(_description),''),'Uma nova atividade foi publicada.'),'/aluno/tarefas'
   );
-  return task_id;
+  return result_row;
 end;
 $$;
 
 create or replace function public.teacher_create_announcement(
-  _classroom text,_title text,_content text
+  _classroom text,_title text,_content text,
+  _attachment_path text default null,_attachment_name text default null,
+  _attachment_size bigint default null,_attachment_type text default null
 )
-returns uuid
+returns public.announcements
 language plpgsql security definer set search_path=''
 as $$
-declare inst uuid; classroom_id uuid; announcement_id uuid;
+declare result_row public.announcements; inst uuid; classroom_id uuid;
 begin
   if not public.has_role(auth.uid(),'teacher'::public.app_role) then raise exception 'Acesso restrito a professores.'; end if;
   inst:=sina_private.current_institution('teacher'::public.app_role);
+  if inst is null then raise exception 'Professor sem instituição ativa.'; end if;
+  if nullif(trim(_classroom),'') is null then raise exception 'Selecione uma turma.'; end if;
+  if nullif(trim(_title),'') is null then raise exception 'Informe o título do aviso.'; end if;
+
   select c.id into classroom_id
   from public.classrooms c
   join public.classroom_teachers ct on ct.classroom_id=c.id and ct.user_id=auth.uid()
   where c.institution_id=inst and c.status='active' and lower(c.name)=lower(trim(_classroom))
   limit 1;
-  if classroom_id is null then raise exception 'A turma não pertence a você.'; end if;
-  if nullif(trim(_title),'') is null then raise exception 'Informe o título do aviso.'; end if;
-  insert into public.announcements(institution_id,teacher_id,classroom_id,classroom,title,content)
-  values(inst,auth.uid(),classroom_id,trim(_classroom),trim(_title),coalesce(_content,''))
-  returning id into announcement_id;
+  if classroom_id is null then raise exception 'A turma selecionada não pertence a você.'; end if;
+
+  insert into public.announcements(
+    teacher_id,classroom,title,content,attachment_path,attachment_name,
+    attachment_size,attachment_type,institution_id,classroom_id
+  )
+  values(
+    auth.uid(),trim(_classroom),trim(_title),coalesce(_content,''),
+    nullif(trim(_attachment_path),''),nullif(trim(_attachment_name),''),_attachment_size,nullif(trim(_attachment_type),''),
+    inst,classroom_id
+  )
+  returning * into result_row;
+
   perform sina_private.create_classroom_notifications(
-    classroom_id,
-    'announcement',
-    trim(_title),
-    coalesce(nullif(trim(_content),''),'Novo aviso publicado.'),
-    '/aluno/avisos'
+    auth.uid(),classroom_id,'announcement',trim(_title),
+    coalesce(nullif(trim(_content),''),'Novo aviso publicado.'),'/aluno/avisos'
   );
-  return announcement_id;
+  return result_row;
 end;
 $$;
 
