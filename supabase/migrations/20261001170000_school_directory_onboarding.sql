@@ -211,6 +211,14 @@ $$;
 revoke all on function public.ensure_account_onboarding_v2(text,uuid) from public, anon;
 grant execute on function public.ensure_account_onboarding_v2(text,uuid) to authenticated;
 
+-- Link directory schools to institutions without exposing the whole catalog as active tenants.
+alter table public.institutions
+  add column if not exists school_directory_id uuid references public.school_directory(id) on delete set null;
+
+create unique index if not exists institutions_school_directory_key
+  on public.institutions(school_directory_id)
+  where school_directory_id is not null;
+
 -- Admin approval now resolves the requested real school into an active SINA institution.
 create or replace function public.admin_review_role_request_v2(
   _request_id uuid,
@@ -331,14 +339,6 @@ $$;
 revoke all on function public.admin_review_role_request_v2(uuid,text,text,text) from public, anon;
 grant execute on function public.admin_review_role_request_v2(uuid,text,text,text) to authenticated;
 
--- Link directory schools to institutions without exposing the whole catalog as active tenants.
-alter table public.institutions
-  add column if not exists school_directory_id uuid references public.school_directory(id) on delete set null;
-
-create unique index if not exists institutions_school_directory_key
-  on public.institutions(school_directory_id)
-  where school_directory_id is not null;
-
 -- A two-argument student profile helper keeps the existing one intact.
 create or replace function public.ensure_student_profile_for_user(
   _user_id uuid,
@@ -380,7 +380,7 @@ end;
 $$;
 
 revoke all on function public.ensure_student_profile_for_user(uuid,uuid) from public, anon;
-grant execute on function public.ensure_student_profile_for_user(uuid,uuid) to authenticated;
+revoke all on function public.ensure_student_profile_for_user(uuid,uuid) from public, anon, authenticated;
 
 -- Initial verified catalog entries. More rows can be imported without changing the schema.
 insert into public.school_directory
