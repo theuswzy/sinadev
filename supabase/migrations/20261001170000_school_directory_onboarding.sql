@@ -290,7 +290,7 @@ begin
     insert into public.institutions(name, slug, status, school_directory_id)
     values (
       school.name,
-      lower(regexp_replace(regexp_replace(school.name, '[^a-zA-Z0-9]+', '-', 'g'), '(^-|-$)', '', 'g')),
+      lower(regexp_replace(regexp_replace(school.name || '-' || school.network_type, '[^a-zA-Z0-9]+', '-', 'g'), '(^-|-$)', '', 'g')),
       'active',
       school.id
     )
