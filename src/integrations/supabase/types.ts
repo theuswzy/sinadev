@@ -559,7 +559,7 @@ export type Database = {
 
       account_list_institutions: {
         Args: never
-        Returns: { id: string; name: string; slug: string; status: string; role: string }[]
+        Returns: { id: string; name: string; slug: string; status: string; role: string; is_active: boolean }[]
       }
       account_set_institution: {
         Args: { _institution_id: string }
