@@ -8,9 +8,17 @@ export type AcademicArea = "/aluno" | "/professor" | "/admin";
 export async function getRole(): Promise<UserRole> {
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) throw new Error("Entre na sua conta para continuar.");
-  const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", auth.user.id).in("role", ["admin", "teacher"]).order("role").limit(1).maybeSingle();
+  const { data, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", auth.user.id)
+    .in("role", ["admin", "teacher"]);
   if (error) throw error;
-  return data?.role === "admin" ? "admin" : data?.role === "teacher" ? "teacher" : "student";
+
+  const roles = data?.map((item) => item.role) ?? [];
+  if (roles.includes("admin")) return "admin";
+  if (roles.includes("teacher")) return "teacher";
+  return "student";
 }
 
 export function routeForRole(role: UserRole): AcademicArea {
