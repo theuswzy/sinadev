@@ -18,7 +18,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAlunoRouteImport } from './routes/_authenticated/aluno'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedProfessorRouteImport } from './routes/_authenticated/professor'
-import { Route as AuthenticatedAlunoPerfilRouteImport } from './routes/_authenticated/aluno.perfil'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,12 +64,11 @@ const AuthenticatedProfessorRoute = AuthenticatedProfessorRouteImport.update({
   path: '/professor',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAlunoPerfilRoute =
-  AuthenticatedAlunoPerfilRouteImport.update({
-    id: '/perfil',
-    path: '/perfil',
-    getParentRoute: () => AuthenticatedAlunoRoute,
-  } as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/_authenticated/perfil',
+  path: '/perfil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -77,10 +76,10 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/aluno': typeof AuthenticatedAlunoRouteWithChildren
+  '/aluno': typeof AuthenticatedAlunoRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/professor': typeof AuthenticatedProfessorRoute
-  '/aluno/perfil': typeof AuthenticatedAlunoPerfilRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -220,33 +219,24 @@ declare module '@tanstack/react-router' {
       id: '/_authenticated/aluno/perfil'
       path: '/perfil'
       fullPath: '/aluno/perfil'
-      preLoaderRoute: typeof AuthenticatedAlunoPerfilRouteImport
-      parentRoute: typeof AuthenticatedAlunoRoute
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRouteImport
     }
   }
 }
 
-interface AuthenticatedAlunoRouteChildren {
-  AuthenticatedAlunoPerfilRoute: typeof AuthenticatedAlunoPerfilRoute
-}
-
-const AuthenticatedAlunoRouteChildren: AuthenticatedAlunoRouteChildren = {
-  AuthenticatedAlunoPerfilRoute: AuthenticatedAlunoPerfilRoute,
-}
-
-const AuthenticatedAlunoRouteWithChildren =
-  AuthenticatedAlunoRoute._addFileChildren(AuthenticatedAlunoRouteChildren)
-
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
-  AuthenticatedAlunoRoute: typeof AuthenticatedAlunoRouteWithChildren
+  AuthenticatedAlunoRoute: typeof AuthenticatedAlunoRoute
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedProfessorRoute: typeof AuthenticatedProfessorRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
-  AuthenticatedAlunoRoute: AuthenticatedAlunoRouteWithChildren,
+  AuthenticatedAlunoRoute: AuthenticatedAlunoRoute,
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedProfessorRoute: AuthenticatedProfessorRoute,
 }
