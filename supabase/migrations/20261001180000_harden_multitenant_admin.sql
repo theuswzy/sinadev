@@ -1102,3 +1102,113 @@ $$;
 revoke all on function public.new_account() from public,anon,authenticated;
 revoke all on function public.account_resubmit_role_request(text) from public,anon;
 grant execute on function public.account_resubmit_role_request(text) to authenticated;
+
+
+-- Approval changes only the membership in the selected institution.
+-- Global roles are the union of active institution memberships.
+create or replace function public.admin_review_role_request_v2(
+  _request_id uuid,_decision text,_approved_role text,_note text
+)
+returns boolean
+language plpgsql security definer set search_path to ''
+as $$
+declare
+  req public.account_role_requests;
+  school public.school_directory;
+  inst uuid;
+  admin_inst uuid;
+  old_role public.app_role;
+begin
+  if not public.has_role(auth.uid(),'admin'::public.app_role) then
+    raise exception 'Acesso reservado a administradores.';
+  end if;
+
+  admin_inst := sina_private.current_institution('admin'::public.app_role);
+  if admin_inst is null then raise exception 'Administrador sem instituição ativa.'; end if;
+  if _decision not in ('approved','rejected') then raise exception 'Decisão inválida.'; end if;
+
+  select * into req from public.account_role_requests where id=_request_id for update;
+  if req.id is null then return false; end if;
+  if req.status<>'pending' then raise exception 'Esta solicitação já foi processada.'; end if;
+
+  select * into school
+  from public.school_directory
+  where id=req.school_directory_id and status='active';
+
+  if school.id is null then raise exception 'A escola selecionada não está mais disponível no catálogo.'; end if;
+
+  select coalesce(req.institution_id,school.institution_id) into inst;
+
+  if inst is null or inst<>admin_inst then
+    raise exception 'Esta solicitação não pertence à instituição ativa.';
+  end if;
+
+  if _decision='rejected' then
+    update public.account_role_requests
+    set institution_id=admin_inst,status='rejected',reviewed_by=auth.uid(),
+        reviewed_at=now(),review_note=nullif(trim(_note),''),updated_at=now()
+    where id=_request_id;
+
+    update public.profiles set status='pending',updated_at=now()
+    where user_id=req.user_id;
+    return true;
+  end if;
+
+  if _approved_role not in ('student','teacher') then
+    raise exception 'Selecione uma função válida para aprovar.';
+  end if;
+
+  select m.role into old_role
+  from public.institution_memberships m
+  where m.user_id=req.user_id
+    and m.institution_id=admin_inst
+    and m.role in ('student','teacher')
+    and m.status='active'
+  limit 1;
+
+  delete from public.institution_memberships
+  where user_id=req.user_id
+    and institution_id=admin_inst
+    and role in ('student','teacher');
+
+  insert into public.institution_memberships(institution_id,user_id,role,status)
+  values(admin_inst,req.user_id,_approved_role::public.app_role,'active');
+
+  insert into public.user_roles(user_id,role)
+  values(req.user_id,_approved_role::public.app_role)
+  on conflict(user_id,role) do nothing;
+
+  if old_role is not null
+     and old_role::text<>_approved_role
+     and not exists(
+       select 1 from public.institution_memberships
+       where user_id=req.user_id
+         and role=old_role
+         and status='active'
+     ) then
+    delete from public.user_roles
+    where user_id=req.user_id and role=old_role;
+  end if;
+
+  update public.account_role_requests
+  set institution_id=admin_inst,status='approved',reviewed_by=auth.uid(),
+      reviewed_at=now(),review_note=nullif(trim(_note),''),updated_at=now()
+  where id=_request_id;
+
+  update public.profiles set status='active',updated_at=now()
+  where user_id=req.user_id;
+
+  update public.school_directory
+  set institution_id=admin_inst,updated_at=now()
+  where id=school.id;
+
+  if _approved_role='student' then
+    perform public.ensure_student_profile_for_user(req.user_id,admin_inst);
+  end if;
+
+  return true;
+end;
+$$;
+
+revoke all on function public.admin_review_role_request_v2(uuid,text,text,text) from public,anon;
+grant execute on function public.admin_review_role_request_v2(uuid,text,text,text) to authenticated;
