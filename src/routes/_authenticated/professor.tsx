@@ -7,7 +7,7 @@ import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { errorText, formatScore, getRole, routeForRole, loadGrades, loadStudents, type Student } from "@/lib/sina-data";
+import { errorText, formatScore, getRole, loadGrades, loadStudents } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/professor")({
   head: () => ({ meta: [{ title: "Área do professor — SINA" }, { name: "description", content: "Vincule alunos a turmas e matrículas e registre dados acadêmicos." }] }),
