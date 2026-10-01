@@ -390,6 +390,21 @@ export async function createTeacherCalendarEvent(args: {
   return data;
 }
 
+export type TeacherClassReport = {
+  student_id: string;
+  student_name: string;
+  enrollment: string;
+  attendance_percent: number | null;
+  grade_average: number;
+  assessment_count: number;
+};
+
+export async function loadTeacherClassReport(classroomId: string): Promise<TeacherClassReport[]> {
+  const { data, error } = await supabase.rpc("teacher_get_class_report", { _classroom_id: classroomId });
+  if (error) throw error;
+  return (data ?? []) as TeacherClassReport[];
+}
+
 export async function loadAdminAcademicSetup(): Promise<AdminAcademicSetup> {
   const { data, error } = await supabase.rpc("admin_list_academic_setup");
   if (error) throw error;
