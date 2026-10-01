@@ -1133,3 +1133,5 @@ grant execute on function public.student_list_notifications(boolean,integer) to 
 
 revoke execute on function public.student_mark_notification_read(uuid) from public, anon;
 grant execute on function public.student_mark_notification_read(uuid) to authenticated;
+
+revoke execute on function public.teacher_unlink_student(uuid) from public, anon, authenticated;
