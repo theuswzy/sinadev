@@ -390,3 +390,339 @@ update public.school_directory
 set normalized_name=lower(name)
 where municipality='Salvador'
   and normalized_name is distinct from lower(name);
+
+
+-- Scope academic role changes to the active institution. Global role rows are
+-- retained when the user still needs that role in another institution.
+create or replace function sina_private.set_academic_role(_user_id uuid,_role text)
+returns boolean
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  v_institution uuid;
+  old_role public.app_role;
+  v_status text;
+begin
+  if not public.has_role(auth.uid(),'admin'::public.app_role) then
+    raise exception 'Acesso reservado a administradores.';
+  end if;
+
+  v_institution := sina_private.current_institution('admin'::public.app_role);
+  if v_institution is null then
+    raise exception 'Administrador sem instituição ativa.';
+  end if;
+
+  if _role not in ('student','teacher') then
+    raise exception 'Função acadêmica inválida.';
+  end if;
+
+  if not exists(select 1 from auth.users where id=_user_id) then
+    return false;
+  end if;
+
+  if exists(
+    select 1 from public.institution_memberships
+    where user_id=_user_id
+      and institution_id=v_institution
+      and role='admin'
+      and status='active'
+  ) then
+    raise exception 'A função acadêmica de um administrador não pode ser alterada nesta tela.';
+  end if;
+
+  select m.role into old_role
+  from public.institution_memberships m
+  where m.user_id=_user_id
+    and m.institution_id=v_institution
+    and m.role in ('student','teacher')
+  order by case when m.role='teacher' then 0 else 1 end
+  limit 1;
+
+  v_status := coalesce(
+    (select p.status from public.profiles p where p.user_id=_user_id limit 1),
+    'active'
+  );
+
+  delete from public.institution_memberships
+  where user_id=_user_id
+    and institution_id=v_institution
+    and role in ('student','teacher');
+
+  insert into public.institution_memberships(institution_id,user_id,role,status)
+  values(v_institution,_user_id,_role::public.app_role,v_status);
+
+  insert into public.user_roles(user_id,role)
+  values(_user_id,_role::public.app_role)
+  on conflict(user_id,role) do nothing;
+
+  if old_role is not null and old_role::text <> _role
+     and not exists(
+       select 1 from public.institution_memberships
+       where user_id=_user_id
+         and role=old_role
+         and status='active'
+     ) then
+    delete from public.user_roles
+    where user_id=_user_id and role=old_role;
+  end if;
+
+  if _role='student' then
+    perform public.ensure_student_profile_for_user(_user_id,v_institution);
+  end if;
+
+  return true;
+end;
+$$;
+
+revoke all on function sina_private.set_academic_role(uuid,text) from public,anon;
+grant execute on function sina_private.set_academic_role(uuid,text) to authenticated;
+
+-- Teacher communication management must respect the active institution too.
+create or replace function public.teacher_list_announcements()
+returns setof public.announcements
+language sql
+security definer
+set search_path to ''
+as $$
+  select a.*
+  from public.announcements a
+  where a.teacher_id=auth.uid()
+    and a.institution_id=sina_private.current_institution('teacher'::public.app_role)
+  order by a.created_at desc
+  limit 100;
+$$;
+
+create or replace function public.teacher_list_tasks()
+returns setof public.tasks
+language sql
+security definer
+set search_path to ''
+as $$
+  select t.*
+  from public.tasks t
+  where t.teacher_id=auth.uid()
+    and t.institution_id=sina_private.current_institution('teacher'::public.app_role)
+  order by t.created_at desc
+  limit 100;
+$$;
+
+create or replace function public.teacher_update_announcement(
+  _id uuid,_classroom text,_title text,_content text,
+  _attachment_path text default null,_attachment_name text default null,
+  _attachment_size bigint default null,_attachment_type text default null
+)
+returns public.announcements
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare result_row public.announcements; inst uuid;
+begin
+  if not public.has_role(auth.uid(),'teacher'::public.app_role) then
+    raise exception 'Acesso reservado a professores autorizados.';
+  end if;
+  inst := sina_private.current_institution('teacher'::public.app_role);
+  if inst is null then raise exception 'Professor sem instituição ativa.'; end if;
+  if nullif(trim(_classroom),'') is null then raise exception 'Selecione uma turma.'; end if;
+  if nullif(trim(_title),'') is null then raise exception 'Informe o título do aviso.'; end if;
+  if nullif(trim(_content),'') is null then raise exception 'Escreva o conteúdo do aviso.'; end if;
+  if not exists(
+    select 1 from public.classrooms c
+    join public.classroom_teachers ct on ct.classroom_id=c.id
+    where c.institution_id=inst and c.status='active'
+      and ct.user_id=auth.uid()
+      and lower(c.name)=lower(trim(_classroom))
+  ) then raise exception 'A turma selecionada não pertence a você.'; end if;
+
+  update public.announcements
+  set classroom=trim(_classroom),title=trim(_title),content=trim(_content),
+      attachment_path=nullif(trim(_attachment_path),''),
+      attachment_name=nullif(trim(_attachment_name),''),
+      attachment_size=_attachment_size,attachment_type=nullif(trim(_attachment_type),''),
+      updated_at=now()
+  where id=_id and teacher_id=auth.uid() and institution_id=inst
+  returning * into result_row;
+
+  if result_row.id is null then raise exception 'Aviso não encontrado.'; end if;
+  return result_row;
+end;
+$$;
+
+create or replace function public.teacher_delete_announcement(_id uuid)
+returns public.announcements
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare result_row public.announcements;
+begin
+  if not public.has_role(auth.uid(),'teacher'::public.app_role) then
+    raise exception 'Acesso reservado a professores autorizados.';
+  end if;
+  delete from public.announcements
+  where id=_id and teacher_id=auth.uid()
+    and institution_id=sina_private.current_institution('teacher'::public.app_role)
+  returning * into result_row;
+  if result_row.id is null then raise exception 'Aviso não encontrado.'; end if;
+  return result_row;
+end;
+$$;
+
+create or replace function public.teacher_update_task(
+  _id uuid,_classroom text,_subject text,_title text,_description text,_due_at timestamptz,
+  _attachment_path text default null,_attachment_name text default null,
+  _attachment_size bigint default null,_attachment_type text default null
+)
+returns public.tasks
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare result_row public.tasks; inst uuid;
+begin
+  if not public.has_role(auth.uid(),'teacher'::public.app_role) then
+    raise exception 'Acesso reservado a professores autorizados.';
+  end if;
+  inst := sina_private.current_institution('teacher'::public.app_role);
+  if inst is null then raise exception 'Professor sem instituição ativa.'; end if;
+  if nullif(trim(_classroom),'') is null then raise exception 'Selecione uma turma.'; end if;
+  if nullif(trim(_subject),'') is null then raise exception 'Informe a disciplina.'; end if;
+  if nullif(trim(_title),'') is null then raise exception 'Informe o título da atividade.'; end if;
+  if not exists(
+    select 1 from public.classrooms c
+    join public.classroom_teachers ct on ct.classroom_id=c.id
+    where c.institution_id=inst and c.status='active'
+      and ct.user_id=auth.uid()
+      and lower(c.name)=lower(trim(_classroom))
+  ) then raise exception 'A turma selecionada não pertence a você.'; end if;
+
+  update public.tasks
+  set classroom=trim(_classroom),subject=trim(_subject),title=trim(_title),
+      description=coalesce(trim(_description),''),
+      due_at=_due_at,attachment_path=nullif(trim(_attachment_path),''),
+      attachment_name=nullif(trim(_attachment_name),''),
+      attachment_size=_attachment_size,attachment_type=nullif(trim(_attachment_type),''),
+      updated_at=now()
+  where id=_id and teacher_id=auth.uid() and institution_id=inst
+  returning * into result_row;
+
+  if result_row.id is null then raise exception 'Atividade não encontrada.'; end if;
+  return result_row;
+end;
+$$;
+
+create or replace function public.teacher_delete_task(_id uuid)
+returns public.tasks
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare result_row public.tasks;
+begin
+  if not public.has_role(auth.uid(),'teacher'::public.app_role) then
+    raise exception 'Acesso reservado a professores autorizados.';
+  end if;
+  delete from public.tasks
+  where id=_id and teacher_id=auth.uid()
+    and institution_id=sina_private.current_institution('teacher'::public.app_role)
+  returning * into result_row;
+  if result_row.id is null then raise exception 'Atividade não encontrada.'; end if;
+  return result_row;
+end;
+$$;
+
+-- Student task/announcement RPCs also enforce the student's institution.
+create or replace function public.student_list_announcements()
+returns setof public.announcements
+language sql
+security definer
+set search_path to ''
+as $$
+  select a.*
+  from public.announcements a
+  join public.students s
+    on s.user_id=auth.uid()
+   and s.institution_id=a.institution_id
+   and s.teacher_id=a.teacher_id
+   and s.classroom=a.classroom
+  order by a.created_at desc
+  limit 30;
+$$;
+
+create or replace function public.student_list_tasks()
+returns table (
+  id uuid,classroom text,subject text,title text,description text,
+  due_at timestamptz,created_at timestamptz,completed boolean
+)
+language sql
+security definer
+set search_path to ''
+as $$
+  select t.id,t.classroom,t.subject,t.title,t.description,t.due_at,t.created_at,
+         coalesce(tc.completed,false)
+  from public.tasks t
+  join public.students s
+    on s.user_id=auth.uid()
+   and s.institution_id=t.institution_id
+   and s.teacher_id=t.teacher_id
+   and s.classroom=t.classroom
+  left join public.task_completions tc
+    on tc.task_id=t.id and tc.student_id=s.id
+  order by (t.due_at is null),t.due_at,t.created_at desc
+  limit 50;
+$$;
+
+create or replace function public.student_set_task_completed(_task_id uuid,_completed boolean)
+returns boolean
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare student_record public.students;
+begin
+  select s.* into student_record
+  from public.students s
+  where s.user_id=auth.uid()
+  limit 1;
+
+  if student_record.id is null then raise exception 'Perfil de aluno não encontrado.'; end if;
+
+  if not exists(
+    select 1 from public.tasks t
+    where t.id=_task_id
+      and t.institution_id=student_record.institution_id
+      and t.teacher_id=student_record.teacher_id
+      and t.classroom=student_record.classroom
+      and student_record.teacher_id is not null
+  ) then raise exception 'Tarefa não encontrada para este aluno.'; end if;
+
+  insert into public.task_completions(task_id,student_id,completed,updated_at)
+  values(_task_id,student_record.id,_completed,now())
+  on conflict(task_id,student_id)
+  do update set completed=excluded.completed,updated_at=now();
+
+  return true;
+end;
+$$;
+
+revoke all on function public.teacher_list_announcements() from public,anon;
+revoke all on function public.teacher_list_tasks() from public,anon;
+revoke all on function public.teacher_update_announcement(uuid,text,text,text,text,text,bigint,text) from public,anon;
+revoke all on function public.teacher_delete_announcement(uuid) from public,anon;
+revoke all on function public.teacher_update_task(uuid,text,text,text,text,timestamptz,text,text,bigint,text) from public,anon;
+revoke all on function public.teacher_delete_task(uuid) from public,anon;
+revoke all on function public.student_list_announcements() from public,anon;
+revoke all on function public.student_list_tasks() from public,anon;
+revoke all on function public.student_set_task_completed(uuid,boolean) from public,anon;
+
+grant execute on function public.teacher_list_announcements() to authenticated;
+grant execute on function public.teacher_list_tasks() to authenticated;
+grant execute on function public.teacher_update_announcement(uuid,text,text,text,text,text,bigint,text) to authenticated;
+grant execute on function public.teacher_delete_announcement(uuid) to authenticated;
+grant execute on function public.teacher_update_task(uuid,text,text,text,text,timestamptz,text,text,bigint,text) to authenticated;
+grant execute on function public.teacher_delete_task(uuid) to authenticated;
+grant execute on function public.student_list_announcements() to authenticated;
+grant execute on function public.student_list_tasks() to authenticated;
+grant execute on function public.student_set_task_completed(uuid,boolean) to authenticated;
