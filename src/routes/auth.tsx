@@ -65,6 +65,7 @@ function AuthPage() {
   const [requestedRole, setRequestedRole] = useState<RequestedRole | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<SchoolDirectoryEntry | null>(null);
   const [schoolSearch, setSchoolSearch] = useState("");
+  const [schoolNetwork, setSchoolNetwork] = useState<SchoolDirectoryEntry["network_type"] | "all">("all");
   const [schoolResults, setSchoolResults] = useState<SchoolDirectoryEntry[]>([]);
   const [schoolLoading, setSchoolLoading] = useState(false);
   const [pendingState, setPendingState] = useState<OnboardingState | null>(null);
@@ -103,7 +104,7 @@ function AuthPage() {
     setSchoolLoading(true);
 
     const timer = window.setTimeout(() => {
-      void searchSchoolDirectory(schoolSearch).then((items) => {
+      void searchSchoolDirectory(schoolSearch, schoolNetwork === "all" ? undefined : schoolNetwork).then((items) => {
         if (!cancelled) setSchoolResults(items);
       }).catch(() => {
         if (!cancelled) setSchoolResults([]);
@@ -116,7 +117,7 @@ function AuthPage() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [mode, schoolSearch]);
+  }, [mode, schoolSearch, schoolNetwork]);
 
   useEffect(() => {
     void supabase.auth.getUser().then(async ({ data }) => {
@@ -400,13 +401,26 @@ function AuthPage() {
                       </div>
                     ) : (
                       <div className="relative">
-                        <Input
-                          value={schoolSearch}
-                          onChange={e => setSchoolSearch(e.target.value)}
-                          placeholder="Digite o nome da escola..."
-                          className="h-11"
-                          autoComplete="off"
-                        />
+                        <div className="grid gap-2 sm:grid-cols-[1fr_170px]">
+                          <Input
+                            value={schoolSearch}
+                            onChange={e => setSchoolSearch(e.target.value)}
+                            placeholder="Digite o nome da escola..."
+                            className="h-11"
+                            autoComplete="off"
+                          />
+                          <select
+                            value={schoolNetwork}
+                            onChange={e => setSchoolNetwork(e.target.value as SchoolDirectoryEntry["network_type"] | "all")}
+                            className="h-11 rounded-md border border-input bg-background px-3 text-sm"
+                            aria-label="Filtrar rede de ensino"
+                          >
+                            <option value="all">Todas as redes</option>
+                            <option value="municipal">Municipal</option>
+                            <option value="estadual">Estadual</option>
+                            <option value="federal">Federal</option>
+                          </select>
+                        </div>
                         <div className="mt-2 max-h-56 overflow-auto rounded-2xl border border-border bg-card">
                           {schoolLoading ? (
                             <p className="px-4 py-3 text-sm text-muted-foreground">Pesquisando escolas…</p>
