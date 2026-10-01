@@ -224,3 +224,81 @@ grant execute on function public.account_get_onboarding_state() to authenticated
 grant execute on function public.account_resubmit_role_request(text) to authenticated;
 grant execute on function public.admin_list_role_requests() to authenticated;
 grant execute on function public.admin_review_role_request(uuid,text,text,text) to authenticated;
+
+-- Final onboarding state handling: preserve rejected requests until the user explicitly resubmits.
+create or replace function public.ensure_account_onboarding(_requested_role text default null)
+returns jsonb
+language plpgsql security definer set search_path=''
+as $$
+declare
+  uid uuid:=auth.uid();
+  requested text;
+  display_name text;
+  current_status text;
+  current_role text;
+  request_row public.account_role_requests;
+begin
+  if uid is null then raise exception 'Usuário não autenticado.'; end if;
+
+  select coalesce(nullif(_requested_role,''),nullif(au.raw_user_meta_data->>'requested_role',''),'student'),
+         coalesce(nullif(p.display_name,''),nullif(au.raw_user_meta_data->>'display_name',''),split_part(coalesce(au.email,''),'@',1)),
+         p.status
+  into requested,display_name,current_status
+  from auth.users au left join public.profiles p on p.user_id=au.id where au.id=uid;
+
+  if requested not in ('student','teacher') then requested:='student'; end if;
+
+  select r.role::text into current_role
+  from public.user_roles r where r.user_id=uid and r.role in ('admin','teacher','student')
+  order by case when r.role='admin' then 0 when r.role='teacher' then 1 else 2 end limit 1;
+
+  if current_role is not null then
+    insert into public.profiles(user_id,display_name,status)
+    values(uid,display_name,'active')
+    on conflict(user_id) do update set
+      display_name=case when public.profiles.display_name='' then excluded.display_name else public.profiles.display_name end,
+      status=case when public.profiles.status='pending' then 'active' else public.profiles.status end,
+      updated_at=now();
+    current_status:=coalesce((select p.status from public.profiles p where p.user_id=uid),'active');
+  else
+    insert into public.profiles(user_id,display_name,status)
+    values(uid,display_name,'pending')
+    on conflict(user_id) do update set
+      display_name=case when public.profiles.display_name='' then excluded.display_name else public.profiles.display_name end,
+      status='pending',updated_at=now();
+    current_status:='pending';
+
+    select * into request_row
+    from public.account_role_requests
+    where user_id=uid
+    order by created_at desc
+    limit 1;
+
+    if request_row.id is null then
+      insert into public.account_role_requests(user_id,requested_role,status)
+      values(uid,requested::public.app_role,'pending')
+      returning * into request_row;
+    elsif request_row.status='pending' and _requested_role is not null and request_row.requested_role::text<>requested then
+      update public.account_role_requests
+      set requested_role=requested::public.app_role,updated_at=now()
+      where id=request_row.id returning * into request_row;
+    elsif request_row.status in ('rejected','cancelled') and _requested_role is not null then
+      insert into public.account_role_requests(user_id,requested_role,status)
+      values(uid,requested::public.app_role,'pending')
+      returning * into request_row;
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'status',current_status,
+    'role',current_role,
+    'requested_role',request_row.requested_role::text,
+    'request_status',request_row.status,
+    'request_id',request_row.id,
+    'review_note',request_row.review_note
+  );
+end;
+$$;
+
+revoke all on function public.ensure_account_onboarding(text) from public,anon;
+grant execute on function public.ensure_account_onboarding(text) to authenticated;
