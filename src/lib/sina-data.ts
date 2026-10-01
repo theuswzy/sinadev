@@ -370,6 +370,33 @@ export type AcademicOptions = {
   terms: { id: string; name: string; starts_at: string | null; ends_at: string | null; is_current: boolean }[];
 };
 
+export type AdminTeacherAssignment = { classroom_id: string; classroom_name: string; teacher_id: string; teacher_name: string; teacher_email: string };
+export type AdminTeacher = { user_id: string; display_name: string; email: string };
+
+export async function loadAdminTeacherAssignments(): Promise<AdminTeacherAssignment[]> {
+  const { data, error } = await supabase.rpc("admin_list_teacher_classroom_assignments");
+  if (error) throw error;
+  return (data ?? []) as AdminTeacherAssignment[];
+}
+
+export async function loadAdminInstitutionTeachers(): Promise<AdminTeacher[]> {
+  const { data, error } = await supabase.rpc("admin_list_institution_teachers");
+  if (error) throw error;
+  return (data ?? []) as AdminTeacher[];
+}
+
+export async function adminAssignTeacherToClassroom(teacherId: string, classroomId: string) {
+  const { data, error } = await supabase.rpc("admin_assign_teacher_to_classroom", { _teacher_id: teacherId, _classroom_id: classroomId });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function adminUnassignTeacherFromClassroom(teacherId: string, classroomId: string) {
+  const { data, error } = await supabase.rpc("admin_unassign_teacher_from_classroom", { _teacher_id: teacherId, _classroom_id: classroomId });
+  if (error) throw error;
+  return data ?? false;
+}
+
 export type AdminAcademicSetup = {
   classrooms: { id: string; name: string; code: string | null; status: string }[];
   subjects: { id: string; name: string; code: string | null; status: string }[];
