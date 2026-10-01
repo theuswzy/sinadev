@@ -68,7 +68,6 @@ export function AcademicShell({
           { href: "#lancamentos", label: "Notas", Icon: BarChart3 },
           { href: "#central-turma", label: "Turmas e atividades", Icon: ClipboardList },
           { href: "#comunicacao", label: "Comunicação", Icon: Megaphone },
-          { href: "/perfil", label: "Meu perfil", Icon: UserRound, route: true },
         ]
       : role.data === "student"
         ? [
@@ -79,12 +78,10 @@ export function AcademicShell({
             { href: "/aluno/frequencia", label: "Frequência", Icon: CheckCircle2, route: true },
             { href: "/aluno/agenda", label: "Agenda", Icon: CalendarDays, route: true },
             { href: "/aluno/avisos", label: "Avisos", Icon: Bell, route: true },
-            { href: "/perfil", label: "Meu perfil", Icon: UserRound, route: true },
           ]
         : role.data === "admin"
           ? [
               { href: "/admin", label: "Administração", Icon: ShieldCheck, route: true },
-              { href: "/perfil", label: "Meu perfil", Icon: UserRound, route: true },
             ]
           : [];
 
@@ -166,7 +163,12 @@ export function AcademicShell({
             <div className="hidden h-8 w-px bg-border md:block" />
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{title}</p>
+              <div className="flex min-w-0 items-center gap-2">
+                <p className="truncate text-sm font-semibold">{title}</p>
+                <span className="hidden shrink-0 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground lg:inline-flex">
+                  Portal acadêmico
+                </span>
+              </div>
               <p className="hidden truncate text-xs text-muted-foreground sm:block">{subtitle}</p>
             </div>
 
