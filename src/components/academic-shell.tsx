@@ -31,13 +31,15 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
         { href: "#lancamentos", label: "Lançamentos", Icon: BookOpen },
         { href: "#comunicacao", label: "Comunicação", Icon: Megaphone },
       ]
-    : [
-        { href: "/aluno", label: "Visão geral", Icon: LayoutDashboard, route: true },
-        { href: "/aluno#tarefas", label: "Tarefas", Icon: ClipboardList },
-        { href: "/aluno#disciplinas", label: "Disciplinas", Icon: BookOpen },
-        { href: "/aluno#notas", label: "Notas", Icon: BookOpen },
-        { href: "/perfil", label: "Perfil", Icon: UserRound, route: true },
-      ];
+    : role.data === "student"
+      ? [
+          { href: "/aluno", label: "Visão geral", Icon: LayoutDashboard, route: true },
+          { href: "/aluno#tarefas", label: "Tarefas", Icon: ClipboardList },
+          { href: "/aluno#disciplinas", label: "Disciplinas", Icon: BookOpen },
+          { href: "/aluno#notas", label: "Notas", Icon: BookOpen },
+          { href: "/perfil", label: "Perfil", Icon: UserRound, route: true },
+        ]
+      : [];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -58,7 +60,7 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
                 : "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-brand-muted transition-colors hover:bg-brand-panel hover:text-brand-foreground";
 
               return route ? (
-                <Link key={href} to={href as "/perfil"} aria-current={active ? "page" : undefined} className={className}>
+                <Link key={href} to={href as "/aluno" | "/perfil"} aria-current={active ? "page" : undefined} className={className}>
                   <Icon className={active ? "size-4 text-primary" : "size-4"} />
                   <span>{label}</span>
                 </Link>
