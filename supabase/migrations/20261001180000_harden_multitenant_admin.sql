@@ -857,3 +857,155 @@ $$;
 
 revoke all on function public.account_resubmit_role_request(text) from public,anon;
 grant execute on function public.account_resubmit_role_request(text) to authenticated;
+
+
+create or replace function public.teacher_create_announcement(
+  _classroom text,_title text,_content text,
+  _attachment_path text default null,_attachment_name text default null,
+  _attachment_size bigint default null,_attachment_type text default null
+)
+returns public.announcements
+language plpgsql security definer set search_path to ''
+as $$
+declare result_row public.announcements; inst uuid; classroom_id uuid;
+begin
+  if not public.has_role(auth.uid(),'teacher'::public.app_role) then
+    raise exception 'Acesso reservado a professores autorizados.';
+  end if;
+  inst := sina_private.current_institution('teacher'::public.app_role);
+  if inst is null then raise exception 'Professor sem instituição ativa.'; end if;
+  if nullif(trim(_classroom),'') is null then raise exception 'Selecione uma turma.'; end if;
+  if nullif(trim(_title),'') is null then raise exception 'Informe o título do aviso.'; end if;
+  if nullif(trim(_content),'') is null then raise exception 'Escreva o conteúdo do aviso.'; end if;
+
+  select c.id into classroom_id
+  from public.classrooms c
+  join public.classroom_teachers ct on ct.classroom_id=c.id and ct.user_id=auth.uid()
+  where c.institution_id=inst and c.status='active' and lower(c.name)=lower(trim(_classroom))
+  limit 1;
+
+  if classroom_id is null then raise exception 'A turma selecionada não pertence a você.'; end if;
+
+  insert into public.announcements(
+    teacher_id,classroom,title,content,attachment_path,attachment_name,
+    attachment_size,attachment_type,institution_id,classroom_id
+  )
+  values(
+    auth.uid(),trim(_classroom),trim(_title),trim(_content),
+    nullif(trim(_attachment_path),''),nullif(trim(_attachment_name),''),
+    _attachment_size,nullif(trim(_attachment_type),''),inst,classroom_id
+  )
+  returning * into result_row;
+
+  return result_row;
+end;
+$$;
+
+create or replace function public.teacher_create_task(
+  _classroom text,_subject text,_title text,_description text,_due_at timestamptz,
+  _attachment_path text default null,_attachment_name text default null,
+  _attachment_size bigint default null,_attachment_type text default null
+)
+returns public.tasks
+language plpgsql security definer set search_path to ''
+as $$
+declare result_row public.tasks; inst uuid; classroom_id uuid;
+begin
+  if not public.has_role(auth.uid(),'teacher'::public.app_role) then
+    raise exception 'Acesso reservado a professores autorizados.';
+  end if;
+  inst := sina_private.current_institution('teacher'::public.app_role);
+  if inst is null then raise exception 'Professor sem instituição ativa.'; end if;
+  if nullif(trim(_classroom),'') is null then raise exception 'Selecione uma turma.'; end if;
+  if nullif(trim(_subject),'') is null then raise exception 'Informe a disciplina.'; end if;
+  if nullif(trim(_title),'') is null then raise exception 'Informe o título da atividade.'; end if;
+
+  select c.id into classroom_id
+  from public.classrooms c
+  join public.classroom_teachers ct on ct.classroom_id=c.id and ct.user_id=auth.uid()
+  where c.institution_id=inst and c.status='active' and lower(c.name)=lower(trim(_classroom))
+  limit 1;
+
+  if classroom_id is null then raise exception 'A turma selecionada não pertence a você.'; end if;
+
+  insert into public.tasks(
+    teacher_id,classroom,subject,title,description,due_at,
+    attachment_path,attachment_name,attachment_size,attachment_type,
+    institution_id,classroom_id
+  )
+  values(
+    auth.uid(),trim(_classroom),trim(_subject),trim(_title),coalesce(trim(_description),''),
+    _due_at,nullif(trim(_attachment_path),''),nullif(trim(_attachment_name),''),
+    _attachment_size,nullif(trim(_attachment_type),''),inst,classroom_id
+  )
+  returning * into result_row;
+
+  return result_row;
+end;
+$$;
+
+create or replace function public.student_list_tasks()
+returns table(
+  id uuid,classroom text,subject text,title text,description text,due_at timestamptz,
+  attachment_path text,attachment_name text,attachment_size bigint,attachment_type text,
+  created_at timestamptz,completed boolean
+)
+language sql stable security definer set search_path to ''
+as $$
+  select t.id,t.classroom,t.subject,t.title,t.description,t.due_at,
+         t.attachment_path,t.attachment_name,t.attachment_size,t.attachment_type,
+         t.created_at,coalesce(tc.completed,false)
+  from public.tasks t
+  join public.students s
+    on s.user_id=auth.uid()
+   and s.institution_id=t.institution_id
+   and s.classroom_id=t.classroom_id
+  left join public.task_completions tc
+    on tc.task_id=t.id and tc.student_id=s.id
+  order by coalesce(t.due_at,t.created_at) asc
+  limit 100;
+$$;
+
+create or replace function public.student_set_task_completed(_task_id uuid,_completed boolean)
+returns boolean
+language plpgsql security definer set search_path to ''
+as $$
+declare student_id_var uuid; inst uuid;
+begin
+  select s.id,s.institution_id into student_id_var,inst
+  from public.students s
+  where s.user_id=auth.uid()
+  limit 1;
+
+  if student_id_var is null or inst is null then
+    raise exception 'Perfil de aluno não encontrado.';
+  end if;
+
+  if not exists(
+    select 1
+    from public.tasks t
+    join public.students s on s.id=student_id_var
+      and s.institution_id=t.institution_id
+      and s.classroom_id=t.classroom_id
+    where t.id=_task_id and t.institution_id=inst
+  ) then
+    raise exception 'Tarefa não disponível para este aluno.';
+  end if;
+
+  insert into public.task_completions(task_id,student_id,completed,updated_at)
+  values(_task_id,student_id_var,_completed,now())
+  on conflict(task_id,student_id)
+  do update set completed=excluded.completed,updated_at=now();
+
+  return true;
+end;
+$$;
+
+revoke all on function public.teacher_create_announcement(text,text,text,text,text,bigint,text) from public,anon;
+revoke all on function public.teacher_create_task(text,text,text,text,timestamptz,text,text,bigint,text) from public,anon;
+revoke all on function public.student_list_tasks() from public,anon;
+revoke all on function public.student_set_task_completed(uuid,boolean) from public,anon;
+grant execute on function public.teacher_create_announcement(text,text,text,text,text,bigint,text) to authenticated;
+grant execute on function public.teacher_create_task(text,text,text,text,timestamptz,text,text,bigint,text) to authenticated;
+grant execute on function public.student_list_tasks() to authenticated;
+grant execute on function public.student_set_task_completed(uuid,boolean) to authenticated;
