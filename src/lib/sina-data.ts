@@ -115,10 +115,13 @@ export type AccountRoleRequest = {
   review_note: string | null;
   created_at: string;
   reviewed_at: string | null;
+  school_directory_id?: string | null;
+  school_name?: string | null;
+  school_network_type?: string | null;
 };
 
 export async function loadAccountRoleRequests(): Promise<AccountRoleRequest[]> {
-  const { data, error } = await supabase.rpc("admin_list_role_requests");
+  const { data, error } = await supabase.rpc("admin_list_role_requests_v2");
   if (error) throw error;
   return (data ?? []) as AccountRoleRequest[];
 }
@@ -129,7 +132,7 @@ export async function reviewAccountRoleRequest(
   approvedRole: "student" | "teacher",
   note: string,
 ): Promise<boolean> {
-  const { data, error } = await supabase.rpc("admin_review_role_request", {
+  const { data, error } = await supabase.rpc("admin_review_role_request_v2", {
     _request_id: requestId,
     _decision: decision,
     _approved_role: approvedRole,
