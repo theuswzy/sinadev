@@ -1,3 +1,5 @@
+drop function if exists public.account_list_institutions();
+
 create or replace function public.account_list_institutions()
 returns table(id uuid,name text,slug text,status text,role text,is_active boolean)
 language sql stable security definer set search_path to ''
