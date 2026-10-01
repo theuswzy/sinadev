@@ -962,6 +962,26 @@ export type Database = {
       Args: { _request_id: string; _decision: string; _approved_role: string; _note: string }
       Returns: boolean
     }
+    school_directory_search: {
+      Args: { _municipality?: string; _network_type?: string | null; _search?: string }
+      Returns: {
+        id: string
+        name: string
+        municipality: string
+        state: string
+        network_type: string
+        inep_code: string | null
+        institution_id: string | null
+      }[]
+    }
+    ensure_account_onboarding_v2: {
+      Args: { _requested_role: string; _school_directory_id: string }
+      Returns: Json
+    }
+    admin_review_role_request_v2: {
+      Args: { _request_id: string; _decision: string; _approved_role: string; _note: string }
+      Returns: boolean
+    }
     Enums: {
       app_role: "student" | "teacher" | "admin"
     }
