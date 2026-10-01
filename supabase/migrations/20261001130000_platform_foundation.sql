@@ -364,7 +364,7 @@ as $function$
       and m.role = _role
       and m.status = 'active'
   );
-$;
+$function$;
 
 create or replace function public.ensure_student_profile()
 returns boolean
