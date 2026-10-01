@@ -39,13 +39,13 @@ function StudentArea() {
   const tasks = useQuery({
     queryKey: ["my-tasks", student.data?.classroom],
     queryFn: loadTasks,
-    enabled: !!student.data?.id && !isProfileRoute,
+    enabled: !!student.data?.id,
     refetchOnWindowFocus: true,
   });
   const grades = useQuery({
     queryKey: ["my-grades", student.data?.id],
     queryFn: () => loadGrades(student.data?.id ?? ""),
-    enabled: !!student.data?.id && !isProfileRoute,
+    enabled: !!student.data?.id,
     refetchOnWindowFocus: true,
   });
 
@@ -170,7 +170,7 @@ function StudentArea() {
               <p className="mt-1 text-sm text-brand-muted">Bem-vindo ao SINA. Acompanhe sua vida acadêmica de forma simples e organizada.</p>
             </div>
           </div>
-          <Link to="/aluno/perfil" className="inline-flex items-center gap-2 self-start rounded-xl border border-brand-border bg-brand px-3 py-2 text-sm font-semibold text-brand-foreground transition-colors hover:bg-brand-panel hover:text-brand-foreground md:self-center"><UserRound /> Meu perfil</Link>
+          <Link to="/perfil" className="inline-flex items-center gap-2 self-start rounded-xl border border-brand-border bg-brand px-3 py-2 text-sm font-semibold text-brand-foreground transition-colors hover:bg-brand-panel hover:text-brand-foreground md:self-center"><UserRound /> Meu perfil</Link>
         </div>
         <div className="mt-6 flex flex-wrap gap-2 text-xs text-brand-muted">
           <span className="rounded-full border border-brand-border bg-brand-panel px-3 py-1.5">{linked ? `Turma ${student.data.classroom}` : "Cadastro em andamento"}</span>
