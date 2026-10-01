@@ -7,6 +7,7 @@ import { errorText, formatScore, getRole, loadGrades, loadMyStudent, loadAnnounc
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { StudentAcademicCenter } from "@/components/student-academic-center";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({
@@ -241,6 +242,8 @@ function StudentArea() {
           </div>
         </section>
       )}
+
+      <StudentAcademicCenter />
 
       {!linked && (
         <section className="mt-5 overflow-hidden rounded-2xl border border-primary/30 bg-primary/5 p-6">
