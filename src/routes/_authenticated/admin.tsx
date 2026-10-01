@@ -1,13 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, UserCheck, Ban, UserRoundCheck, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { errorText, loadAccountRoleRequests, reviewAccountRoleRequest } from "@/lib/sina-data";
+import { errorText, loadAccountRoleRequests, reviewAccountRoleRequest, searchSchoolDirectory, type SchoolDirectoryEntry } from "@/lib/sina-data";
 import { AdminAcademicSetup } from "@/components/admin-academic-setup";
 
 export const Route = createFileRoute("/_authenticated/admin")({
@@ -67,19 +67,43 @@ function AdminArea() {
   const [institutionName, setInstitutionName] = useState("");
   const [institutionSlug, setInstitutionSlug] = useState("");
   const [creatingInstitution, setCreatingInstitution] = useState(false);
+  const [institutionSchoolSearch, setInstitutionSchoolSearch] = useState("");
+  const [selectedInstitutionSchool, setSelectedInstitutionSchool] = useState<SchoolDirectoryEntry | null>(null);
+
+  const institutionSchools = useQuery({
+    queryKey: ["admin-school-directory", institutionSchoolSearch],
+    queryFn: () => searchSchoolDirectory(institutionSchoolSearch),
+    enabled: role.data === true,
+  });
+
+  useEffect(() => {
+    if (!selectedInstitutionSchool) return;
+    setInstitutionName(selectedInstitutionSchool.name);
+    setInstitutionSlug(
+      selectedInstitutionSchool.name
+        .normalize("NFD")
+        .replace(/[\\u0300-\\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, ""),
+    );
+  }, [selectedInstitutionSchool]);
 
   async function createInstitution() {
-    if (!institutionName.trim() || !institutionSlug.trim()) return;
+    if (!selectedInstitutionSchool || !institutionName.trim() || !institutionSlug.trim()) return;
     setCreatingInstitution(true);
     try {
       const { error } = await supabase.rpc("admin_create_institution", {
         _name: institutionName.trim(),
         _slug: institutionSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+        _school_directory_id: selectedInstitutionSchool.id,
       });
       if (error) throw error;
       setInstitutionName("");
       setInstitutionSlug("");
-      toast.success("Instituição criada. Ela já está disponível no seletor do cabeçalho.");
+      setInstitutionSchoolSearch("");
+      setSelectedInstitutionSchool(null);
+      toast.success("Escola vinculada à instituição. Ela já está disponível no seletor do cabeçalho.");
       await queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
     } catch (error) {
       toast.error(errorText(error));
@@ -251,10 +275,31 @@ function AdminArea() {
               <p className="mt-1 text-sm text-muted-foreground">Cada instituição terá sua própria estrutura acadêmica, turmas, usuários e dados.</p>
             </div>
             <div className="grid w-full gap-3 sm:grid-cols-2 lg:max-w-2xl">
+              <Input
+                value={institutionSchoolSearch}
+                onChange={e => setInstitutionSchoolSearch(e.target.value)}
+                placeholder="Pesquisar escola real no catálogo"
+              />
+              <select
+                value={selectedInstitutionSchool?.id ?? ""}
+                onChange={e => {
+                  const school = institutionSchools.data?.find(item => item.id === e.target.value) ?? null;
+                  setSelectedInstitutionSchool(school);
+                }}
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                aria-label="Escola do catálogo"
+              >
+                <option value="">Selecione a escola</option>
+                {(institutionSchools.data ?? []).map(school => (
+                  <option key={school.id} value={school.id}>
+                    {school.name} — {school.network_type}
+                  </option>
+                ))}
+              </select>
               <Input value={institutionName} onChange={e => setInstitutionName(e.target.value)} placeholder="Nome da instituição" />
               <Input value={institutionSlug} onChange={e => setInstitutionSlug(e.target.value)} placeholder="Identificador, ex.: escola-centro" />
-              <Button className="sm:col-span-2 lg:col-span-2" onClick={() => void createInstitution()} disabled={creatingInstitution || !institutionName.trim() || !institutionSlug.trim()}>
-                {creatingInstitution ? "Criando…" : "Criar instituição"}
+              <Button className="sm:col-span-2 lg:col-span-2" onClick={() => void createInstitution()} disabled={creatingInstitution || !selectedInstitutionSchool || !institutionName.trim() || !institutionSlug.trim()}>
+                {creatingInstitution ? "Vinculando…" : "Vincular escola e criar instituição"}
               </Button>
             </div>
           </div>
