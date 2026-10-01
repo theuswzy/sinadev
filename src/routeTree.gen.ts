@@ -173,13 +173,6 @@ export interface FileRoutesByFullPath {
   '/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
   '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
   '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
-  '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
-  '/professor/notas': typeof AuthenticatedProfessorNotasRoute
-  '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
-  '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
-  '/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
-  '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
-  '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
   '/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
@@ -253,6 +246,13 @@ export interface FileRouteTypes {
     | '/aluno'
     | '/painel'
     | '/professor'
+    | '/professor/turmas'
+    | '/professor/notas'
+    | '/professor/frequencia'
+    | '/professor/avaliacoes'
+    | '/professor/atividades'
+    | '/professor/agenda'
+    | '/professor/comunicacao'
     | '/perfil'
   id:
     | '__root__'
@@ -348,10 +348,10 @@ declare module '@tanstack/react-router' {
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/professor': {
-      id: '/_authenticated/professor'
-      path: '/professor'
-      fullPath: '/professor'
-      preLoaderRoute: typeof AuthenticatedProfessorRouteImport
+      id: '/_authenticated/professor',
+      path: '/professor',
+      fullPath: '/professor',
+      preLoaderRoute: typeof AuthenticatedProfessorRouteImport,
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/perfil': {
