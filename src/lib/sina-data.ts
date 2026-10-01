@@ -398,6 +398,32 @@ export async function saveAttendance(classroomId: string, date: string, rows: Pi
   return data ?? 0;
 }
 
+export type TeacherSubject = { id: string; name: string; code: string | null; status: string; created_by: string | null };
+
+export async function loadTeacherSubjects(): Promise<TeacherSubject[]> {
+  const { data, error } = await supabase.rpc("teacher_list_subjects");
+  if (error) throw error;
+  return (data ?? []) as TeacherSubject[];
+}
+
+export async function createTeacherSubject(name: string, code: string) {
+  const { data, error } = await supabase.rpc("teacher_create_subject", { _name: name, _code: code });
+  if (error) throw error;
+  return data;
+}
+
+export async function updateTeacherSubject(id: string, name: string, code: string) {
+  const { data, error } = await supabase.rpc("teacher_update_subject", { _id: id, _name: name, _code: code });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function archiveTeacherSubject(id: string) {
+  const { data, error } = await supabase.rpc("teacher_archive_subject", { _id: id });
+  if (error) throw error;
+  return data ?? false;
+}
+
 export async function loadTeacherAcademicOptions(): Promise<AcademicOptions> {
   const { data, error } = await supabase.rpc("teacher_list_academic_options");
   if (error) throw error;
