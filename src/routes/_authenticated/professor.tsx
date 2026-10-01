@@ -319,7 +319,10 @@ function TeacherArea() {
         <div className="sina-card sina-card-hover p-6 shadow-sm">
           <div className="flex items-center gap-3"><Megaphone className="size-5 text-primary" /><div><h2 className="font-semibold">Quadro de avisos</h2><p className="mt-1 text-sm text-muted-foreground">Publique um comunicado para uma das suas turmas.</p></div></div>
           <form onSubmit={createAnnouncement} className="mt-5 space-y-3">
-            <Input required value={noticeClassroom} onChange={e => setNoticeClassroom(e.target.value)} placeholder="Turma (ex.: Turma A)" />
+            <select required value={noticeClassroom} onChange={e => setNoticeClassroom(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">Selecione a turma</option>
+              {classrooms.map(item => <option key={item} value={item}>{item}</option>)}
+            </select>
             <Input required value={noticeTitle} onChange={e => setNoticeTitle(e.target.value)} placeholder="Título do aviso" />
             <textarea required maxLength={2000} value={noticeContent} onChange={e => setNoticeContent(e.target.value)} placeholder="Escreva o comunicado..." className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
             <Button type="submit" disabled={busy}><Megaphone className="mr-2 size-4" />Publicar aviso</Button>
@@ -328,7 +331,10 @@ function TeacherArea() {
         <div className="sina-card sina-card-hover p-6 shadow-sm">
           <div className="flex items-center gap-3"><ClipboardCheck className="size-5 text-primary" /><div><h2 className="font-semibold">Nova tarefa</h2><p className="mt-1 text-sm text-muted-foreground">Crie uma atividade com disciplina e prazo.</p></div></div>
           <form onSubmit={createTask} className="mt-5 space-y-3">
-            <Input required value={taskClassroom} onChange={e => setTaskClassroom(e.target.value)} placeholder="Turma (ex.: Turma A)" />
+            <select required value={taskClassroom} onChange={e => setTaskClassroom(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">Selecione a turma</option>
+              {classrooms.map(item => <option key={item} value={item}>{item}</option>)}
+            </select>
             <div className="grid gap-3 sm:grid-cols-2"><Input required value={taskSubject} onChange={e => setTaskSubject(e.target.value)} placeholder="Disciplina" /><Input required value={taskTitle} onChange={e => setTaskTitle(e.target.value)} placeholder="Título da tarefa" /></div>
             <textarea maxLength={4000} value={taskDescription} onChange={e => setTaskDescription(e.target.value)} placeholder="Descrição e orientações..." className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
             <Input type="datetime-local" value={taskDueAt} onChange={e => setTaskDueAt(e.target.value)} />
