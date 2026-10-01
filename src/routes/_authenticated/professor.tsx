@@ -74,7 +74,7 @@ function TeacherArea() {
     if (!selected) return;
     const wasLinked = Boolean(selected.teacher_id);
     setBusy(true); setMessage(""); setMessageType("success");
-    const { data, error } = await supabase.rpc("teacher_link_student", {
+    const { data, error } = await supabase.rpc("teacher_link_roster_student", {
       _student_id: selected.id,
       _enrollment: enrollment.trim(),
       _classroom: classroom.trim(),
@@ -86,7 +86,7 @@ function TeacherArea() {
       toast.error(errorText(error));
       return;
     }
-    if (!data) {
+    if (!data?.length) {
       setMessageType("error");
       setMessage("Não foi possível salvar o vínculo do aluno.");
       return;
@@ -105,7 +105,7 @@ function TeacherArea() {
     if (!confirmed) return;
 
     setBusy(true); setMessage(""); setMessageType("success");
-    const { data, error } = await supabase.rpc("teacher_unlink_student", {
+    const { data, error } = await supabase.rpc("teacher_unlink_roster_student", {
       _student_id: selected.id,
     });
     setBusy(false);
@@ -170,9 +170,10 @@ function TeacherArea() {
     e.preventDefault();
     if (!bulkClassroom || !bulkSubject.trim()) return;
     const entries = linked.filter(s => s.classroom === bulkClassroom && bulkScores[s.id]?.trim() !== "");
-    if (!entries.length) {
+    const classroomId = entries.find(s => s.classroom_id)?.classroom_id ?? null;
+    if (!entries.length || !classroomId) {
       setMessageType("error");
-      setMessage("Informe pelo menos uma nota para a turma.");
+      setMessage("Selecione uma turma e informe pelo menos uma nota.");
       return;
     }
 
@@ -181,39 +182,27 @@ function TeacherArea() {
     setMessageType("success");
 
     try {
-      const normalizedSubject = bulkSubject.trim().toLowerCase();
-      const periodNumber = Number(bulkPeriod);
-      const entriesWithAbsences = await Promise.all(
-        entries.map(async (student) => {
-          const existingGrades = await loadGrades(student.id);
-          const existing = existingGrades.find(
-            (grade) => grade.subject.trim().toLowerCase() === normalizedSubject && grade.period === periodNumber,
-          );
-          return { student, absences: existing?.absences ?? 0 };
-        }),
-      );
-
-      for (const { student, absences } of entriesWithAbsences) {
-        const { error } = await supabase.rpc("teacher_upsert_grade", {
-          _student_id: student.id,
-          _subject: bulkSubject.trim(),
-          _period: periodNumber,
-          _score: Number(bulkScores[student.id].replace(",", ".")),
-          _absences: absences,
-        });
-        if (error) throw error;
-      }
+      const { data, error } = await supabase.rpc("teacher_bulk_upsert_grades", {
+        _classroom_id: classroomId,
+        _subject: bulkSubject.trim(),
+        _period: Number(bulkPeriod),
+        _rows: entries.map(student => ({
+          student_id: student.id,
+          score: Number(bulkScores[student.id].replace(",", ".")),
+        })),
+      });
+      if (error) throw error;
+      if (!data) throw new Error("Nenhuma nota foi processada.");
+      setBulkScores({});
+      setMessage(`${data} nota${data === 1 ? "" : "s"} lançada${data === 1 ? "" : "s"} com sucesso.`);
+      toast.success(`${data} nota${data === 1 ? "" : "s"} lançada${data === 1 ? "" : "s"} com sucesso.`);
     } catch (error) {
-      setBusy(false);
       setMessageType("error");
       setMessage(errorText(error));
-      toast.error("Não foi possível concluir todos os lançamentos.");
-      return;
+      toast.error("Não foi possível concluir o lançamento em lote.");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
-    setBulkScores({});
-    setMessage("Lançamento em lote concluído.");
-    toast.success(`${entries.length} nota${entries.length === 1 ? "" : "s"} lançada${entries.length === 1 ? "" : "s"} com sucesso.`);
     await queryClient.invalidateQueries({ queryKey: ["grades"] });
   }
 
