@@ -149,51 +149,6 @@ set search_path to ''
 as $$
 declare
   inst uuid;
-  classroom_id uuid;
-  result_row public.students;
-begin
-  if not public.has_role(auth.uid(),'teacher'::public.app_role) then
-    raise exception 'Acesso reservado a professores autorizados.';
-  end if;
-  inst:=sina_private.current_institution('teacher'::public.app_role);
-  if inst is null then raise exception 'Professor sem instituição ativa.'; end if;
-
-  select c.id into classroom_id
-  from public.classrooms c
-  join public.classroom_teachers ct on ct.classroom_id=c.id and ct.user_id=auth.uid()
-  where c.idempotency_key is null
-    and c.institution_id=inst and c.status='active'
-    and lower(c.name)=lower(trim(_classroom))
-  limit 1;
-  if classroom_id is null then raise exception 'A turma selecionada não pertence a você.'; end if;
-
-  if nullif(trim(_enrollment),'') is null then raise exception 'Informe a matrícula.'; end if;
-
-  update public.students
-  set enrollment=trim(_enrollment),classroom=trim(_classroom),classroom_id=classroom_id,
-      teacher_id=auth.uid(),institution_id=inst,updated_at=now()
-  where id=_student_id
-    and institution_id=inst;
-
-  if not found then raise exception 'Aluno não encontrado nesta instituição.'; end if;
-  select * into result_row from public.students where id=_student_id;
-  return result_row;
-end;
-$$;
-
--- The catalog schema has no idempotency_key column; redefine the function without it.
-create or replace function public.teacher_link_roster_student(
-  _student_id uuid,
-  _enrollment text,
-  _classroom text
-)
-returns public.students
-language plpgsql
-security definer
-set search_path to ''
-as $$
-declare
-  inst uuid;
   v_classroom_id uuid;
   result_row public.students;
 begin
