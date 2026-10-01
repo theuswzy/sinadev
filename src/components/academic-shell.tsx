@@ -190,7 +190,7 @@ export function AcademicShell({
                   <Building2 className="size-4 text-primary" />
                   <select
                     aria-label="Instituição ativa"
-                    value={institutions.data[0]?.id ?? ""}
+                    value={institutions.data.find((institution) => institution.is_active)?.id ?? institutions.data[0]?.id ?? ""}
                     onChange={async (event) => {
                       if (!event.target.value) return;
                       const { error } = await supabase.rpc("account_set_institution", { _institution_id: event.target.value });
