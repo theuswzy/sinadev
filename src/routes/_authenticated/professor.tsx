@@ -491,6 +491,21 @@ function TeacherArea() {
         <div className="sina-card sina-card-hover sina-interactive p-5"><BarChart3 className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Frequência média</p><p className="mt-1 font-display text-3xl font-semibold">{classWithAttendance ? `${formatScore(averageAttendance)}%` : "—"}</p><p className="mt-1 text-xs text-muted-foreground">{classWithAttendance ? `${classWithAttendance} aluno${classWithAttendance === 1 ? "" : "s"} com dados` : "Aguardando registros"}</p></div>
       </section>
 
+      <section aria-label="Atalhos da turma" className="mt-5 rounded-2xl border border-primary/15 bg-primary/5 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">Acesso rápido</p>
+            <p className="mt-1 text-sm text-muted-foreground">Vá direto para a tarefa que você precisa executar.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <a href="#alunos" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Gerenciar alunos</a>
+            <a href="#lancamentos" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Lançar notas</a>
+            <a href="#central-turma" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Central da turma</a>
+            <a href="#comunicacao" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Publicar aviso</a>
+          </div>
+        </div>
+      </section>
+
       <section id="alunos" className="mt-6 scroll-mt-28 sina-card sina-card-hover">
         <div className="border-b border-border p-6"><div className="flex items-center gap-3"><Link2 className="size-5 text-primary" /><div><h2 className="font-semibold">Alunos aguardando vínculo</h2><p className="mt-1 text-sm text-muted-foreground">Selecione um aluno que já possui conta e informe a turma e a matrícula.</p></div></div></div>
         <div className="border-b border-border p-4"><div className="relative max-w-md"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={studentSearch} onChange={e => setStudentSearch(e.target.value)} placeholder="Buscar aluno pelo nome…" className="pl-9" /></div></div>
