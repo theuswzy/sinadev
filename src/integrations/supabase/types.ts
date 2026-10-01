@@ -598,6 +598,7 @@ export type Database = {
           display_name: string
           email: string
           is_administrator: boolean
+          account_status: string
           user_id: string
         }[]
       }
