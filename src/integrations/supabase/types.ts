@@ -1065,7 +1065,7 @@ export type Database = {
         _attachment_size?: number | null
         _attachment_type?: string | null
       }
-      Returns: Tables<'tasks'>['Row']
+      Returns: Database['public']['Tables']['tasks']['Row']
     }
     teacher_create_announcement: {
       Args: {
@@ -1077,7 +1077,7 @@ export type Database = {
         _attachment_size?: number | null
         _attachment_type?: string | null
       }
-      Returns: Tables<'announcements'>['Row']
+      Returns: Database['public']['Tables']['announcements']['Row']
     }
     Enums: {
       app_role: "student" | "teacher" | "admin"
