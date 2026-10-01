@@ -30,6 +30,7 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
         { href: "#alunos", label: "Alunos", Icon: Users },
         { href: "#lancamentos", label: "Lançamentos", Icon: BookOpen },
         { href: "#comunicacao", label: "Comunicação", Icon: Megaphone },
+        { href: "/perfil", label: "Perfil", Icon: UserRound, route: true },
       ]
     : role.data === "student"
       ? [
@@ -39,7 +40,12 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
           { href: "/aluno#notas", label: "Notas", Icon: BookOpen },
           { href: "/perfil", label: "Perfil", Icon: UserRound, route: true },
         ]
-      : [];
+      : role.data === "admin"
+        ? [
+            { href: "/admin", label: "Administração", Icon: ShieldCheck, route: true },
+            { href: "/perfil", label: "Perfil", Icon: UserRound, route: true },
+          ]
+        : [];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
