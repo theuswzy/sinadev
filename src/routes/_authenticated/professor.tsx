@@ -713,7 +713,7 @@ function TeacherArea() {
                     </div>
                     <div className="flex shrink-0 gap-1">
                       <Button type="button" size="icon" variant="ghost" onClick={() => editAnnouncement(item)} aria-label="Editar aviso"><Pencil /></Button>
-                      <Button type="button" size="icon" variant="ghost" onClick={() => duplicateAnnouncement(item)} aria-label="Duplicar aviso"><Copy /></Button>
+                      <Button type="button" size="icon" variant="ghost" onClick={() => duplicateAnnouncement(item)} aria-label="Usar aviso como modelo"><Copy /></Button>
                       <Button type="button" size="icon" variant="ghost" onClick={() => void deleteAnnouncement(item)} aria-label="Excluir aviso" className="text-destructive hover:text-destructive"><Trash2 /></Button>
                     </div>
                   </div>
@@ -746,7 +746,7 @@ function TeacherArea() {
                     </div>
                     <div className="flex shrink-0 gap-1">
                       <Button type="button" size="icon" variant="ghost" onClick={() => editTask(item)} aria-label="Editar atividade"><Pencil /></Button>
-                      <Button type="button" size="icon" variant="ghost" onClick={() => duplicateTask(item)} aria-label="Duplicar atividade"><Copy /></Button>
+                      <Button type="button" size="icon" variant="ghost" onClick={() => duplicateTask(item)} aria-label="Usar atividade como modelo"><Copy /></Button>
                       <Button type="button" size="icon" variant="ghost" onClick={() => void deleteTask(item)} aria-label="Excluir atividade" className="text-destructive hover:text-destructive"><Trash2 /></Button>
                     </div>
                   </div>
