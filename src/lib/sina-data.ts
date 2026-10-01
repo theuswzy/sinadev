@@ -14,7 +14,13 @@ export async function getRole(): Promise<UserRole> {
     .eq("user_id", auth.user.id)
     .maybeSingle();
   if (profileError) throw profileError;
-  if (profile?.status === "suspended") {
+  if (!profile) {
+    throw new Error("Finalize seu cadastro para acessar o SINA.");
+  }
+  if (profile.status === "pending") {
+    throw new Error("Sua conta está aguardando aprovação do administrador.");
+  }
+  if (profile.status === "suspended") {
     throw new Error("Sua conta está suspensa. Procure o administrador da instituição.");
   }
 
@@ -29,6 +35,72 @@ export async function getRole(): Promise<UserRole> {
   if (roles.includes("admin")) return "admin";
   if (roles.includes("teacher")) return "teacher";
   return "student";
+}
+
+
+export type OnboardingState = {
+  status: "active" | "pending" | "suspended";
+  role: UserRole | null;
+  requested_role: "student" | "teacher" | null;
+  request_status: "pending" | "approved" | "rejected" | "cancelled" | null;
+  request_id: string | null;
+  review_note: string | null;
+};
+
+export async function ensureAccountOnboarding(requestedRole?: "student" | "teacher"): Promise<OnboardingState> {
+  const { data, error } = await supabase.rpc("ensure_account_onboarding", {
+    _requested_role: requestedRole ?? null,
+  });
+  if (error) throw error;
+  return data as OnboardingState;
+}
+
+export async function getAccountOnboardingState(): Promise<OnboardingState> {
+  const { data, error } = await supabase.rpc("account_get_onboarding_state");
+  if (error) throw error;
+  return data as OnboardingState;
+}
+
+export async function resubmitRoleRequest(role: "student" | "teacher"): Promise<boolean> {
+  const { data, error } = await supabase.rpc("account_resubmit_role_request", {
+    _requested_role: role,
+  });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export type AccountRoleRequest = {
+  id: string;
+  user_id: string;
+  email: string;
+  display_name: string;
+  requested_role: "student" | "teacher";
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  review_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+};
+
+export async function loadAccountRoleRequests(): Promise<AccountRoleRequest[]> {
+  const { data, error } = await supabase.rpc("admin_list_role_requests");
+  if (error) throw error;
+  return (data ?? []) as AccountRoleRequest[];
+}
+
+export async function reviewAccountRoleRequest(
+  requestId: string,
+  decision: "approved" | "rejected",
+  approvedRole: "student" | "teacher",
+  note: string,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("admin_review_role_request", {
+    _request_id: requestId,
+    _decision: decision,
+    _approved_role: approvedRole,
+    _note: note,
+  });
+  if (error) throw error;
+  return data ?? false;
 }
 
 export function routeForRole(role: UserRole): AcademicArea {
