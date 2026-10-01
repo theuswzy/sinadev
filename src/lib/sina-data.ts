@@ -403,6 +403,12 @@ export type AdminAcademicSetup = {
   terms: { id: string; name: string; starts_at: string | null; ends_at: string | null; is_current: boolean }[];
 };
 
+export async function createTeacherClassroom(name: string, code: string) {
+  const { data, error } = await supabase.rpc("teacher_create_classroom", { _name: name, _code: code });
+  if (error) throw error;
+  return data;
+}
+
 export async function loadTeacherClassrooms(): Promise<TeacherClassroom[]> {
   const { data, error } = await supabase.rpc("teacher_list_classrooms");
   if (error) throw error;
