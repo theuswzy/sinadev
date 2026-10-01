@@ -35,6 +35,16 @@ function AdminArea() {
       return Boolean(data);
     },
   });
+  const institutions = useQuery({
+    queryKey: ["my-institutions"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("account_list_institutions");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: role.data === true,
+  });
+
   const accounts = useQuery({
     queryKey: ["admin-accounts"],
     queryFn: async () => {
