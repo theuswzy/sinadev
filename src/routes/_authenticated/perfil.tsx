@@ -201,7 +201,10 @@ function StudentProfile() {
     toast.success("Enviamos um link para alterar sua senha.");
   }
 
-  if (role.isPending || student.isPending || account.isPending) {
+  const studentLoading = role.data === "student" && student.isPending;
+  const studentError = role.data === "student" ? student.error : null;
+
+  if (role.isPending || studentLoading || account.isPending) {
     return (
       <AcademicShell title="Meu perfil" subtitle="Edite seus dados e personalize sua experiência">
         <div className="mt-8 grid gap-4 md:grid-cols-2">
@@ -217,11 +220,11 @@ function StudentProfile() {
     );
   }
 
-  if (role.error || student.error || account.error) {
+  if (role.error || studentError || account.error) {
     return (
       <AcademicShell title="Meu perfil" subtitle="Edite seus dados e personalize sua experiência">
         <div className="mt-8 rounded-2xl border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive" role="alert">
-          {errorText(role.error ?? student.error ?? account.error)}
+          {errorText(role.error ?? studentError ?? account.error)}
         </div>
       </AcademicShell>
     );
