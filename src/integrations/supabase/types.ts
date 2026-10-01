@@ -531,6 +531,18 @@ export type Database = {
         Args: { _student_id: string }
         Returns: boolean
       }
+      admin_list_students: {
+        Args: never
+        Returns: { id: string; user_id: string; full_name: string; enrollment: string | null; classroom_id: string | null; classroom_name: string | null; status: string }[]
+      }
+      admin_assign_student_to_classroom: {
+        Args: { _student_id: string; _classroom_id: string; _enrollment?: string | null }
+        Returns: boolean
+      }
+      admin_remove_student_from_classroom: {
+        Args: { _student_id: string }
+        Returns: boolean
+      }
       admin_list_teacher_classroom_assignments: {
         Args: never
         Returns: { classroom_id: string; classroom_name: string; teacher_id: string; teacher_name: string; teacher_email: string }[]
