@@ -170,26 +170,40 @@ begin
   on conflict do nothing;
 
   update public.announcements a
-     set institution_id = coalesce(a.institution_id, im.institution_id),
-         classroom_id = coalesce(a.classroom_id, c.id)
-    from public.institution_memberships im
-    left join public.classrooms c
-      on c.institution_id = im.institution_id
-     and lower(c.name) = lower(trim(a.classroom))
-   where im.user_id = a.teacher_id
-     and im.role = 'teacher'
-     and (a.institution_id is null or a.classroom_id is null);
+   set institution_id = coalesce(
+         a.institution_id,
+         (select im.institution_id from public.institution_memberships im
+          where im.user_id = a.teacher_id and im.role = 'teacher' and im.status = 'active' limit 1)
+       ),
+       classroom_id = coalesce(
+         a.classroom_id,
+         (select c.id from public.classrooms c
+          where c.institution_id = (
+            select im.institution_id from public.institution_memberships im
+            where im.user_id = a.teacher_id and im.role = 'teacher' and im.status = 'active' limit 1
+          )
+          and lower(c.name) = lower(trim(a.classroom))
+          limit 1)
+       )
+ where a.institution_id is null or a.classroom_id is null;
 
   update public.tasks t
-     set institution_id = coalesce(t.institution_id, im.institution_id),
-         classroom_id = coalesce(t.classroom_id, c.id)
-    from public.institution_memberships im
-    left join public.classrooms c
-      on c.institution_id = im.institution_id
-     and lower(c.name) = lower(trim(t.classroom))
-   where im.user_id = t.teacher_id
-     and im.role = 'teacher'
-     and (t.institution_id is null or t.classroom_id is null);
+   set institution_id = coalesce(
+         t.institution_id,
+         (select im.institution_id from public.institution_memberships im
+          where im.user_id = t.teacher_id and im.role = 'teacher' and im.status = 'active' limit 1)
+       ),
+       classroom_id = coalesce(
+         t.classroom_id,
+         (select c.id from public.classrooms c
+          where c.institution_id = (
+            select im.institution_id from public.institution_memberships im
+            where im.user_id = t.teacher_id and im.role = 'teacher' and im.status = 'active' limit 1
+          )
+          and lower(c.name) = lower(trim(t.classroom))
+          limit 1)
+       )
+ where t.institution_id is null or t.classroom_id is null;
 
   insert into public.subjects (institution_id, name, status)
   select distinct s.institution_id, trim(g.subject), 'active'
@@ -384,8 +398,8 @@ begin
   from public.students s
   where s.classroom_id = _classroom_id
     and s.user_id is not null
-    and s.user_id <> _teacher_id
-  returning 1 into v_count;
+    and s.user_id <> _teacher_id;
+  get diagnostics v_count = row_count;
   return coalesce(v_count, 0);
 end;
 $$;
@@ -656,6 +670,9 @@ set search_path to ''
 as $$
   select sina_private.set_account_status(_user_id, _status)
 $$;
+
+drop function if exists public.admin_list_accounts();
+drop function if exists sina_private.list_accounts();
 
 create or replace function sina_private.list_accounts()
 returns table (
