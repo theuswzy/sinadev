@@ -60,7 +60,7 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
         : [];
 
   function isActive(item: ShellLink, index: number) {
-    if (item.route) return location.pathname === item.href;
+    if (item.route) return location.pathname === item.href && !location.hash;
     if (location.hash && item.href.startsWith("#")) return location.hash === item.href;
     return index === 0 && (location.pathname === "/aluno" || location.pathname === "/professor");
   }
