@@ -19,6 +19,7 @@ import { Route as AuthenticatedAlunoRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedProfessorRouteImport } from './routes/_authenticated/professor'
 import { Route as AuthenticatedProfessorTurmasRouteImport } from './routes/_authenticated/professor/turmas'
+import { Route as AuthenticatedProfessorDisciplinasRouteImport } from './routes/_authenticated/professor/disciplinas'
 import { Route as AuthenticatedProfessorNotasRouteImport } from './routes/_authenticated/professor/notas'
 import { Route as AuthenticatedProfessorFrequenciaRouteImport } from './routes/_authenticated/professor/frequencia'
 import { Route as AuthenticatedProfessorAvaliacoesRouteImport } from './routes/_authenticated/professor/avaliacoes'
@@ -115,6 +116,12 @@ const AuthenticatedProfessorTurmasRoute = AuthenticatedProfessorTurmasRouteImpor
   getParentRoute: () => AuthenticatedProfessorRoute,
 } as any)
 
+const AuthenticatedProfessorDisciplinasRoute = AuthenticatedProfessorDisciplinasRouteImport.update({
+  id: '/_authenticated/professor/disciplinas',
+  path: '/disciplinas',
+  getParentRoute: () => AuthenticatedProfessorRoute,
+} as any)
+
 const AuthenticatedProfessorNotasRoute = AuthenticatedProfessorNotasRouteImport.update({
   id: '/_authenticated/professor/notas',
   path: '/notas',
@@ -167,6 +174,8 @@ export interface FileRoutesByFullPath {
   '/painel': typeof AuthenticatedPainelRoute
   '/professor': typeof AuthenticatedProfessorRoute
   '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
+  '/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
+  '/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
   '/professor/notas': typeof AuthenticatedProfessorNotasRoute
   '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
   '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
@@ -217,6 +226,7 @@ export interface FileRoutesById {
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/professor': typeof AuthenticatedProfessorRoute
   '/_authenticated/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
+  '/_authenticated/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
   '/_authenticated/professor/notas': typeof AuthenticatedProfessorNotasRoute
   '/_authenticated/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
   '/_authenticated/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
@@ -243,6 +253,8 @@ export interface FileRouteTypes {
     | '/painel'
     | '/professor'
     | '/professor/turmas'
+    | '/professor/disciplinas'
+    | '/professor/disciplinas'
     | '/professor/notas'
     | '/professor/frequencia'
     | '/professor/avaliacoes'
@@ -280,6 +292,7 @@ export interface FileRouteTypes {
     | '/_authenticated/painel'
     | '/_authenticated/professor'
     | '/_authenticated/professor/turmas'
+    | '/_authenticated/professor/disciplinas'
     | '/_authenticated/professor/notas'
     | '/_authenticated/professor/frequencia'
     | '/_authenticated/professor/avaliacoes'
@@ -367,6 +380,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/professor',
       preLoaderRoute: typeof AuthenticatedProfessorRouteImport,
       parentRoute: typeof AuthenticatedRouteRoute,
+    }
+    '/_authenticated/professor/disciplinas': {
+      id: '/_authenticated/professor/disciplinas',
+      path: '/disciplinas',
+      fullPath: '/professor/disciplinas',
+      preLoaderRoute: typeof AuthenticatedProfessorDisciplinasRouteImport,
+      parentRoute: typeof AuthenticatedProfessorRouteImport,
     }
     '/_authenticated/professor/turmas': {
       id: '/_authenticated/professor/turmas',
