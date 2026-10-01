@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/perfil")({
 
 function StudentProfile() {
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
-  const student = useQuery({ queryKey: ["my-student"], queryFn: loadMyStudent });
+  const student = useQuery({ queryKey: ["my-student"], queryFn: loadMyStudent, enabled: role.data === "student" });
   const account = useQuery({
     queryKey: ["auth-user-profile"],
     queryFn: async () => {
