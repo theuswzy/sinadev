@@ -5,7 +5,7 @@ import { BarChart3, BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, Clipbo
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { errorText, formatScore, loadAttendance, loadGrades, loadStudents, loadTeacherAcademicOptions, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassrooms, saveAttendance, createAssessment, createTeacherCalendarEvent, loadTaskSubmissions, gradeTaskSubmission, loadTeacherSubjects, createTeacherSubject, updateTeacherSubject, archiveTeacherSubject, type AttendanceRow, type TeacherStudent, type TeacherClassroom, type TaskSubmission, type TeacherSubject } from "@/lib/sina-data";
+import { errorText, formatScore, loadAttendance, loadGrades, loadStudents, loadTeacherAcademicOptions, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassrooms, saveAttendance, createAssessment, createTeacherCalendarEvent, loadTaskSubmissions, gradeTaskSubmission, loadTeacherSubjects, createTeacherSubject, updateTeacherSubject, archiveTeacherSubject, loadTeacherSubjectAssignments, assignTeacherSubjectToClass, unassignTeacherSubjectFromClass, type AttendanceRow, type TeacherStudent, type TeacherClassroom, type TaskSubmission, type TeacherSubject } from "@/lib/sina-data";
 import { supabase } from "@/integrations/supabase/client";
 
 export type TeacherModule = "turmas"|"disciplinas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"agenda"|"comunicacao";
@@ -44,22 +44,19 @@ return <PublishBox kind="notice" classes={classes.data||[]}/>;
 }
 function SubjectBox(){
   const q=useQuery({queryKey:["teacher-subjects"],queryFn:loadTeacherSubjects});
+  const classes=useQuery({queryKey:["teacher-subject-classrooms"],queryFn:loadTeacherClassrooms});
+  const assignments=useQuery({queryKey:["teacher-subject-assignments"],queryFn:loadTeacherSubjectAssignments});
   const [name,setName]=useState(""); const [code,setCode]=useState(""); const [editing,setEditing]=useState<TeacherSubject|null>(null);
+  const [assignSubject,setAssignSubject]=useState(""); const [assignClass,setAssignClass]=useState("");
   const save=async()=>{if(!name.trim())return;if(editing) await updateTeacherSubject(editing.id,name,code); else await createTeacherSubject(name,code);setName("");setCode("");setEditing(null);await q.refetch();};
+  const assign=async()=>{if(!assignSubject||!assignClass)return;await assignTeacherSubjectToClass(assignSubject,assignClass);setAssignSubject("");await assignments.refetch();};
   return <div className="mt-6 space-y-5">
-    <section className="rounded-3xl bg-brand p-6 text-brand-foreground md:p-8">
-      <p className="text-xs font-bold uppercase tracking-[.14em] text-brand-muted">Gestão docente</p>
-      <h1 className="mt-1 font-display text-2xl font-bold">Minhas disciplinas</h1>
-      <p className="mt-2 max-w-2xl text-sm text-brand-muted">Crie as disciplinas que você leciona e use-as ao publicar atividades e avaliações.</p>
-    </section>
-    <section className="sina-card p-6">
-      <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">{editing?"Editar disciplina":"Nova disciplina"}</h2><p className="text-sm text-muted-foreground">A disciplina fica vinculada à sua instituição.</p></div>{editing&&<Button variant="outline" onClick={()=>{setEditing(null);setName("");setCode("")}}>Cancelar</Button>}</div>
-      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_180px_auto]"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome da disciplina"/><Input value={code} onChange={e=>setCode(e.target.value)} placeholder="Código (opcional)"/><Button disabled={!name.trim()} onClick={()=>void save()}>{editing?"Salvar alterações":"Criar disciplina"}</Button></div>
-    </section>
+    <section className="rounded-3xl bg-brand p-6 text-brand-foreground md:p-8"><p className="text-xs font-bold uppercase tracking-[.14em] text-brand-muted">Gestão docente</p><h1 className="mt-1 font-display text-2xl font-bold">Minhas disciplinas</h1><p className="mt-2 max-w-2xl text-sm text-brand-muted">Crie suas disciplinas e associe cada uma às turmas em que você leciona.</p></section>
+    <section className="sina-card p-6"><div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">{editing?"Editar disciplina":"Nova disciplina"}</h2><p className="text-sm text-muted-foreground">A disciplina fica vinculada à sua instituição.</p></div>{editing&&<Button variant="outline" onClick={()=>{setEditing(null);setName("");setCode("")}}>Cancelar</Button>}</div><div className="mt-4 grid gap-3 md:grid-cols-[1fr_180px_auto]"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome da disciplina"/><Input value={code} onChange={e=>setCode(e.target.value)} placeholder="Código (opcional)"/><Button disabled={!name.trim()} onClick={()=>void save()}>{editing?"Salvar alterações":"Criar disciplina"}</Button></div></section>
+    <section className="sina-card p-6"><h2 className="font-semibold">Associar disciplina a uma turma</h2><p className="mt-1 text-sm text-muted-foreground">Depois da associação, a disciplina passa a aparecer nos fluxos de atividades, avaliações e para os alunos.</p><div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]"><select value={assignSubject} onChange={e=>setAssignSubject(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Disciplina</option>{(q.data||[]).map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select><select value={assignClass} onChange={e=>setAssignClass(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Turma</option>{(classes.data||[]).map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select><Button disabled={!assignSubject||!assignClass} onClick={()=>void assign()}>Associar</Button></div><div className="mt-5 grid gap-2 md:grid-cols-2">{(assignments.data||[]).map(x=><div key={x.id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3"><div><p className="font-medium">{x.subject_name}</p><p className="text-xs text-muted-foreground">{x.classroom_name}</p></div><Button size="sm" variant="ghost" onClick={async()=>{await unassignTeacherSubjectFromClass(x.id);await assignments.refetch()}}>Remover</Button></div>)}</div></section>
     <section className="sina-card p-6"><h2 className="font-semibold">Disciplinas disponíveis</h2><div className="mt-4 grid gap-3 md:grid-cols-2">{(q.data||[]).map(subject=><article key={subject.id} className="rounded-2xl border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{subject.name}</p><p className="mt-1 text-xs text-muted-foreground">{subject.code||"Sem código"}{subject.created_by?" · criada por você":""}</p></div>{subject.created_by&&<div className="flex gap-2"><Button size="sm" variant="outline" onClick={()=>{setEditing(subject);setName(subject.name);setCode(subject.code||"")}}>Editar</Button><Button size="sm" variant="ghost" onClick={async()=>{await archiveTeacherSubject(subject.id);await q.refetch()}}>Arquivar</Button></div>}</div></article>)}</div>{!q.isPending&&!q.data?.length&&<p className="mt-4 text-sm text-muted-foreground">Nenhuma disciplina cadastrada ainda.</p>}</section>
   </div>;
 }
-
 function UnlinkedStudents({students,classes,onLinked}:{students:TeacherStudent[];classes:TeacherClassroom[];onLinked:()=>void}){
   const [enrollments,setEnrollments]=useState<Record<string,string>>({});
   const [classrooms,setClassrooms]=useState<Record<string,string>>({});
