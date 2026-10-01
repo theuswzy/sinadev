@@ -41,27 +41,27 @@ function StudentDashboard() {
 
   return (
     <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico">
-      <section className="mt-7 overflow-hidden rounded-3xl bg-brand p-6 text-brand-foreground md:p-8">
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand-panel">
+      <section className="mt-6 overflow-hidden rounded-3xl bg-brand p-5 text-brand-foreground shadow-sm sm:p-7">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-brand-panel sm:size-14">
               {student.data.avatar_url ? <img src={student.data.avatar_url} alt="" className="size-full object-cover"/> : <UserRound className="size-6 text-brand-muted"/>}
             </div>
-            <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-muted">Dashboard do aluno</p><h2 className="mt-1 font-display text-2xl font-bold md:text-3xl">Olá, {student.data.full_name.split(" ")[0]}! 👋</h2><p className="mt-1 text-sm text-brand-muted">Aqui você encontra apenas o que precisa acompanhar agora.</p></div>
+            <div className="min-w-0"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-muted">Visão geral</p><h2 className="mt-1 truncate font-display text-2xl font-bold md:text-3xl">Olá, {student.data.full_name.split(" ")[0]}! 👋</h2><p className="mt-1 text-sm text-brand-muted">Acompanhe rapidamente o que precisa da sua atenção.</p></div>
           </div>
-          <Link to="/perfil" className="rounded-xl border border-brand-border px-4 py-2 text-sm font-semibold hover:bg-brand-panel">Meu perfil</Link>
+          <Link to="/perfil" className="inline-flex items-center justify-center rounded-xl border border-brand-border px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-brand-panel">Meu perfil</Link>
         </div>
       </section>
 
-      <section className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link to="/aluno/tarefas" className="sina-card sina-card-hover p-5"><ClipboardList className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Pendências</p><p className="mt-1 text-3xl font-semibold">{pending.length}</p><p className="mt-1 text-xs text-muted-foreground">tarefas para resolver</p></Link>
+      <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Link to="/aluno/tarefas" className="sina-card sina-card-hover group p-5"><ClipboardList className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Pendências</p><p className="mt-1 text-3xl font-semibold">{pending.length}</p><p className="mt-1 text-xs text-muted-foreground">tarefas para resolver</p></Link>
         <Link to="/aluno/notas" className="sina-card sina-card-hover p-5"><BarChart3 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Média geral</p><p className="mt-1 text-3xl font-semibold">{average == null ? "—" : formatScore(average)}</p><p className="mt-1 text-xs text-muted-foreground">com base nos lançamentos</p></Link>
         <Link to="/aluno/frequencia" className="sina-card sina-card-hover p-5"><CheckCircle2 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-3xl font-semibold">{absences}</p><p className="mt-1 text-xs text-muted-foreground">registradas nas notas</p></Link>
         <Link to="/aluno/disciplinas" className="sina-card sina-card-hover p-5"><BookOpen className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Disciplinas</p><p className="mt-1 text-3xl font-semibold">{subjects.length}</p><p className="mt-1 text-xs text-muted-foreground">com dados acadêmicos</p></Link>
       </section>
 
       <section className="mt-6 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-        <div className="sina-card p-6">
+        <div className="sina-card p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Agora</p><h2 className="mt-1 text-lg font-semibold">O que precisa da sua atenção</h2></div><Link to="/aluno/tarefas" className="text-sm font-semibold text-primary">Ver tudo</Link></div>
           <div className="mt-4 space-y-2">
             {pending.slice(0,5).map(task => <Link key={task.id} to="/aluno/tarefas" className="flex items-center justify-between gap-4 rounded-xl border border-border p-4 hover:bg-muted/50"><div><p className="font-medium">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject} · {task.due_at ? new Date(task.due_at).toLocaleDateString("pt-BR") : "Sem prazo"}</p></div><ArrowRight className="size-4 text-muted-foreground"/></Link>)}
@@ -78,9 +78,9 @@ function StudentDashboard() {
         </div>
       </section>
 
-      <section className="mt-6">
-        <div className="mb-3 flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Acesso rápido</p><h2 className="mt-1 text-lg font-semibold">Áreas do SINA</h2></div></div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <section className="mt-7">
+        <div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Acesso rápido</p><h2 className="mt-1 text-lg font-semibold">O que você quer acessar?</h2></div><span className="hidden text-xs text-muted-foreground sm:block">Navegue pelas áreas do SINA</span></div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {[
             ["/aluno/tarefas","Tarefas",ClipboardList],
             ["/aluno/disciplinas","Disciplinas",BookOpen],
