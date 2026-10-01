@@ -36,7 +36,7 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
         { href: "#tarefas", label: "Tarefas", Icon: ClipboardList },
         { href: "#disciplinas", label: "Disciplinas", Icon: BookOpen },
         { href: "#notas", label: "Notas", Icon: BookOpen },
-        { href: "/aluno/perfil", label: "Perfil", Icon: UserRound, route: true },
+        { href: "/perfil", label: "Perfil", Icon: UserRound, route: true },
       ];
 
   return (
@@ -58,7 +58,7 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
                 : "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-brand-muted transition-colors hover:bg-brand-panel hover:text-brand-foreground";
 
               return route ? (
-                <Link key={href} to={href as "/aluno/perfil"} aria-current={active ? "page" : undefined} className={className}>
+                <Link key={href} to={href as "/perfil"} aria-current={active ? "page" : undefined} className={className}>
                   <Icon className={active ? "size-4 text-primary" : "size-4"} />
                   <span>{label}</span>
                 </Link>
@@ -89,7 +89,7 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
               : "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted transition-colors hover:bg-brand-panel hover:text-brand-foreground";
 
             return route ? (
-              <Link key={href} to={href as "/aluno/perfil"} aria-current={active ? "page" : undefined} className={className}>
+              <Link key={href} to={href as "/perfil"} aria-current={active ? "page" : undefined} className={className}>
                 <Icon className={active ? "size-4 text-primary" : "size-4"} />
                 {label}
               </Link>
