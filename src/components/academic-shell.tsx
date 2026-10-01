@@ -29,6 +29,7 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
         { href: "#inicio", label: "Visão geral", Icon: LayoutDashboard },
         { href: "#alunos", label: "Alunos", Icon: Users },
         { href: "#lancamentos", label: "Lançamentos", Icon: BookOpen },
+        { href: "#central-turma", label: "Central", Icon: ClipboardList },
         { href: "#comunicacao", label: "Comunicação", Icon: Megaphone },
         { href: "/perfil", label: "Perfil", Icon: UserRound, route: true },
       ]
@@ -38,6 +39,7 @@ export function AcademicShell({ title, subtitle, children }: { title: string; su
           { href: "/aluno#tarefas", label: "Tarefas", Icon: ClipboardList },
           { href: "/aluno#disciplinas", label: "Disciplinas", Icon: BookOpen },
           { href: "/aluno#notas", label: "Notas", Icon: BookOpen },
+          { href: "/aluno#academico", label: "Vida acadêmica", Icon: ClipboardList },
           { href: "/perfil", label: "Perfil", Icon: UserRound, route: true },
         ]
       : role.data === "admin"
