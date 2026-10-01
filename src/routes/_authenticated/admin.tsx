@@ -198,6 +198,19 @@ function AdminArea() {
             </span>
           </nav>
           <div className="ml-auto flex items-center gap-2">
+            {institutions.data && institutions.data.length > 0 && (
+              <select
+                aria-label="Instituição ativa"
+                value={institutions.data.find(i => i.is_active)?.id ?? institutions.data[0]?.id ?? ""}
+                onChange={async e => {
+                  const { error } = await supabase.rpc("account_set_institution", { _institution_id: e.target.value });
+                  if (!error) window.location.reload();
+                }}
+                className="hidden max-w-52 rounded-lg border border-brand-border bg-brand-panel px-2.5 py-2 text-xs font-semibold text-brand-foreground lg:block"
+              >
+                {institutions.data.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+              </select>
+            )}
             <span className="hidden rounded-full border border-brand-border bg-brand-panel/70 px-3 py-1.5 text-xs font-medium text-brand-muted lg:inline-flex">Controle de acesso</span>
             <ThemeToggle />
             <Button variant="outline" size="sm" onClick={logout} className="border-brand-border bg-transparent text-brand-foreground shadow-none hover:bg-brand-panel">
