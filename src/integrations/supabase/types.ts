@@ -557,6 +557,18 @@ export type Database = {
         }
       }
 
+      account_list_institutions: {
+        Args: never
+        Returns: { id: string; name: string; slug: string; status: string; role: string }[]
+      }
+      account_set_institution: {
+        Args: { _institution_id: string }
+        Returns: boolean
+      }
+      admin_create_institution: {
+        Args: { _name: string; _slug: string }
+        Returns: string
+      }
       admin_list_audit_logs: {
         Args: { _limit?: number }
         Returns: {
