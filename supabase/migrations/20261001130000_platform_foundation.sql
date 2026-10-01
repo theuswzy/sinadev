@@ -349,7 +349,7 @@ language sql
 stable
 security definer
 set search_path to ''
-as $
+as $function$
   select exists (
     select 1 from public.user_roles r
     where r.user_id = _user_id and r.role = _role
