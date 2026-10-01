@@ -289,6 +289,140 @@ export type Database = {
         Args: { _completed: boolean; _task_id: string }
         Returns: boolean
       }
+      teacher_list_announcements: {
+        Args: never
+        Returns: {
+          id: string
+          teacher_id: string
+          classroom: string
+          title: string
+          content: string
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          created_at: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "announcements"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      teacher_list_tasks: {
+        Args: never
+        Returns: {
+          id: string
+          teacher_id: string
+          classroom: string
+          subject: string
+          title: string
+          description: string
+          due_at: string | null
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          created_at: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "tasks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      teacher_update_announcement: {
+        Args: {
+          _attachment_name?: string | null
+          _attachment_path?: string | null
+          _attachment_size?: number | null
+          _attachment_type?: string | null
+          _classroom: string
+          _content: string
+          _id: string
+          _title: string
+        }
+        Returns: {
+          id: string
+          teacher_id: string
+          classroom: string
+          title: string
+          content: string
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          created_at: string
+          updated_at: string
+        }
+      }
+      teacher_delete_announcement: {
+        Args: { _id: string }
+        Returns: {
+          id: string
+          teacher_id: string
+          classroom: string
+          title: string
+          content: string
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          created_at: string
+          updated_at: string
+        }
+      }
+      teacher_update_task: {
+        Args: {
+          _attachment_name?: string | null
+          _attachment_path?: string | null
+          _attachment_size?: number | null
+          _attachment_type?: string | null
+          _classroom: string
+          _description: string
+          _due_at: string | null
+          _id: string
+          _subject: string
+          _title: string
+        }
+        Returns: {
+          id: string
+          teacher_id: string
+          classroom: string
+          subject: string
+          title: string
+          description: string
+          due_at: string | null
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          created_at: string
+          updated_at: string
+        }
+      }
+      teacher_delete_task: {
+        Args: { _id: string }
+        Returns: {
+          id: string
+          teacher_id: string
+          classroom: string
+          subject: string
+          title: string
+          description: string
+          due_at: string | null
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          created_at: string
+          updated_at: string
+        }
+      }
       teacher_create_announcement: {
         Args: {
           _attachment_name?: string | null
