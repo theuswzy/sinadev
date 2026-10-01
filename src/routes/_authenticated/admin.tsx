@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { errorText } from "@/lib/sina-data";
+import { AdminAcademicSetup } from "@/components/admin-academic-setup";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [
@@ -212,6 +213,8 @@ function AdminArea() {
             </div>
           ) : <p className="mt-5 text-sm text-muted-foreground">{accountSearch ? "Nenhuma conta encontrada." : "Nenhuma conta cadastrada."}</p>}
         </section>
+
+        <AdminAcademicSetup />
 
         <section id="historico" className="sina-card sina-card-hover scroll-mt-28">
           <div className="flex items-center justify-between border-b border-border p-6">
