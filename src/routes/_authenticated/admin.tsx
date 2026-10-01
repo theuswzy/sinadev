@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search } from "lucide-react";
+import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, UserCheck, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,6 +75,28 @@ function AdminArea() {
     }
     setMessage(nextRole === "teacher" ? "Conta definida como professor." : "Conta definida como aluno.");
     toast.success(nextRole === "teacher" ? "Professor autorizado." : "Conta definida como aluno.");
+    await queryClient.invalidateQueries({ queryKey: ["admin-accounts"] });
+  }
+
+  async function setAccountStatus(userId: string, nextStatus: "active" | "suspended") {
+    setBusyId(userId);
+    setMessage("");
+    const { data, error } = await supabase.rpc("admin_set_account_status", {
+      _user_id: userId,
+      _status: nextStatus,
+    });
+    setBusyId(null);
+    if (error) {
+      setMessage(errorText(error));
+      toast.error(errorText(error));
+      return;
+    }
+    if (!data) {
+      setMessage("Não foi possível atualizar o status da conta.");
+      return;
+    }
+    setMessage(nextStatus === "active" ? "Conta reativada." : "Conta suspensa.");
+    toast.success(nextStatus === "active" ? "Conta reativada." : "Conta suspensa.");
     await queryClient.invalidateQueries({ queryKey: ["admin-accounts"] });
   }
 
@@ -158,10 +180,32 @@ function AdminArea() {
             <div className="mt-5 divide-y divide-border border-t border-border">
               {filteredAccounts.map(account => (
                 <div key={account.user_id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0"><p className="font-semibold">{account.display_name || account.email}</p><p className="break-all text-sm text-muted-foreground">{account.email}</p>{account.is_administrator && <span className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary"><ShieldCheck className="size-3" /> Administrador</span>}</div>
-                  <div className="flex shrink-0 gap-1 rounded-md border border-border p-1" aria-label={`Função acadêmica de ${account.email}`}>
-                    <Button size="sm" variant={account.academic_role === "student" ? "default" : "ghost"} disabled={account.is_administrator || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "student")}>Aluno</Button>
-                    <Button size="sm" variant={account.academic_role === "teacher" ? "default" : "ghost"} disabled={account.is_administrator || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "teacher")}>Professor</Button>
+                  <div className="min-w-0">
+                    <p className="font-semibold">{account.display_name || account.email}</p>
+                    <p className="break-all text-sm text-muted-foreground">{account.email}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      {account.is_administrator && <span className="inline-flex items-center gap-1 text-xs font-medium text-primary"><ShieldCheck className="size-3" /> Administrador</span>}
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${account.account_status === "suspended" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
+                        {account.account_status === "suspended" ? <Ban className="size-3" /> : <UserCheck className="size-3" />}
+                        {account.account_status === "suspended" ? "Suspensa" : "Ativa"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <div className="flex shrink-0 gap-1 rounded-md border border-border p-1" aria-label={`Função acadêmica de ${account.email}`}>
+                      <Button size="sm" variant={account.academic_role === "student" ? "default" : "ghost"} disabled={account.is_administrator || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "student")}>Aluno</Button>
+                      <Button size="sm" variant={account.academic_role === "teacher" ? "default" : "ghost"} disabled={account.is_administrator || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "teacher")}>Professor</Button>
+                    </div>
+                    {!account.is_administrator && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busyId === account.user_id}
+                        onClick={() => void setAccountStatus(account.user_id, account.account_status === "suspended" ? "active" : "suspended")}
+                      >
+                        {account.account_status === "suspended" ? <><UserCheck className="mr-2 size-4" />Ativar</> : <><Ban className="mr-2 size-4" />Suspender</>}
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
