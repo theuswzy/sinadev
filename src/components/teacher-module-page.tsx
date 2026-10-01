@@ -5,7 +5,7 @@ import { BarChart3, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, M
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { errorText, formatScore, loadAttendance, loadGrades, loadStudents, loadTeacherAcademicOptions, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassrooms, saveAttendance, createAssessment, createTeacherCalendarEvent, type AttendanceRow } from "@/lib/sina-data";
+import { errorText, formatScore, loadAttendance, loadGrades, loadStudents, loadTeacherAcademicOptions, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassrooms, saveAttendance, createAssessment, createTeacherCalendarEvent, type AttendanceRow, type TeacherStudent } from "@/lib/sina-data";
 import { supabase } from "@/integrations/supabase/client";
 
 export type TeacherModule = "turmas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"agenda"|"comunicacao";
