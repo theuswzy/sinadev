@@ -197,9 +197,46 @@ function AdminArea() {
           </div>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2">
-          <div className="sina-card sina-card-hover sina-interactive p-5"><Users className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Contas cadastradas</p><p className="mt-1 font-display text-3xl font-semibold">{accounts.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">Contas no SINA</p></div>
-          <div className="sina-card sina-card-hover sina-interactive p-5"><ShieldCheck className="size-5 text-primary" /><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Professores</p><p className="mt-1 font-display text-3xl font-semibold">{teacherCount}</p><p className="mt-1 text-xs text-muted-foreground">Contas autorizadas a lançar dados</p></div>
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="sina-card sina-card-hover p-5">
+            <Users className="size-5 text-primary" />
+            <p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Contas</p>
+            <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{accounts.data?.length ?? 0}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Usuários cadastrados</p>
+          </div>
+          <div className="sina-card sina-card-hover p-5">
+            <ShieldCheck className="size-5 text-primary" />
+            <p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Professores</p>
+            <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{teacherCount}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Contas com função docente</p>
+          </div>
+          <div className="sina-card sina-card-hover p-5">
+            <UserRoundCheck className="size-5 text-primary" />
+            <p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Aprovações</p>
+            <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{roleRequests.data?.filter(item => item.status === "pending").length ?? 0}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Solicitações aguardando análise</p>
+          </div>
+          <div className="sina-card sina-card-hover p-5">
+            <LayoutDashboard className="size-5 text-primary" />
+            <p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Configuração</p>
+            <p className="mt-1 font-semibold">Estrutura acadêmica</p>
+            <p className="mt-1 text-xs text-muted-foreground">Turmas, disciplinas e períodos</p>
+          </div>
+        </section>
+
+        <section aria-label="Atalhos administrativos" className="rounded-2xl border border-primary/15 bg-primary/5 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-primary">Acesso rápido</p>
+              <p className="mt-1 text-sm text-muted-foreground">Entre diretamente na área que precisa administrar.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <a href="#aprovacoes" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Aprovar cadastros</a>
+              <a href="#autorizacao" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Gerenciar contas</a>
+              <a href="#configuracao-academica" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Estrutura acadêmica</a>
+              <a href="#historico" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Ver histórico</a>
+            </div>
+          </div>
         </section>
 
         <section id="aprovacoes" className="sina-card sina-card-hover scroll-mt-28 p-6">
@@ -297,7 +334,9 @@ function AdminArea() {
           ) : <p className="mt-5 text-sm text-muted-foreground">{accountSearch ? "Nenhuma conta encontrada." : "Nenhuma conta cadastrada."}</p>}
         </section>
 
-        <AdminAcademicSetup />
+        <section id="configuracao-academica" className="scroll-mt-28">
+          <AdminAcademicSetup />
+        </section>
 
         <section id="historico" className="sina-card sina-card-hover scroll-mt-28">
           <div className="flex items-center justify-between border-b border-border p-6">
