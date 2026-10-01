@@ -64,6 +64,10 @@ export type Database = {
           content: string
           created_at: string
           updated_at: string
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
         }
         Insert: {
           id?: string
@@ -73,6 +77,10 @@ export type Database = {
           content: string
           created_at?: string
           updated_at?: string
+          attachment_path?: string | null
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
         }
         Update: {
           id?: string
@@ -82,6 +90,10 @@ export type Database = {
           content?: string
           created_at?: string
           updated_at?: string
+          attachment_path?: string | null
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
         }
         Relationships: []
       }
@@ -96,6 +108,10 @@ export type Database = {
           due_at: string | null
           created_at: string
           updated_at: string
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
         }
         Insert: {
           id?: string
@@ -107,6 +123,10 @@ export type Database = {
           due_at?: string | null
           created_at?: string
           updated_at?: string
+          attachment_path?: string | null
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
         }
         Update: {
           id?: string
@@ -118,6 +138,10 @@ export type Database = {
           due_at?: string | null
           created_at?: string
           updated_at?: string
+          attachment_path?: string | null
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
         }
         Relationships: []
       }
@@ -236,6 +260,10 @@ export type Database = {
           classroom: string
           title: string
           content: string
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
           created_at: string
           updated_at: string
         }[]
@@ -249,6 +277,10 @@ export type Database = {
           title: string
           description: string
           due_at: string | null
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
           created_at: string
           completed: boolean
         }[]
@@ -258,13 +290,25 @@ export type Database = {
         Returns: boolean
       }
       teacher_create_announcement: {
-        Args: { _classroom: string; _content: string; _title: string }
+        Args: {
+          _attachment_name?: string | null
+          _attachment_path?: string | null
+          _attachment_size?: number | null
+          _attachment_type?: string | null
+          _classroom: string
+          _content: string
+          _title: string
+        }
         Returns: {
           id: string
           teacher_id: string
           classroom: string
           title: string
           content: string
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
           created_at: string
           updated_at: string
         }
@@ -275,8 +319,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      teacher_unlink_student: {
+        Args: { _student_id: string }
+        Returns: boolean
+      }
       teacher_create_task: {
         Args: {
+          _attachment_name?: string | null
+          _attachment_path?: string | null
+          _attachment_size?: number | null
+          _attachment_type?: string | null
           _classroom: string
           _description: string
           _due_at: string | null
@@ -291,6 +343,10 @@ export type Database = {
           title: string
           description: string
           due_at: string | null
+          attachment_path: string | null
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
           created_at: string
           updated_at: string
         }
