@@ -32,12 +32,12 @@ const meta: Record<StudentModule, { title: string; subtitle: string }> = {
 
 export function StudentModulePage({ module }: { module: StudentModule }) {
   const student = useQuery({ queryKey: ["my-student"], queryFn: loadMyStudent });
-  const tasks = useQuery({ queryKey: ["student-module-tasks"], queryFn: loadTasks });
-  const grades = useQuery({ queryKey: ["student-module-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id });
-  const assessments = useQuery({ queryKey: ["student-module-assessments"], queryFn: loadStudentAssessments });
-  const attendance = useQuery({ queryKey: ["student-module-attendance"], queryFn: loadStudentAttendance });
-  const announcements = useQuery({ queryKey: ["student-module-announcements"], queryFn: loadAnnouncements });
-  const submissions = useQuery({ queryKey: ["student-module-submissions"], queryFn: loadStudentTaskSubmissions });
+  const tasks = useQuery({ queryKey: ["student-module-tasks"], queryFn: loadTasks, enabled: module === "tarefas" });
+  const grades = useQuery({ queryKey: ["student-module-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id && (module === "disciplinas" || module === "notas") });
+  const assessments = useQuery({ queryKey: ["student-module-assessments"], queryFn: loadStudentAssessments, enabled: module === "notas" });
+  const attendance = useQuery({ queryKey: ["student-module-attendance"], queryFn: loadStudentAttendance, enabled: module === "frequencia" });
+  const announcements = useQuery({ queryKey: ["student-module-announcements"], queryFn: loadAnnouncements, enabled: module === "avisos" });
+  const submissions = useQuery({ queryKey: ["student-module-submissions"], queryFn: loadStudentTaskSubmissions, enabled: module === "tarefas" });
   const calendar = useQuery({
     queryKey: ["student-module-calendar"],
     queryFn: () => {
@@ -46,6 +46,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
       to.setMonth(to.getMonth() + 2);
       return loadStudentCalendar(from.toISOString(), to.toISOString());
     },
+    enabled: module === "agenda",
   });
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
