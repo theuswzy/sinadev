@@ -100,7 +100,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
-  '/_authenticated/aluno': typeof AuthenticatedAlunoRouteWithChildren
+  '/_authenticated/aluno': typeof AuthenticatedAlunoRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/professor': typeof AuthenticatedProfessorRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
@@ -127,7 +127,7 @@ export interface FileRouteTypes {
     | '/aluno'
     | '/painel'
     | '/professor'
-    | '/aluno/perfil'
+    | '/perfil'
   id:
     | '__root__'
     | '/'
