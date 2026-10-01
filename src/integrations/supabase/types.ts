@@ -738,7 +738,7 @@ export type Database = {
       }
     }
     teacher_list_classrooms: {
-      Args: Record<PropertyKey, never>
+      Args: never
       Returns: {
         id: string
         name: string
@@ -771,7 +771,7 @@ export type Database = {
       }[]
     }
     teacher_list_academic_options: {
-      Args: Record<PropertyKey, never>
+      Args: never
       Returns: Json
     }
     teacher_list_assessments: {
@@ -808,7 +808,7 @@ export type Database = {
       Returns: boolean
     }
     student_list_assessments: {
-      Args: Record<PropertyKey, never>
+      Args: never
       Returns: {
         id: string
         title: string
@@ -828,7 +828,7 @@ export type Database = {
       Returns: string
     }
     student_list_task_submissions: {
-      Args: Record<PropertyKey, never>
+      Args: never
       Returns: {
         id: string
         task_id: string
@@ -900,7 +900,7 @@ export type Database = {
       Returns: string
     }
     admin_list_academic_setup: {
-      Args: Record<PropertyKey, never>
+      Args: never
       Returns: Json
     }
     admin_upsert_classroom: {
