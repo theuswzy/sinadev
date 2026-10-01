@@ -343,6 +343,120 @@ on public.notifications for update to authenticated
 using (user_id = (select auth.uid()))
 with check (user_id = (select auth.uid()));
 
+create or replace function public.has_role(_user_id uuid, _role public.app_role)
+returns boolean
+language sql
+stable
+security definer
+set search_path to ''
+as $
+  select exists (
+    select 1 from public.user_roles r
+    where r.user_id = _user_id and r.role = _role
+  )
+  and coalesce((
+    select p.status from public.profiles p where p.user_id = _user_id limit 1
+  ), 'active') = 'active'
+  and exists (
+    select 1
+    from public.institution_memberships m
+    where m.user_id = _user_id
+      and m.role = _role
+      and m.status = 'active'
+  );
+$;
+
+create or replace function public.ensure_student_profile()
+returns boolean
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  uid uuid := auth.uid();
+  existing_role public.app_role;
+  display_name text;
+  v_institution uuid;
+begin
+  if uid is null then
+    raise exception 'Usuário não autenticado.';
+  end if;
+
+  select ur.role into existing_role
+  from public.user_roles ur
+  where ur.user_id = uid
+    and ur.role in ('admin'::public.app_role, 'teacher'::public.app_role)
+  order by case when ur.role = 'admin'::public.app_role then 0 else 1 end
+  limit 1;
+
+  if existing_role is not null then
+    return false;
+  end if;
+
+  select id into v_institution
+  from public.institutions
+  where lower(slug) = 'sina'
+  limit 1;
+
+  if v_institution is not null then
+    insert into public.institution_memberships(institution_id, user_id, role, status)
+    values (v_institution, uid, 'student'::public.app_role, 'active')
+    on conflict (institution_id, user_id, role) do update set status = 'active';
+  end if;
+
+  select coalesce(nullif(p.display_name, ''), nullif(au.raw_user_meta_data->>'display_name', ''), split_part(au.email, '@', 1))
+    into display_name
+  from auth.users au
+  left join public.profiles p on p.user_id = au.id
+  where au.id = uid;
+
+  insert into public.students (user_id, full_name, enrollment, classroom, teacher_id, institution_id)
+  values (uid, coalesce(display_name, 'Aluno'), '', '', null, v_institution)
+  on conflict (user_id) where user_id is not null do nothing;
+
+  return true;
+end;
+$function$;
+
+create or replace function sina_private.set_academic_role(_user_id uuid, _role text)
+returns boolean
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_institution uuid;
+begin
+  if not public.has_role(auth.uid(), 'admin'::public.app_role) then
+    raise exception 'Acesso reservado a administradores.';
+  end if;
+  if _role not in ('student', 'teacher') or _role is null then
+    raise exception 'Função acadêmica inválida.';
+  end if;
+  if not exists (select 1 from auth.users where id = _user_id) then return false; end if;
+  if public.has_role(_user_id, 'admin'::public.app_role) then
+    raise exception 'A função acadêmica de um administrador não pode ser alterada nesta tela.';
+  end if;
+
+  select id into v_institution from public.institutions where lower(slug) = 'sina' limit 1;
+  delete from public.user_roles where user_id = _user_id and role in ('student'::public.app_role, 'teacher'::public.app_role);
+  insert into public.user_roles(user_id, role) values (_user_id, _role::public.app_role);
+
+  if v_institution is not null then
+    delete from public.institution_memberships
+     where user_id = _user_id
+       and role in ('student'::public.app_role, 'teacher'::public.app_role);
+
+    insert into public.institution_memberships(institution_id, user_id, role, status)
+    values (v_institution, _user_id, _role::public.app_role, coalesce(
+      (select p.status from public.profiles p where p.user_id = _user_id limit 1), 'active'
+    ));
+  end if;
+
+  return true;
+end;
+$function$;
+
 create or replace function sina_private.current_institution(_role public.app_role default null)
 returns uuid
 language sql
@@ -667,6 +781,11 @@ begin
          updated_at = now()
    where user_id = _user_id;
 
+  update public.institution_memberships
+     set status = case when _status = 'suspended' then 'suspended' else 'active' end,
+         updated_at = now()
+   where user_id = _user_id;
+
   return found;
 end;
 $$;
@@ -872,3 +991,85 @@ grant execute on function public.admin_set_account_status(uuid,text) to authenti
 grant execute on function public.admin_list_accounts() to authenticated;
 grant execute on function public.teacher_create_announcement(text,text,text,text,text,bigint,text) to authenticated;
 grant execute on function public.teacher_create_task(text,text,text,text,timestamptz,text,text,bigint,text) to authenticated;
+
+
+-- Defense in depth: academic writes are performed through authorization-aware RPCs.
+revoke insert, update, delete on public.students from authenticated;
+revoke insert, update, delete on public.announcements from authenticated;
+revoke insert, update, delete on public.tasks from authenticated;
+revoke insert, update, delete on public.grades from authenticated;
+revoke insert, update on public.task_completions from authenticated;
+
+drop policy if exists "Teachers can insert announcements" on public.announcements;
+create policy "Teachers can insert announcements"
+on public.announcements
+for insert to authenticated
+with check (
+  teacher_id = (select auth.uid())
+  and public.has_role((select auth.uid()), 'teacher'::public.app_role)
+  and exists (
+    select 1
+    from public.classroom_teachers ct
+    join public.classrooms c on c.id = ct.classroom_id
+    where ct.user_id = (select auth.uid())
+      and ct.classroom_id = announcements.classroom_id
+      and c.institution_id = announcements.institution_id
+      and c.status = 'active'
+  )
+);
+
+drop policy if exists "Teachers can update own announcements" on public.announcements;
+create policy "Teachers can update own announcements"
+on public.announcements
+for update to authenticated
+using (teacher_id = (select auth.uid()))
+with check (
+  teacher_id = (select auth.uid())
+  and public.has_role((select auth.uid()), 'teacher'::public.app_role)
+  and exists (
+    select 1
+    from public.classroom_teachers ct
+    join public.classrooms c on c.id = ct.classroom_id
+    where ct.user_id = (select auth.uid())
+      and ct.classroom_id = announcements.classroom_id
+      and c.institution_id = announcements.institution_id
+      and c.status = 'active'
+  )
+);
+
+drop policy if exists "Teachers can insert tasks" on public.tasks;
+create policy "Teachers can insert tasks"
+on public.tasks
+for insert to authenticated
+with check (
+  teacher_id = (select auth.uid())
+  and public.has_role((select auth.uid()), 'teacher'::public.app_role)
+  and exists (
+    select 1
+    from public.classroom_teachers ct
+    join public.classrooms c on c.id = ct.classroom_id
+    where ct.user_id = (select auth.uid())
+      and ct.classroom_id = tasks.classroom_id
+      and c.institution_id = tasks.institution_id
+      and c.status = 'active'
+  )
+);
+
+drop policy if exists "Teachers can update own tasks" on public.tasks;
+create policy "Teachers can update own tasks"
+on public.tasks
+for update to authenticated
+using (teacher_id = (select auth.uid()))
+with check (
+  teacher_id = (select auth.uid())
+  and public.has_role((select auth.uid()), 'teacher'::public.app_role)
+  and exists (
+    select 1
+    from public.classroom_teachers ct
+    join public.classrooms c on c.id = ct.classroom_id
+    where ct.user_id = (select auth.uid())
+      and ct.classroom_id = tasks.classroom_id
+      and c.institution_id = tasks.institution_id
+      and c.status = 'active'
+  )
+);
