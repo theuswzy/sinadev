@@ -48,9 +48,11 @@ using (
       and t.institution_id=(select sina_private.current_institution('teacher'::public.app_role))
   )
   or exists(
-    select 1 from public.institution_memberships m
+    select 1
+    from public.institution_memberships m
+    join public.tasks t on t.id=task_submissions.task_id
     where m.user_id=(select auth.uid())
-      and m.institution_id=(select public.current_institution_id_for_admin())
+      and m.institution_id=t.institution_id
       and m.role='admin'
       and m.status='active'
   )
