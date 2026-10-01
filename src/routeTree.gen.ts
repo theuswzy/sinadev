@@ -354,6 +354,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfessorRouteImport,
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/professor/turmas': {
+      id: '/_authenticated/professor/turmas',
+      path: '/turmas',
+      fullPath: '/professor/turmas',
+      preLoaderRoute: typeof AuthenticatedProfessorTurmasRouteImport,
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/notas': {
+      id: '/_authenticated/professor/notas',
+      path: '/notas',
+      fullPath: '/professor/notas',
+      preLoaderRoute: typeof AuthenticatedProfessorNotasRouteImport,
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/frequencia': {
+      id: '/_authenticated/professor/frequencia',
+      path: '/frequencia',
+      fullPath: '/professor/frequencia',
+      preLoaderRoute: typeof AuthenticatedProfessorFrequenciaRouteImport,
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/avaliacoes': {
+      id: '/_authenticated/professor/avaliacoes',
+      path: '/avaliacoes',
+      fullPath: '/professor/avaliacoes',
+      preLoaderRoute: typeof AuthenticatedProfessorAvaliacoesRouteImport,
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/atividades': {
+      id: '/_authenticated/professor/atividades',
+      path: '/atividades',
+      fullPath: '/professor/atividades',
+      preLoaderRoute: typeof AuthenticatedProfessorAtividadesRouteImport,
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/agenda': {
+      id: '/_authenticated/professor/agenda',
+      path: '/agenda',
+      fullPath: '/professor/agenda',
+      preLoaderRoute: typeof AuthenticatedProfessorAgendaRouteImport,
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/comunicacao': {
+      id: '/_authenticated/professor/comunicacao',
+      path: '/comunicacao',
+      fullPath: '/professor/comunicacao',
+      preLoaderRoute: typeof AuthenticatedProfessorComunicacaoRouteImport,
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
     '/_authenticated/perfil': {
       id: '/_authenticated/perfil'
       path: '/perfil'
