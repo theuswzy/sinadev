@@ -55,7 +55,10 @@ export const formatScore = (n: number) => n.toFixed(1).replace(".", ",");
 export const errorText = (err: unknown) => err instanceof Error ? err.message : "Não foi possível concluir. Tente novamente.";
 
 
-export type StudentAnnouncement = Tables<"announcements">;
+export type StudentAnnouncement = Tables<"announcements"> & {
+  attachment_url: string | null;
+};
+
 export type StudentTask = {
   id: string;
   classroom: string;
@@ -63,20 +66,47 @@ export type StudentTask = {
   title: string;
   description: string;
   due_at: string | null;
+  attachment_path: string | null;
+  attachment_name: string | null;
+  attachment_size: number | null;
+  attachment_type: string | null;
+  attachment_url: string | null;
   created_at: string;
   completed: boolean;
 };
 
+async function addAttachmentUrls<T extends {
+  attachment_path: string | null;
+  attachment_name: string | null;
+  attachment_size: number | null;
+  attachment_type: string | null;
+}>(items: T[]) {
+  return Promise.all(
+    items.map(async (item) => {
+      if (!item.attachment_path) return { ...item, attachment_url: null };
+      const { data, error } = await supabase.storage
+        .from("academic-attachments")
+        .createSignedUrl(item.attachment_path, 60 * 60);
+      return {
+        ...item,
+        attachment_url: error ? null : data.signedUrl,
+      };
+    }),
+  );
+}
+
 export async function loadAnnouncements(): Promise<StudentAnnouncement[]> {
   const { data, error } = await supabase.rpc("student_list_announcements");
   if (error) throw error;
-  return data ?? [];
+  return addAttachmentUrls((data ?? []) as Tables<"announcements">[]);
 }
 
 export async function loadTasks(): Promise<StudentTask[]> {
   const { data, error } = await supabase.rpc("student_list_tasks");
   if (error) throw error;
-  return data ?? [];
+  return addAttachmentUrls((data ?? []) as Omit<StudentTask, "attachment_url" | "completed">[]).then(
+    (items) => items.map((item) => ({ ...item, completed: (data ?? []).find((task) => task.id === item.id)?.completed ?? false })),
+  ) as Promise<StudentTask[]>;
 }
 
 export async function setTaskCompleted(taskId: string, completed: boolean): Promise<boolean> {
