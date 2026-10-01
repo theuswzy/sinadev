@@ -1037,6 +1037,22 @@ export type Database = {
         updated_at: string
       }[]
     }
+    teacher_list_subject_assignments: {
+      Args: Record<PropertyKey, never>
+      Returns: { id: string; classroom_id: string; classroom_name: string; subject_id: string; subject_name: string; teacher_id: string }[]
+    }
+    teacher_assign_subject_to_class: {
+      Args: { _subject_id: string; _classroom_id: string }
+      Returns: string
+    }
+    teacher_unassign_subject_from_class: {
+      Args: { _id: string }
+      Returns: boolean
+    }
+    student_list_subjects: {
+      Args: Record<PropertyKey, never>
+      Returns: { id: string; name: string; code: string | null; classroom_id: string; classroom_name: string; teacher_id: string; teacher_name: string }[]
+    }
     teacher_list_subjects: {
       Args: Record<PropertyKey, never>
       Returns: { id: string; name: string; code: string | null; status: string; created_by: string | null }[]
