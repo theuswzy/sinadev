@@ -426,6 +426,166 @@ $;
 revoke all on function public.admin_list_role_requests_v2() from public, anon;
 grant execute on function public.admin_list_role_requests_v2() to authenticated;
 
+-- Remove the legacy single-school assumption from older account/profile RPCs.
+create or replace function public.ensure_student_profile()
+returns boolean
+language plpgsql
+security definer
+set search_path to ''
+as $
+declare
+  uid uuid := auth.uid();
+  v_institution uuid;
+  display_name text;
+begin
+  if uid is null then raise exception 'Usuário não autenticado.'; end if;
+
+  v_institution := sina_private.current_institution('student'::public.app_role);
+  if v_institution is null then
+    raise exception 'Aluno sem instituição ativa.';
+  end if;
+
+  select coalesce(
+    nullif(p.display_name,''),
+    nullif(au.raw_user_meta_data->>'display_name',''),
+    split_part(coalesce(au.email,''),'@',1)
+  )
+  into display_name
+  from auth.users au
+  left join public.profiles p on p.user_id=au.id
+  where au.id=uid;
+
+  insert into public.students(
+    user_id, full_name, enrollment, classroom, teacher_id, institution_id
+  )
+  values(uid, coalesce(display_name,'Aluno'), '', '', null, v_institution)
+  on conflict (user_id) where user_id is not null do nothing;
+
+  return true;
+end;
+$;
+
+revoke all on function public.ensure_student_profile() from public, anon;
+grant execute on function public.ensure_student_profile() to authenticated;
+
+create or replace function public.ensure_student_profile_for_user(_user_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path to ''
+as $
+declare
+  v_institution uuid;
+  display_name text;
+begin
+  select m.institution_id into v_institution
+  from public.institution_memberships m
+  where m.user_id=_user_id
+    and m.role='student'::public.app_role
+    and m.status='active'
+  order by m.updated_at desc
+  limit 1;
+
+  if v_institution is null then
+    raise exception 'Aluno sem instituição ativa.';
+  end if;
+
+  select coalesce(
+    nullif(p.display_name,''),
+    nullif(au.raw_user_meta_data->>'display_name',''),
+    split_part(coalesce(au.email,''),'@',1)
+  )
+  into display_name
+  from auth.users au
+  left join public.profiles p on p.user_id=au.id
+  where au.id=_user_id;
+
+  insert into public.students(
+    user_id, full_name, enrollment, classroom, teacher_id, institution_id
+  )
+  values(_user_id, coalesce(display_name,'Aluno'), '', '', null, v_institution)
+  on conflict (user_id) where user_id is not null do update
+    set institution_id = coalesce(public.students.institution_id, excluded.institution_id),
+        updated_at = now();
+
+  return true;
+end;
+$;
+
+revoke all on function public.ensure_student_profile_for_user(uuid) from public, anon, authenticated;
+
+create or replace function sina_private.set_academic_role(_user_id uuid, _role text)
+returns boolean
+language plpgsql
+security definer
+set search_path to ''
+as $
+declare
+  v_institution uuid;
+begin
+  v_institution := sina_private.current_institution('admin'::public.app_role);
+  if v_institution is null then
+    raise exception 'Administrador sem instituição ativa.';
+  end if;
+
+  if _role not in ('student','teacher') or _role is null then
+    raise exception 'Função acadêmica inválida.';
+  end if;
+
+  if not public.has_role(auth.uid(), 'admin'::public.app_role) then
+    raise exception 'Acesso reservado a administradores.';
+  end if;
+
+  if not exists (select 1 from auth.users where id=_user_id) then return false; end if;
+  if public.has_role(_user_id, 'admin'::public.app_role) then
+    raise exception 'A função acadêmica de um administrador não pode ser alterada nesta tela.';
+  end if;
+
+  delete from public.user_roles
+  where user_id=_user_id
+    and role in ('student'::public.app_role,'teacher'::public.app_role);
+
+  insert into public.user_roles(user_id,role)
+  values(_user_id,_role::public.app_role);
+
+  delete from public.institution_memberships
+  where user_id=_user_id
+    and role in ('student'::public.app_role,'teacher'::public.app_role)
+    and institution_id=v_institution;
+
+  insert into public.institution_memberships(institution_id,user_id,role,status)
+  values(
+    v_institution,
+    _user_id,
+    _role::public.app_role,
+    coalesce((select p.status from public.profiles p where p.user_id=_user_id limit 1),'active')
+  );
+
+  if _role='student' then
+    perform public.ensure_student_profile_for_user(_user_id);
+  end if;
+
+  return true;
+end;
+$;
+
+create or replace function public.admin_review_role_request(
+  _request_id uuid,
+  _decision text,
+  _approved_role text,
+  _note text
+)
+returns boolean
+language sql
+security definer
+set search_path to ''
+as $
+  select public.admin_review_role_request_v2(_request_id,_decision,_approved_role,_note);
+$;
+
+revoke all on function public.admin_review_role_request(uuid,text,text,text) from public, anon;
+grant execute on function public.admin_review_role_request(uuid,text,text,text) to authenticated;
+
 -- Initial verified catalog entries. More rows can be imported without changing the schema.
 insert into public.school_directory
   (name, normalized_name, municipality, state, network_type, administrative_type, source, source_year)
