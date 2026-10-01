@@ -141,6 +141,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_accounts: {
+        Args: never
+        Returns: {
+          academic_role: string
+          display_name: string
+          email: string
+          is_administrator: boolean
+          user_id: string
+        }[]
+      }
       admin_list_teachers: {
         Args: never
         Returns: {
@@ -149,6 +159,10 @@ export type Database = {
           email: string
           user_id: string
         }[]
+      }
+      admin_set_academic_role: {
+        Args: { _role: string; _user_id: string }
+        Returns: boolean
       }
       admin_set_teacher_access: {
         Args: { _email: string; _enabled: boolean }
