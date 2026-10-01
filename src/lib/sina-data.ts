@@ -47,6 +47,42 @@ export type OnboardingState = {
   review_note: string | null;
 };
 
+export type SchoolDirectoryEntry = {
+  id: string;
+  name: string;
+  municipality: string;
+  state: string;
+  network_type: "municipal" | "estadual" | "federal";
+  inep_code: string | null;
+  institution_id: string | null;
+};
+
+export async function searchSchoolDirectory(
+  search = "",
+  networkType?: SchoolDirectoryEntry["network_type"],
+  municipality = "Salvador",
+): Promise<SchoolDirectoryEntry[]> {
+  const { data, error } = await supabase.rpc("school_directory_search", {
+    _search: search,
+    _network_type: networkType ?? null,
+    _municipality: municipality,
+  });
+  if (error) throw error;
+  return (data ?? []) as SchoolDirectoryEntry[];
+}
+
+export async function ensureAccountOnboardingForSchool(
+  requestedRole: "student" | "teacher",
+  schoolDirectoryId: string,
+): Promise<OnboardingState> {
+  const { data, error } = await supabase.rpc("ensure_account_onboarding_v2", {
+    _requested_role: requestedRole,
+    _school_directory_id: schoolDirectoryId,
+  });
+  if (error) throw error;
+  return data as OnboardingState;
+}
+
 export async function ensureAccountOnboarding(requestedRole?: "student" | "teacher"): Promise<OnboardingState> {
   const { data, error } = await supabase.rpc("ensure_account_onboarding", {
     _requested_role: requestedRole ?? null,
