@@ -16,9 +16,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAlunoRouteImport } from './routes/_authenticated/aluno'
-import { Route as AuthenticatedAlunoPerfilRouteImport } from './routes/_authenticated/aluno.perfil'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedProfessorRouteImport } from './routes/_authenticated/professor'
+import { Route as AuthenticatedAlunoPerfilRouteImport } from './routes/_authenticated/aluno.perfil'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -54,11 +54,6 @@ const AuthenticatedAlunoRoute = AuthenticatedAlunoRouteImport.update({
   path: '/aluno',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAlunoPerfilRoute = AuthenticatedAlunoPerfilRouteImport.update({
-  id: '/_authenticated/aluno/perfil',
-  path: '/aluno/perfil',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   id: '/painel',
   path: '/painel',
@@ -69,6 +64,12 @@ const AuthenticatedProfessorRoute = AuthenticatedProfessorRouteImport.update({
   path: '/professor',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAlunoPerfilRoute =
+  AuthenticatedAlunoPerfilRouteImport.update({
+    id: '/perfil',
+    path: '/perfil',
+    getParentRoute: () => AuthenticatedAlunoRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -76,10 +77,10 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/aluno': typeof AuthenticatedAlunoRoute
-  '/aluno/perfil': typeof AuthenticatedAlunoPerfilRoute
+  '/aluno': typeof AuthenticatedAlunoRouteWithChildren
   '/painel': typeof AuthenticatedPainelRoute
   '/professor': typeof AuthenticatedProfessorRoute
+  '/aluno/perfil': typeof AuthenticatedAlunoPerfilRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -87,10 +88,10 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/aluno': typeof AuthenticatedAlunoRoute
-  '/aluno/perfil': typeof AuthenticatedAlunoPerfilRoute
+  '/aluno': typeof AuthenticatedAlunoRouteWithChildren
   '/painel': typeof AuthenticatedPainelRoute
   '/professor': typeof AuthenticatedProfessorRoute
+  '/aluno/perfil': typeof AuthenticatedAlunoPerfilRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -100,10 +101,10 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
-  '/_authenticated/aluno': typeof AuthenticatedAlunoRoute
-  '/_authenticated/aluno/perfil': typeof AuthenticatedAlunoPerfilRoute
+  '/_authenticated/aluno': typeof AuthenticatedAlunoRouteWithChildren
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/professor': typeof AuthenticatedProfessorRoute
+  '/_authenticated/aluno/perfil': typeof AuthenticatedAlunoPerfilRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -114,9 +115,9 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/aluno'
-    | '/aluno/perfil'
     | '/painel'
     | '/professor'
+    | '/aluno/perfil'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -125,9 +126,9 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/aluno'
-    | '/aluno/perfil'
     | '/painel'
     | '/professor'
+    | '/aluno/perfil'
   id:
     | '__root__'
     | '/'
@@ -137,9 +138,9 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/aluno'
-    | '/_authenticated/aluno/perfil'
     | '/_authenticated/painel'
     | '/_authenticated/professor'
+    | '/_authenticated/aluno/perfil'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -201,13 +202,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlunoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/aluno/perfil': {
-      id: '/_authenticated/aluno/perfil'
-      path: '/aluno/perfil'
-      fullPath: '/aluno/perfil'
-      preLoaderRoute: typeof AuthenticatedAlunoPerfilRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/painel': {
       id: '/_authenticated/painel'
       path: '/painel'
@@ -222,21 +216,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfessorRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/aluno/perfil': {
+      id: '/_authenticated/aluno/perfil'
+      path: '/perfil'
+      fullPath: '/aluno/perfil'
+      preLoaderRoute: typeof AuthenticatedAlunoPerfilRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
   }
 }
 
+interface AuthenticatedAlunoRouteChildren {
+  AuthenticatedAlunoPerfilRoute: typeof AuthenticatedAlunoPerfilRoute
+}
+
+const AuthenticatedAlunoRouteChildren: AuthenticatedAlunoRouteChildren = {
+  AuthenticatedAlunoPerfilRoute: AuthenticatedAlunoPerfilRoute,
+}
+
+const AuthenticatedAlunoRouteWithChildren =
+  AuthenticatedAlunoRoute._addFileChildren(AuthenticatedAlunoRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
-  AuthenticatedAlunoRoute: typeof AuthenticatedAlunoRoute
-  AuthenticatedAlunoPerfilRoute: typeof AuthenticatedAlunoPerfilRoute
+  AuthenticatedAlunoRoute: typeof AuthenticatedAlunoRouteWithChildren
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedProfessorRoute: typeof AuthenticatedProfessorRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
-  AuthenticatedAlunoRoute: AuthenticatedAlunoRoute,
-  AuthenticatedAlunoPerfilRoute: AuthenticatedAlunoPerfilRoute,
+  AuthenticatedAlunoRoute: AuthenticatedAlunoRouteWithChildren,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedProfessorRoute: AuthenticatedProfessorRoute,
 }
