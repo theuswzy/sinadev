@@ -154,6 +154,12 @@ export interface FileRoutesById {
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/professor': typeof AuthenticatedProfessorRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
+  '/_authenticated/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
+  '/_authenticated/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
+  '/_authenticated/aluno/notas': typeof AuthenticatedAlunoNotasRoute
+  '/_authenticated/aluno/frequencia': typeof AuthenticatedAlunoFrequenciaRoute
+  '/_authenticated/aluno/agenda': typeof AuthenticatedAlunoAgendaRoute
+  '/_authenticated/aluno/avisos': typeof AuthenticatedAlunoAvisosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -190,6 +196,12 @@ export interface FileRouteTypes {
     | '/_authenticated/painel'
     | '/_authenticated/professor'
     | '/_authenticated/perfil'
+    | '/_authenticated/aluno/tarefas'
+    | '/_authenticated/aluno/disciplinas'
+    | '/_authenticated/aluno/notas'
+    | '/_authenticated/aluno/frequencia'
+    | '/_authenticated/aluno/agenda'
+    | '/_authenticated/aluno/avisos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -271,6 +283,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/perfil'
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/aluno/tarefas': {
+      id: '/_authenticated/aluno/tarefas'
+      path: '/tarefas'
+      fullPath: '/aluno/tarefas'
+      preLoaderRoute: typeof AuthenticatedAlunoTarefasRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
+    '/_authenticated/aluno/disciplinas': {
+      id: '/_authenticated/aluno/disciplinas'
+      path: '/disciplinas'
+      fullPath: '/aluno/disciplinas'
+      preLoaderRoute: typeof AuthenticatedAlunoDisciplinasRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
+    '/_authenticated/aluno/notas': {
+      id: '/_authenticated/aluno/notas'
+      path: '/notas'
+      fullPath: '/aluno/notas'
+      preLoaderRoute: typeof AuthenticatedAlunoNotasRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
+    '/_authenticated/aluno/frequencia': {
+      id: '/_authenticated/aluno/frequencia'
+      path: '/frequencia'
+      fullPath: '/aluno/frequencia'
+      preLoaderRoute: typeof AuthenticatedAlunoFrequenciaRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
+    '/_authenticated/aluno/agenda': {
+      id: '/_authenticated/aluno/agenda'
+      path: '/agenda'
+      fullPath: '/aluno/agenda'
+      preLoaderRoute: typeof AuthenticatedAlunoAgendaRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
+    '/_authenticated/aluno/avisos': {
+      id: '/_authenticated/aluno/avisos'
+      path: '/avisos'
+      fullPath: '/aluno/avisos'
+      preLoaderRoute: typeof AuthenticatedAlunoAvisosRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
     }
   }
 }
