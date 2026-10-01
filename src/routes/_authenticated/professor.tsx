@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { errorText, formatScore, getRole, loadGrades, loadStudents } from "@/lib/sina-data";
+import { TeacherAcademicCenter } from "@/components/teacher-academic-center";
 
 export const Route = createFileRoute("/_authenticated/professor")({
   head: () => ({ meta: [{ title: "Área do professor — SINA" }, { name: "description", content: "Vincule alunos a turmas e matrículas e registre dados acadêmicos." }] }),
@@ -629,6 +630,8 @@ function TeacherArea() {
           {grades.data?.length ? <div className="mt-5 overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="py-2">Disciplina</th><th className="py-2">Período</th><th className="py-2">Nota</th></tr></thead><tbody>{grades.data.map(g => <tr key={g.id} className="border-b border-border"><td className="py-2">{g.subject}</td><td className="py-2">{g.period}º</td><td className="py-2 font-semibold">{formatScore(g.score)}</td></tr>)}</tbody></table></div> : null}
         </div>
       </section>}
+      <TeacherAcademicCenter />
+
       <section id="comunicacao" className="mt-6 scroll-mt-28 grid gap-5 lg:grid-cols-2">
         <div className="sina-card sina-card-hover p-6 shadow-sm">
           <div className="flex items-center gap-3"><Megaphone className="size-5 text-primary" /><div><h2 className="font-semibold">{editingNoticeId ? "Editar aviso" : "Quadro de avisos"}</h2><p className="mt-1 text-sm text-muted-foreground">{editingNoticeId ? "Atualize o comunicado e salve as alterações." : "Publique um comunicado para uma das suas turmas."}</p></div></div>
