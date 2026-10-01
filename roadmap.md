@@ -14,6 +14,8 @@
 - [x] Central inicial de notificações do aluno.
 - [x] Avisos e atividades com anexos, edição, exclusão e modelos.
 - [x] Auditoria administrativa existente e integrada à área de administração.
+- [x] Fluxo de cadastro com escolha de função e aprovação administrativa.
+- [x] Onboarding com status pendente, rejeição, reenvio e notificação de decisão.
 
 - [x] Avaliações com pesos, períodos e notas por aluno.
 - [x] Entrega de atividades com correção e feedback.
