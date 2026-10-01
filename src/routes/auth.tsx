@@ -1,12 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowRight, GraduationCap, LockKeyhole } from "lucide-react";
+import { ArrowRight, CheckCircle2, GraduationCap, LockKeyhole, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { getRole } from "@/lib/sina-data";
+import {
+  ensureAccountOnboarding,
+  getAccountOnboardingState,
+  getRole,
+  resubmitRoleRequest,
+  type OnboardingState,
+} from "@/lib/sina-data";
 
 function authErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
@@ -21,34 +27,77 @@ function authErrorMessage(error: unknown): string {
 }
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Acesso — SINA" }, { name: "description", content: "Entre ou crie sua conta para acessar sua área acadêmica no SINA." }, { property: "og:title", content: "Acesso — SINA" }, { property: "og:description", content: "Acesso seguro às áreas acadêmicas do SINA." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({
+    meta: [
+      { title: "Acesso — SINA" },
+      { name: "description", content: "Entre ou crie sua conta para acessar sua área acadêmica no SINA." },
+      { property: "og:title", content: "Acesso — SINA" },
+      { property: "og:description", content: "Acesso seguro às áreas acadêmicas do SINA." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: AuthPage,
 });
 
+type AuthMode = "login" | "signup" | "forgot" | "pending";
+type RequestedRole = "student" | "teacher";
 
-async function navigateAfterAuth(navigate: ReturnType<typeof useNavigate>) {
-  const role = await getRole();
-  if (role === "student") {
-    const { error } = await supabase.rpc("ensure_student_profile");
-    if (error) throw error;
-  }
-  await navigate({ to: role === "admin" ? "/admin" : role === "teacher" ? "/professor" : "/aluno", replace: true });
+function roleLabel(role: RequestedRole | null) {
+  return role === "teacher" ? "Professor" : "Aluno";
+}
+
+function roleDescription(role: RequestedRole) {
+  return role === "teacher"
+    ? "Acesso ao diário, turmas, avaliações e lançamentos."
+    : "Acesso às notas, frequência, atividades e calendário.";
 }
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
+  const [mode, setMode] = useState<AuthMode>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [requestedRole, setRequestedRole] = useState<RequestedRole>("student");
+  const [pendingState, setPendingState] = useState<OnboardingState | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
+  async function finishAuth(explicitRole?: RequestedRole) {
+    const state = await ensureAccountOnboarding(explicitRole);
+    if (state.status === "pending") {
+      setPendingState(state);
+      setMode("pending");
+      return;
+    }
+    if (state.status === "suspended") {
+      setMessage("Sua conta está suspensa. Procure o administrador da instituição.");
+      setMode("login");
+      return;
+    }
+
+    const role = await getRole();
+    await navigate({
+      to: role === "admin" ? "/admin" : role === "teacher" ? "/professor" : "/aluno",
+      replace: true,
+    });
+  }
+
   useEffect(() => {
     void supabase.auth.getUser().then(async ({ data }) => {
-      if (data.user) await navigateAfterAuth(navigate);
+      if (!data.user) return;
+
+      const storedRole = window.localStorage.getItem("sina-requested-role");
+      window.localStorage.removeItem("sina-requested-role");
+
+      try {
+        await finishAuth(storedRole === "teacher" || storedRole === "student" ? storedRole : undefined);
+      } catch (error) {
+        setMessage(authErrorMessage(error));
+      }
     });
-  }, [navigate]);
+  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -56,19 +105,39 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "forgot") {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
         if (error) throw error;
         setMessage("Se este e-mail estiver cadastrado, você receberá um link de recuperação.");
-      } else if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/auth`, data: { display_name: name.trim() } } });
-        if (error) throw error;
-        if (data.session) await navigateAfterAuth(navigate);
-        else setMessage("Confira seu e-mail para confirmar sua conta antes de entrar.");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        await navigateAfterAuth(navigate);
+        return;
       }
+
+      if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth`,
+            data: {
+              display_name: name.trim(),
+              requested_role: requestedRole,
+            },
+          },
+        });
+        if (error) throw error;
+
+        if (data.session) {
+          await finishAuth(requestedRole);
+        } else {
+          setMessage("Conta criada. Confirme seu e-mail para continuar; depois o SINA enviará sua solicitação para aprovação.");
+        }
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await finishAuth();
     } catch (error) {
       setMessage(authErrorMessage(error));
     } finally {
@@ -79,21 +148,60 @@ function AuthPage() {
   async function google() {
     setMessage("");
     setBusy(true);
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}/auth` });
+    window.localStorage.setItem("sina-requested-role", requestedRole);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: `${window.location.origin}/auth`,
+    });
     if (result.error) {
+      window.localStorage.removeItem("sina-requested-role");
       setMessage(authErrorMessage(result.error));
       setBusy(false);
       return;
     }
-    if (!result.redirected) await navigateAfterAuth(navigate);
+    if (!result.redirected) {
+      try {
+        await finishAuth(requestedRole);
+      } catch (error) {
+        setMessage(authErrorMessage(error));
+      } finally {
+        setBusy(false);
+      }
+    }
   }
 
-  const title = mode === "login" ? "Entrar no SINA" : mode === "signup" ? "Criar conta" : "Recuperar senha";
-  const description = mode === "login"
-    ? "Acesse seu espaço acadêmico e acompanhe suas informações."
-    : mode === "signup"
-      ? "Crie sua conta para começar a usar o acompanhamento acadêmico."
-      : "Informe seu e-mail e enviaremos as instruções para redefinir sua senha.";
+  async function changePendingRole(role: RequestedRole) {
+    setBusy(true);
+    setMessage("");
+    try {
+      await resubmitRoleRequest(role);
+      const state = await getAccountOnboardingState();
+      setRequestedRole(role);
+      setPendingState(state);
+      setMessage(`Nova solicitação enviada como ${roleLabel(role)}.`);
+    } catch (error) {
+      setMessage(authErrorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const title =
+    mode === "login"
+      ? "Entrar no SINA"
+      : mode === "signup"
+        ? "Criar conta"
+        : mode === "forgot"
+          ? "Recuperar senha"
+          : "Aguardando aprovação";
+
+  const description =
+    mode === "login"
+      ? "Acesse seu espaço acadêmico e acompanhe suas informações."
+      : mode === "signup"
+        ? "Crie sua conta e indique como você participa da instituição."
+        : mode === "forgot"
+          ? "Informe seu e-mail e enviaremos as instruções para redefinir sua senha."
+          : "Seu cadastro foi recebido. O administrador da instituição precisa aprovar seu acesso antes da entrada na área acadêmica.";
 
   return (
     <div className="min-h-screen bg-background">
@@ -107,7 +215,9 @@ function AuthPage() {
           </Link>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Link to="/" className="hidden text-sm text-brand-muted transition-colors hover:text-brand-foreground sm:inline">Conheça o SINA <ArrowRight className="ml-1 inline size-3.5" /></Link>
+            <Link to="/" className="hidden text-sm text-brand-muted transition-colors hover:text-brand-foreground sm:inline">
+              Conheça o SINA <ArrowRight className="ml-1 inline size-3.5" />
+            </Link>
           </div>
         </div>
       </header>
@@ -118,8 +228,12 @@ function AuthPage() {
             <LockKeyhole className="size-3.5" />
             Acesso acadêmico
           </span>
-          <h1 className="mt-6 max-w-xl font-display text-5xl font-semibold leading-tight tracking-tight">Seu acompanhamento acadêmico, em um só lugar.</h1>
-          <p className="mt-5 max-w-lg text-base leading-8 text-muted-foreground">Notas, frequência, avisos e atividades organizados em uma experiência simples para alunos e professores.</p>
+          <h1 className="mt-6 max-w-xl font-display text-5xl font-semibold leading-tight tracking-tight">
+            Seu acompanhamento acadêmico, em um só lugar.
+          </h1>
+          <p className="mt-5 max-w-lg text-base leading-8 text-muted-foreground">
+            Notas, frequência, avisos e atividades organizados em uma experiência simples para alunos e professores.
+          </p>
           <div className="mt-8 flex items-center gap-3 text-sm font-medium text-muted-foreground">
             <span className="size-2 rounded-full bg-primary" />
             Acesso individual e protegido
@@ -134,27 +248,99 @@ function AuthPage() {
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
             </div>
 
-            {mode !== "forgot" && (
+            {mode !== "forgot" && mode !== "pending" && (
               <div className="mt-6 grid grid-cols-2 rounded-xl bg-secondary p-1">
                 <button type="button" onClick={() => { setMode("login"); setMessage(""); }} className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${mode === "login" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Entrar</button>
                 <button type="button" onClick={() => { setMode("signup"); setMessage(""); }} className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${mode === "signup" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Criar conta</button>
               </div>
             )}
 
-            <form onSubmit={submit} className="mt-6 space-y-4">
-              {mode === "signup" && <label className="block text-sm font-medium">Nome completo<Input required value={name} onChange={e => setName(e.target.value)} className="mt-2 h-11" autoComplete="name" /></label>}
-              <label className="block text-sm font-medium">E-mail<Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 h-11" autoComplete="email" /></label>
-              {mode !== "forgot" && <label className="block text-sm font-medium">Senha<Input required type="password" minLength={6} value={password} onChange={e => setPassword(e.target.value)} className="mt-2 h-11" autoComplete={mode === "signup" ? "new-password" : "current-password"} /></label>}
-              {message && <div role="status" className="rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6 text-foreground">{message}</div>}
-              <Button disabled={busy} className="h-11 w-full font-semibold" type="submit">{busy ? "Aguarde…" : mode === "login" ? "Entrar no SINA" : mode === "signup" ? "Criar minha conta" : "Enviar link de recuperação"} <ArrowRight /></Button>
-            </form>
+            {mode === "pending" ? (
+              <div className="mt-6 space-y-4">
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+                  <div className="flex items-start gap-3">
+                    {pendingState?.request_status === "rejected" ? <ShieldCheck className="mt-0.5 size-5 text-destructive" /> : <CheckCircle2 className="mt-0.5 size-5 text-primary" />}
+                    <div>
+                      <p className="font-semibold">
+                        {pendingState?.request_status === "rejected" ? "A solicitação precisa de nova análise." : "Solicitação recebida."}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        Função solicitada: <strong>{roleLabel(pendingState?.requested_role ?? requestedRole)}</strong>.
+                        {pendingState?.request_status === "pending" && " O administrador precisa aprovar o acesso antes da entrada no sistema."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {pendingState?.review_note && <div className="rounded-xl border border-border bg-secondary p-4 text-sm leading-6"><strong>Observação do administrador:</strong> {pendingState.review_note}</div>}
+                <div>
+                  <p className="text-sm font-semibold">Alterar solicitação</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {(["student", "teacher"] as const).map(role => (
+                      <Button key={role} type="button" variant={requestedRole === role ? "default" : "outline"} disabled={busy} onClick={() => void changePendingRole(role)}>
+                        {role === "student" ? <UserRound className="mr-2 size-4" /> : <UsersRound className="mr-2 size-4" />}
+                        {roleLabel(role)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                {message && <div role="status" className="rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">{message}</div>}
+                <Button type="button" variant="outline" className="w-full" onClick={() => { void supabase.auth.signOut(); setMode("login"); setPendingState(null); setMessage(""); }}>
+                  Sair da conta
+                </Button>
+              </div>
+            ) : (
+              <>
+                {mode === "signup" && (
+                  <div className="mt-6 space-y-3">
+                    <p className="text-sm font-semibold">Como você participa da instituição?</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {(["student", "teacher"] as const).map(role => (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => setRequestedRole(role)}
+                          className={`rounded-2xl border p-4 text-left transition ${requestedRole === role ? "border-primary bg-primary/5 ring-2 ring-primary/15" : "border-border hover:bg-secondary/60"}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            {role === "student" ? <UserRound className="size-5 text-primary" /> : <UsersRound className="size-5 text-primary" />}
+                            <span className="font-semibold">{roleLabel(role)}</span>
+                          </div>
+                          <p className="mt-2 text-xs leading-5 text-muted-foreground">{roleDescription(role)}</p>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs leading-5 text-muted-foreground">A função escolhida é uma solicitação. O acesso só é liberado depois da aprovação do administrador.</p>
+                  </div>
+                )}
 
-            {mode !== "forgot" && <><div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div><Button type="button" variant="outline" onClick={google} disabled={busy} className="h-11 w-full">Continuar com Google</Button></>}
+                <form onSubmit={submit} className="mt-6 space-y-4">
+                  {mode === "signup" && <label className="block text-sm font-medium">Nome completo<Input required value={name} onChange={e => setName(e.target.value)} className="mt-2 h-11" autoComplete="name" /></label>}
+                  <label className="block text-sm font-medium">E-mail<Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 h-11" autoComplete="email" /></label>
+                  {mode !== "forgot" && <label className="block text-sm font-medium">Senha<Input required type="password" minLength={6} value={password} onChange={e => setPassword(e.target.value)} className="mt-2 h-11" autoComplete={mode === "signup" ? "new-password" : "current-password"} /></label>}
+                  {message && <div role="status" className="rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6 text-foreground">{message}</div>}
+                  <Button disabled={busy} className="h-11 w-full font-semibold" type="submit">
+                    {busy ? "Aguarde…" : mode === "login" ? "Entrar no SINA" : mode === "signup" ? "Enviar cadastro para aprovação" : "Enviar link de recuperação"}
+                    <ArrowRight />
+                  </Button>
+                </form>
 
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-2 text-sm">
-              <Button variant="link" className="h-auto px-0" onClick={() => { setMode(mode === "signup" ? "login" : "signup"); setMessage(""); }}>{mode === "signup" ? "Já tenho conta" : "Criar conta"}</Button>
-              <Button variant="link" className="h-auto px-0 text-muted-foreground" onClick={() => { setMode(mode === "forgot" ? "login" : "forgot"); setMessage(""); }}>{mode === "forgot" ? "Voltar para entrar" : "Esqueci minha senha"}</Button>
-            </div>
+                {mode !== "forgot" && (
+                  <>
+                    <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
+                    <Button type="button" variant="outline" onClick={google} disabled={busy} className="h-11 w-full">Continuar com Google</Button>
+                  </>
+                )}
+
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <Button variant="link" className="h-auto px-0" onClick={() => { setMode(mode === "signup" ? "login" : "signup"); setMessage(""); }}>
+                    {mode === "signup" ? "Já tenho conta" : "Criar conta"}
+                  </Button>
+                  <Button variant="link" className="h-auto px-0 text-muted-foreground" onClick={() => { setMode(mode === "forgot" ? "login" : "forgot"); setMessage(""); }}>
+                    {mode === "forgot" ? "Voltar para entrar" : "Esqueci minha senha"}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
           <p className="mt-4 text-center text-xs leading-5 text-muted-foreground">Ao continuar, você acessa apenas os dados permitidos para sua função no SINA.</p>
         </section>
