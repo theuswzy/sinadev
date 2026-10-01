@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 
 function AdminArea() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const role = useQuery({
     queryKey: ["admin-role"],
     queryFn: async () => {
@@ -82,7 +83,8 @@ function AdminArea() {
 
   async function logout() {
     await supabase.auth.signOut();
-    void queryClient.clear();
+    queryClient.clear();
+    void navigate({ to: "/auth", replace: true });
   }
 
   if (role.isPending) {
