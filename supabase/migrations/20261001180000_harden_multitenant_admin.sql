@@ -1009,3 +1009,96 @@ grant execute on function public.teacher_create_announcement(text,text,text,text
 grant execute on function public.teacher_create_task(text,text,text,text,timestamptz,text,text,bigint,text) to authenticated;
 grant execute on function public.student_list_tasks() to authenticated;
 grant execute on function public.student_set_task_completed(uuid,boolean) to authenticated;
+
+
+-- New accounts must not receive an academic role before approval.
+-- The original signup trigger assigned "student" automatically, which made
+-- pending accounts look authorized and blocked role resubmission.
+create or replace function public.new_account()
+returns trigger
+language plpgsql
+security definer
+set search_path to ''
+as $$
+begin
+  insert into public.profiles(user_id,display_name,status)
+  values(
+    new.id,
+    coalesce(new.raw_user_meta_data->>'display_name',''),
+    'pending'
+  )
+  on conflict(user_id) do nothing;
+
+  return new;
+end;
+$$;
+
+-- Remove the legacy automatic student role only from accounts still pending.
+delete from public.user_roles r
+using public.profiles p
+where p.user_id=r.user_id
+  and p.status='pending'
+  and r.role in ('student','teacher');
+
+create or replace function public.account_resubmit_role_request(_requested_role text)
+returns boolean
+language plpgsql security definer set search_path to ''
+as $$
+declare
+  uid uuid:=auth.uid();
+  v_school uuid;
+begin
+  if uid is null then raise exception 'Usuário não autenticado.'; end if;
+  if _requested_role not in ('student','teacher') then
+    raise exception 'Função solicitada inválida.';
+  end if;
+
+  -- A role without an active institution membership is not an approved role.
+  if exists(
+    select 1
+    from public.institution_memberships m
+    where m.user_id=uid
+      and m.role in ('admin','teacher','student')
+      and m.status='active'
+  ) then
+    return false;
+  end if;
+
+  select school_directory_id into v_school
+  from public.account_role_requests
+  where user_id=uid
+  order by created_at desc
+  limit 1;
+
+  update public.account_role_requests
+  set status='cancelled',updated_at=now()
+  where user_id=uid and status='pending';
+
+  insert into public.account_role_requests(
+    user_id,requested_role,status,school_directory_id
+  )
+  values(uid,_requested_role::public.app_role,'pending',v_school);
+
+  update public.profiles
+  set status='pending',updated_at=now()
+  where user_id=uid;
+
+  -- Ensure stale pre-approval roles cannot authorize access.
+  delete from public.user_roles
+  where user_id=uid
+    and role in ('student','teacher')
+    and not exists(
+      select 1
+      from public.institution_memberships m
+      where m.user_id=uid
+        and m.role=user_roles.role
+        and m.status='active'
+    );
+
+  return true;
+end;
+$$;
+
+revoke all on function public.new_account() from public,anon,authenticated;
+revoke all on function public.account_resubmit_role_request(text) from public,anon;
+grant execute on function public.account_resubmit_role_request(text) to authenticated;
