@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { UserRoundPlus, Link2, Users, ClipboardList, Save, ShieldCheck, Search, CheckCircle2, AlertCircle, BarChart3, Megaphone, ClipboardCheck, Filter, UsersRound } from "lucide-react";
+import { UserRoundPlus, Link2, Users, ClipboardList, Save, ShieldCheck, Search, CheckCircle2, AlertCircle, BarChart3, Megaphone, ClipboardCheck, Filter, UsersRound, Paperclip, UserMinus, ArrowRightLeft, X } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,15 +41,18 @@ function TeacherArea() {
   const [noticeClassroom, setNoticeClassroom] = useState("");
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeContent, setNoticeContent] = useState("");
+  const [noticeFile, setNoticeFile] = useState<File | null>(null);
   const [taskClassroom, setTaskClassroom] = useState("");
   const [taskSubject, setTaskSubject] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [taskDueAt, setTaskDueAt] = useState("");
+  const [taskFile, setTaskFile] = useState<File | null>(null);
 
   async function linkStudent(e: FormEvent) {
     e.preventDefault();
     if (!selected) return;
+    const wasLinked = Boolean(selected.teacher_id);
     setBusy(true); setMessage(""); setMessageType("success");
     const { data, error } = await supabase.rpc("teacher_link_student", {
       _student_id: selected.id,
@@ -57,14 +60,58 @@ function TeacherArea() {
       _classroom: classroom.trim(),
     });
     setBusy(false);
-    if (error) { setMessageType("error"); setMessage(errorText(error)); return; }
-    if (!data) { setMessageType("error"); setMessage("Não foi possível vincular o aluno."); return; }
-    setEnrollment(""); setClassroom("");
-    setMessage("Aluno vinculado à turma e à matrícula.");
-    toast.success("Aluno vinculado com sucesso.");
+    if (error) {
+      setMessageType("error");
+      setMessage(errorText(error));
+      toast.error(errorText(error));
+      return;
+    }
+    if (!data) {
+      setMessageType("error");
+      setMessage("Não foi possível salvar o vínculo do aluno.");
+      return;
+    }
+    setMessage(wasLinked ? "Turma e matrícula atualizadas." : "Aluno vinculado à turma e à matrícula.");
+    toast.success(wasLinked ? "Vínculo atualizado." : "Aluno vinculado com sucesso.");
     await queryClient.invalidateQueries({ queryKey: ["teacher-students"] });
     setSelectedId(selected.id);
   }
+
+  async function unlinkStudent() {
+    if (!selected?.teacher_id) return;
+    const confirmed = window.confirm(
+      "Remover " + selected.full_name + " desta turma? Isso apenas remove o vínculo com você; a conta e as notas do aluno não serão apagadas.",
+    );
+    if (!confirmed) return;
+
+    setBusy(true); setMessage(""); setMessageType("success");
+    const { data, error } = await supabase.rpc("teacher_unlink_student", {
+      _student_id: selected.id,
+    });
+    setBusy(false);
+
+    if (error) {
+      setMessageType("error");
+      setMessage(errorText(error));
+      toast.error(errorText(error));
+      return;
+    }
+
+    if (!data) {
+      setMessageType("error");
+      setMessage("Não foi possível remover o vínculo do aluno.");
+      return;
+    }
+
+    setEnrollment("");
+    setClassroom("");
+    setAttendance("");
+    setMessage("Aluno removido da sua turma. Nenhum dado acadêmico foi apagado.");
+    toast.success("Aluno removido da turma.");
+    await queryClient.invalidateQueries({ queryKey: ["teacher-students"] });
+    setSelectedId(selected.id);
+  }
+
 
   async function saveAttendance(e: FormEvent) {
     e.preventDefault();
@@ -150,38 +197,137 @@ function TeacherArea() {
     await queryClient.invalidateQueries({ queryKey: ["grades"] });
   }
 
+  const attachmentAccept = ".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx";
+
+  async function uploadAcademicAttachment(file: File) {
+    if (file.size > 20 * 1024 * 1024) {
+      throw new Error("O arquivo precisa ter no máximo 20 MB.");
+    }
+
+    const allowedTypes = new Set([
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+      "text/plain",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ]);
+
+    if (file.type && !allowedTypes.has(file.type)) {
+      throw new Error("Tipo de arquivo não permitido. Use PDF, imagem, Word, PowerPoint, Excel ou TXT.");
+    }
+
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) throw new Error("Sua sessão expirou. Entre novamente.");
+
+    const extension = file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() : "bin";
+    const filePath = extension
+      ? auth.user.id + "/" + crypto.randomUUID() + "." + extension
+      : auth.user.id + "/" + crypto.randomUUID();
+
+    const { error } = await supabase.storage.from("academic-attachments").upload(filePath, file, {
+      contentType: file.type || "application/octet-stream",
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+    if (error) throw error;
+
+    return {
+      path: filePath,
+      name: file.name,
+      size: file.size,
+      type: file.type || null,
+    };
+  }
+
+  async function removeAcademicAttachment(path: string | null) {
+    if (!path) return;
+    await supabase.storage.from("academic-attachments").remove([path]);
+  }
+
   async function createAnnouncement(e: FormEvent) {
     e.preventDefault();
     setBusy(true); setMessage(""); setMessageType("success");
-    const { error } = await supabase.rpc("teacher_create_announcement", {
-      _classroom: noticeClassroom.trim(),
-      _title: noticeTitle.trim(),
-      _content: noticeContent.trim(),
-    });
-    setBusy(false);
-    if (error) { setMessageType("error"); setMessage(errorText(error)); return; }
-    setNoticeTitle(""); setNoticeContent("");
-    setMessage("Aviso publicado para a turma.");
-    toast.success("Aviso publicado para a turma.");
+    let uploadedPath: string | null = null;
+
+    try {
+      const attachment = noticeFile ? await uploadAcademicAttachment(noticeFile) : null;
+      uploadedPath = attachment?.path ?? null;
+
+      const { error } = await supabase.rpc("teacher_create_announcement", {
+        _classroom: noticeClassroom.trim(),
+        _title: noticeTitle.trim(),
+        _content: noticeContent.trim(),
+        _attachment_path: attachment?.path ?? null,
+        _attachment_name: attachment?.name ?? null,
+        _attachment_size: attachment?.size ?? null,
+        _attachment_type: attachment?.type ?? null,
+      });
+
+      if (error) throw error;
+
+      setNoticeTitle("");
+      setNoticeContent("");
+      setNoticeFile(null);
+      setMessage("Aviso publicado para a turma.");
+      toast.success("Aviso publicado para a turma.");
+    } catch (error) {
+      if (uploadedPath) await removeAcademicAttachment(uploadedPath);
+      setMessageType("error");
+      setMessage(errorText(error));
+      toast.error(errorText(error));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function createTask(e: FormEvent) {
     e.preventDefault();
     setBusy(true); setMessage(""); setMessageType("success");
-    const due = taskDueAt ? new Date(taskDueAt).toISOString() : null;
-    const { error } = await supabase.rpc("teacher_create_task", {
-      _classroom: taskClassroom.trim(),
-      _subject: taskSubject.trim(),
-      _title: taskTitle.trim(),
-      _description: taskDescription.trim(),
-      _due_at: due,
-    });
-    setBusy(false);
-    if (error) { setMessageType("error"); setMessage(errorText(error)); return; }
-    setTaskSubject(""); setTaskTitle(""); setTaskDescription(""); setTaskDueAt("");
-    setMessage("Tarefa publicada para a turma.");
-    toast.success("Tarefa publicada para a turma.");
+    let uploadedPath: string | null = null;
+
+    try {
+      const due = taskDueAt ? new Date(taskDueAt).toISOString() : null;
+      const attachment = taskFile ? await uploadAcademicAttachment(taskFile) : null;
+      uploadedPath = attachment?.path ?? null;
+
+      const { error } = await supabase.rpc("teacher_create_task", {
+        _classroom: taskClassroom.trim(),
+        _subject: taskSubject.trim(),
+        _title: taskTitle.trim(),
+        _description: taskDescription.trim(),
+        _due_at: due,
+        _attachment_path: attachment?.path ?? null,
+        _attachment_name: attachment?.name ?? null,
+        _attachment_size: attachment?.size ?? null,
+        _attachment_type: attachment?.type ?? null,
+      });
+
+      if (error) throw error;
+
+      setTaskSubject("");
+      setTaskTitle("");
+      setTaskDescription("");
+      setTaskDueAt("");
+      setTaskFile(null);
+      setMessage("Atividade publicada para a turma.");
+      toast.success("Atividade publicada para a turma.");
+    } catch (error) {
+      if (uploadedPath) await removeAcademicAttachment(uploadedPath);
+      setMessageType("error");
+      setMessage(errorText(error));
+      toast.error(errorText(error));
+    } finally {
+      setBusy(false);
+    }
   }
+
 
   const unlinked = students.data?.filter(s => !s.teacher_id) ?? [];
   const linked = students.data?.filter(s => s.teacher_id) ?? [];
@@ -219,7 +365,13 @@ function TeacherArea() {
         <div className="border-b border-border p-6"><div className="flex items-center gap-3"><Link2 className="size-5 text-primary" /><div><h2 className="font-semibold">Alunos aguardando vínculo</h2><p className="mt-1 text-sm text-muted-foreground">Selecione um aluno que já possui conta e informe a turma e a matrícula.</p></div></div></div>
         <div className="border-b border-border p-4"><div className="relative max-w-md"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={studentSearch} onChange={e => setStudentSearch(e.target.value)} placeholder="Buscar aluno pelo nome…" className="pl-9" /></div></div>
         <div className="p-6">
-          {students.isPending ? <p className="text-sm text-muted-foreground">Carregando…</p> : filteredUnlinked.length ? <div className="grid gap-3 md:grid-cols-2">{filteredUnlinked.map(s => <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setMessage(""); }} className={`sina-interactive rounded-2xl border p-4 text-left hover:border-primary hover:shadow-sm ${selectedId === s.id ? "border-primary bg-primary/5" : "border-border"}`}><p className="font-semibold">{s.full_name}</p><p className="mt-1 text-xs text-muted-foreground">Conta criada · aguardando turma e matrícula</p></button>)}</div> : <div className="rounded-xl bg-secondary/50 p-5 text-sm text-muted-foreground">Não há alunos aguardando vínculo.</div>}
+          {students.isPending ? <p className="text-sm text-muted-foreground">Carregando…</p> : filteredUnlinked.length ? <div className="grid gap-3 md:grid-cols-2">{filteredUnlinked.map(s => <button key={s.id} type="button" onClick={() => {
+                  setSelectedId(s.id);
+                  setEnrollment(s.enrollment || "");
+                  setClassroom(s.classroom || "");
+                  setAttendance(s.attendance === null ? "" : String(s.attendance));
+                  setMessage("");
+                }} className={`sina-interactive rounded-2xl border p-4 text-left hover:border-primary hover:shadow-sm ${selectedId === s.id ? "border-primary bg-primary/5" : "border-border"}`}><p className="font-semibold">{s.full_name}</p><p className="mt-1 text-xs text-muted-foreground">Conta criada · aguardando turma e matrícula</p></button>)}</div> : <div className="rounded-xl bg-secondary/50 p-5 text-sm text-muted-foreground">Não há alunos aguardando vínculo.</div>}
         </div>
       </section>
 
@@ -260,7 +412,13 @@ function TeacherArea() {
         {filteredLinked.length ? (
           <div className="divide-y divide-border">
             {filteredLinked.map(s => (
-              <button key={s.id} type="button" onClick={() => { setSelectedId(s.id); setAttendance(s.attendance === null ? "" : String(s.attendance)); setMessage(""); }} className={`flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-accent/50 ${selectedId === s.id ? "bg-accent/50" : ""}`}>
+              <button key={s.id} type="button" onClick={() => {
+                setSelectedId(s.id);
+                setEnrollment(s.enrollment || "");
+                setClassroom(s.classroom || "");
+                setAttendance(s.attendance === null ? "" : String(s.attendance));
+                setMessage("");
+              }} className={`flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-accent/50 ${selectedId === s.id ? "bg-accent/50" : ""}`}>
                 <span>
                   <strong>{s.full_name}</strong>
                   <small className="mt-1 block text-muted-foreground">Turma {s.classroom} · Matrícula {s.enrollment}</small>
@@ -279,6 +437,33 @@ function TeacherArea() {
           </div>
         )}
       </section>
+
+      {selected?.teacher_id && <section className="mt-5 sina-card sina-card-hover p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">Gerenciar vínculo</p>
+            <h2 className="mt-1 font-semibold">{selected.full_name}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Altere a turma ou a matrícula sem excluir o aluno da plataforma.</p>
+          </div>
+          <ArrowRightLeft className="size-5 text-primary" />
+        </div>
+        <form onSubmit={linkStudent} className="mt-5 grid gap-4 md:grid-cols-[1fr_1fr_auto_auto]">
+          <label className="text-sm font-medium">Matrícula
+            <Input className="mt-2" required value={enrollment} onChange={e => setEnrollment(e.target.value)} placeholder="Ex.: 2026-001" />
+          </label>
+          <label className="text-sm font-medium">Turma
+            <Input className="mt-2" required value={classroom} onChange={e => setClassroom(e.target.value)} placeholder="Ex.: Turma A" />
+          </label>
+          <div className="flex items-end">
+            <Button type="submit" disabled={busy}><Save className="mr-2 size-4" />Salvar vínculo</Button>
+          </div>
+          <div className="flex items-end">
+            <Button type="button" variant="outline" disabled={busy} onClick={() => void unlinkStudent()} className="border-destructive/30 text-destructive hover:bg-destructive/5">
+              <UserMinus className="mr-2 size-4" />Remover da turma
+            </Button>
+          </div>
+        </form>
+      </section>}
 
       {linked.length > 0 && <section className="mt-5 sina-card sina-card-hover p-6">
         <div className="flex items-center gap-3"><UsersRound className="size-5 text-primary" /><div><h2 className="font-semibold">Lançamento rápido de notas</h2><p className="mt-1 text-sm text-muted-foreground">Preencha as notas de vários alunos da mesma turma em uma única tela.</p></div></div>
@@ -325,7 +510,19 @@ function TeacherArea() {
             </select>
             <Input required value={noticeTitle} onChange={e => setNoticeTitle(e.target.value)} placeholder="Título do aviso" />
             <textarea required maxLength={2000} value={noticeContent} onChange={e => setNoticeContent(e.target.value)} placeholder="Escreva o comunicado..." className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-            <Button type="submit" disabled={busy}><Megaphone className="mr-2 size-4" />Publicar aviso</Button>
+            <div className="rounded-xl border border-dashed border-border p-3">
+              <div className="flex items-center justify-between gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium">
+                  <Paperclip className="size-4 text-primary" />
+                  Anexar arquivo
+                  <input key={noticeFile ? "notice-file" : "notice-empty"} type="file" accept={attachmentAccept} className="sr-only" onChange={e => setNoticeFile(e.target.files?.[0] ?? null)} />
+                </label>
+                {noticeFile && <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setNoticeFile(null)} aria-label="Remover anexo"><X className="size-4" /></button>}
+              </div>
+              {noticeFile && <p className="mt-2 truncate text-xs text-muted-foreground">{noticeFile.name} · {(noticeFile.size / 1024 / 1024).toFixed(1)} MB</p>}
+              <p className="mt-2 text-[11px] text-muted-foreground">PDF, imagem, Word, PowerPoint, Excel ou TXT · até 20 MB.</p>
+            </div>
+            <Button type="submit" disabled={busy || !noticeClassroom}><Megaphone className="mr-2 size-4" />{busy ? "Publicando…" : "Publicar aviso"}</Button>
           </form>
         </div>
         <div className="sina-card sina-card-hover p-6 shadow-sm">
@@ -338,7 +535,19 @@ function TeacherArea() {
             <div className="grid gap-3 sm:grid-cols-2"><Input required value={taskSubject} onChange={e => setTaskSubject(e.target.value)} placeholder="Disciplina" /><Input required value={taskTitle} onChange={e => setTaskTitle(e.target.value)} placeholder="Título da tarefa" /></div>
             <textarea maxLength={4000} value={taskDescription} onChange={e => setTaskDescription(e.target.value)} placeholder="Descrição e orientações..." className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
             <Input type="datetime-local" value={taskDueAt} onChange={e => setTaskDueAt(e.target.value)} />
-            <Button type="submit" disabled={busy}><ClipboardCheck className="mr-2 size-4" />Publicar tarefa</Button>
+            <div className="rounded-xl border border-dashed border-border p-3">
+              <div className="flex items-center justify-between gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium">
+                  <Paperclip className="size-4 text-primary" />
+                  Anexar arquivo
+                  <input key={taskFile ? "task-file" : "task-empty"} type="file" accept={attachmentAccept} className="sr-only" onChange={e => setTaskFile(e.target.files?.[0] ?? null)} />
+                </label>
+                {taskFile && <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setTaskFile(null)} aria-label="Remover anexo"><X className="size-4" /></button>}
+              </div>
+              {taskFile && <p className="mt-2 truncate text-xs text-muted-foreground">{taskFile.name} · {(taskFile.size / 1024 / 1024).toFixed(1)} MB</p>}
+              <p className="mt-2 text-[11px] text-muted-foreground">PDF, imagem, Word, PowerPoint, Excel ou TXT · até 20 MB.</p>
+            </div>
+            <Button type="submit" disabled={busy || !taskClassroom}><ClipboardCheck className="mr-2 size-4" />{busy ? "Publicando…" : "Publicar atividade"}</Button>
           </form>
         </div>
       </section>
