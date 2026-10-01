@@ -566,7 +566,7 @@ export type Database = {
         Returns: boolean
       }
       admin_create_institution: {
-        Args: { _name: string; _slug: string }
+        Args: { _name: string; _slug: string; _school_directory_id?: string | null }
         Returns: string
       }
       admin_list_audit_logs: {
