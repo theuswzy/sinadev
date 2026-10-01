@@ -54,10 +54,10 @@ function StudentDashboard() {
       </section>
 
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Link to="/aluno/tarefas" className="sina-card sina-card-hover group p-5"><ClipboardList className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Pendências</p><p className="mt-1 text-3xl font-semibold">{pending.length}</p><p className="mt-1 text-xs text-muted-foreground">tarefas para resolver</p></Link>
-        <Link to="/aluno/notas" className="sina-card sina-card-hover p-5"><BarChart3 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Média geral</p><p className="mt-1 text-3xl font-semibold">{average == null ? "—" : formatScore(average)}</p><p className="mt-1 text-xs text-muted-foreground">com base nos lançamentos</p></Link>
-        <Link to="/aluno/frequencia" className="sina-card sina-card-hover p-5"><CheckCircle2 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-3xl font-semibold">{absences}</p><p className="mt-1 text-xs text-muted-foreground">registradas nas notas</p></Link>
-        <Link to="/aluno/disciplinas" className="sina-card sina-card-hover p-5"><BookOpen className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Disciplinas</p><p className="mt-1 text-3xl font-semibold">{subjects.length}</p><p className="mt-1 text-xs text-muted-foreground">com dados acadêmicos</p></Link>
+        <div className="sina-card p-5"><ClipboardList className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Pendências</p><p className="mt-1 text-3xl font-semibold">{pending.length}</p><p className="mt-1 text-xs text-muted-foreground">tarefas para resolver</p></div>
+        <div className="sina-card p-5"><BarChart3 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Média geral</p><p className="mt-1 text-3xl font-semibold">{average == null ? "—" : formatScore(average)}</p><p className="mt-1 text-xs text-muted-foreground">com base nos lançamentos</p></div>
+        <div className="sina-card p-5"><CheckCircle2 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-3xl font-semibold">{absences}</p><p className="mt-1 text-xs text-muted-foreground">registradas nas notas</p></div>
+        <div className="sina-card p-5"><BookOpen className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Disciplinas</p><p className="mt-1 text-3xl font-semibold">{subjects.length}</p><p className="mt-1 text-xs text-muted-foreground">com dados acadêmicos</p></div>
       </section>
 
       <section className="mt-6 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
