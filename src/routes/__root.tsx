@@ -132,8 +132,14 @@ function RootComponent() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       void router.invalidate();
-      if (session) void queryClient.invalidateQueries();
-      else queryClient.removeQueries({ queryKey: ["sina-account"] });
+      if (session) {
+        void queryClient.invalidateQueries();
+      } else {
+        queryClient.clear();
+        if (router.state.location.pathname !== "/auth") {
+          void router.navigate({ to: "/auth", replace: true });
+        }
+      }
     });
     return () => subscription.unsubscribe();
   }, [queryClient, router]);
