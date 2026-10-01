@@ -200,7 +200,7 @@ function TeacherArea() {
   return <AcademicShell title="Área do professor" subtitle="Turmas e acompanhamento acadêmico">
     {role.isPending ? <p className="mt-8 text-muted-foreground">Verificando acesso…</p> : role.error ? <p role="alert" className="mt-8 text-destructive">{errorText(role.error)}</p> : role.data !== "teacher" ? (
       <div className="mt-8 sina-card sina-card-hover p-6">
-        <ShieldCheck className="size-6 text-primary" /><p className="mt-3 font-semibold">Acesso reservado a professores autorizados.</p><p className="mt-1 text-sm text-muted-foreground">Sua conta não possui autorização de professor.</p><Link to={routeForRole(role.data)} className="mt-4 inline-block text-sm text-primary underline">Voltar para minha área</Link>
+        <ShieldCheck className="size-6 text-primary" /><p className="mt-3 font-semibold">Acesso reservado a professores autorizados.</p><p className="mt-1 text-sm text-muted-foreground">Sua conta não possui autorização de professor.</p><Link to={role.data === "admin" ? "/admin" : "/aluno"} className="mt-4 inline-block text-sm text-primary underline">Voltar para minha área</Link>
       </div>
     ) : <>
       {students.isPending && (
