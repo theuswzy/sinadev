@@ -49,7 +49,7 @@ export function TeacherAcademicCenter() {
   const classReport = useQuery({ queryKey: ["teacher-class-report", classroomId], queryFn: () => loadTeacherClassReport(classroomId), enabled: !!classroomId });
 
   useEffect(() => {
-    if (!classroomId && classrooms.data?.length) setClassroomId(classrooms.data.find(c => c.status === "active")?.id ?? classrooms.data[0].id);
+    if (!classroomId && classrooms.data?.length) setClassroomId(classrooms.data.find(c => c.status === "active")?.id ?? classrooms.data[0]?.id ?? "");
   }, [classroomId, classrooms.data]);
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export function TeacherAcademicCenter() {
   const [feedback, setFeedback] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!selectedAssessmentId && assessments.data?.length) setSelectedAssessmentId(assessments.data[0].id);
+    if (!selectedAssessmentId && assessments.data?.length) setSelectedAssessmentId(assessments.data[0]?.id ?? "");
   }, [selectedAssessmentId, assessments.data]);
 
   const selectedAssessment: TeacherAssessment | null = assessments.data?.find(a => a.id === selectedAssessmentId) ?? null;
