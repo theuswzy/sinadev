@@ -224,7 +224,7 @@ function AssessmentsBox({classes,active,onChange}:{classes:any[];active:string;o
     const score=Number(raw);
     if(score<0||score>max){window.alert("A nota deve estar entre 0 e "+max+".");return;}
     try{
-      const {error}=await supabase.rpc("teacher_upsert_assessment_score",{_assessment_id:selected,_student_id:studentId,_score:score,_feedback:null});
+      const {error}=await supabase.rpc("teacher_upsert_assessment_score",{_assessment_id:selected,_student_id:studentId,_score:score,_feedback:""});
       if(error)throw error;
       await a.refetch();
     }catch(error){window.alert(errorText(error));}
@@ -274,7 +274,7 @@ function PublishBox({kind,classes}:{kind:"notice"|"task";classes:any[]}){
   const subjects=useQuery({queryKey:["teacher-subjects"],queryFn:loadTeacherSubjects,enabled:kind==="task"});
   const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [subject,setSubject]=useState("");const [content,setContent]=useState("");const [due,setDue]=useState("");const [selectedTask,setSelectedTask]=useState("");
   const submissions=useQuery({queryKey:["task-submissions",selectedTask],queryFn:()=>loadTaskSubmissions(selectedTask),enabled:kind==="task"&&!!selectedTask});
-  const publish=async()=>{if(!classroom||!title.trim()||(kind==="task"&&!subject))return;const args=kind==="notice"?{_classroom:classroom,_title:title.trim(),_content:content}:{_classroom:classroom,_subject:subject,_title:title.trim(),_description:content,_due_at:due?new Date(due).toISOString():null};const {error}=await supabase.rpc(kind==="notice"?"teacher_create_announcement":"teacher_create_task",args);if(error)throw error;setTitle("");setContent("");setSubject("");setDue("");await q.refetch()};
+  const publish=async()=>{if(!classroom||!title.trim()||(kind==="task"&&!subject))return;const {error}=kind==="notice"?await supabase.rpc("teacher_create_announcement",{_classroom:classroom,_title:title.trim(),_content:content}):await supabase.rpc("teacher_create_task",{_classroom:classroom,_subject:subject,_title:title.trim(),_description:content,_due_at:due?new Date(due).toISOString():""});if(error)throw error;setTitle("");setContent("");setSubject("");setDue("");await q.refetch()};
   return <div className="mt-6 grid gap-5 lg:grid-cols-2">
     <section className="sina-card p-6"><div className="flex items-start gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">{kind==="task"?<ClipboardList className="size-5"/>:<Megaphone className="size-5"/>}</span><div><h2 className="font-semibold">{kind==="notice"?"Publicar aviso":"Publicar atividade"}</h2><p className="mt-1 text-sm text-muted-foreground">{kind==="notice"?"Envie um comunicado para uma turma.":"Crie uma atividade, defina a disciplina e o prazo para os alunos."}</p></div></div>
       <div className="mt-5 space-y-3">
