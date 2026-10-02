@@ -17,23 +17,22 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAlunoRouteImport } from './routes/_authenticated/aluno'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
-import { Route as AuthenticatedProfessorRouteImport } from './routes/_authenticated/professor'
-import { Route as AuthenticatedProfessorTurmasRouteImport } from './routes/_authenticated/professor/turmas'
-import { Route as AuthenticatedProfessorDisciplinasRouteImport } from './routes/_authenticated/professor/disciplinas'
-import { Route as AuthenticatedProfessorNotasRouteImport } from './routes/_authenticated/professor/notas'
-import { Route as AuthenticatedProfessorFrequenciaRouteImport } from './routes/_authenticated/professor/frequencia'
-import { Route as AuthenticatedProfessorAvaliacoesRouteImport } from './routes/_authenticated/professor/avaliacoes'
-import { Route as AuthenticatedProfessorAtividadesRouteImport } from './routes/_authenticated/professor/atividades'
-import { Route as AuthenticatedProfessorAgendaRouteImport } from './routes/_authenticated/professor/agenda'
-import { Route as AuthenticatedProfessorComunicacaoRouteImport } from './routes/_authenticated/professor/comunicacao'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
-import { Route as AuthenticatedAlunoTarefasRouteImport } from './routes/_authenticated/aluno/tarefas'
-import { Route as AuthenticatedAlunoDisciplinasRouteImport } from './routes/_authenticated/aluno/disciplinas'
-import { Route as AuthenticatedAlunoNotasRouteImport } from './routes/_authenticated/aluno/notas'
-import { Route as AuthenticatedAlunoFrequenciaRouteImport } from './routes/_authenticated/aluno/frequencia'
+import { Route as AuthenticatedProfessorRouteImport } from './routes/_authenticated/professor'
 import { Route as AuthenticatedAlunoAgendaRouteImport } from './routes/_authenticated/aluno/agenda'
 import { Route as AuthenticatedAlunoAvisosRouteImport } from './routes/_authenticated/aluno/avisos'
-
+import { Route as AuthenticatedAlunoDisciplinasRouteImport } from './routes/_authenticated/aluno/disciplinas'
+import { Route as AuthenticatedAlunoFrequenciaRouteImport } from './routes/_authenticated/aluno/frequencia'
+import { Route as AuthenticatedAlunoNotasRouteImport } from './routes/_authenticated/aluno/notas'
+import { Route as AuthenticatedAlunoTarefasRouteImport } from './routes/_authenticated/aluno/tarefas'
+import { Route as AuthenticatedProfessorAgendaRouteImport } from './routes/_authenticated/professor/agenda'
+import { Route as AuthenticatedProfessorAtividadesRouteImport } from './routes/_authenticated/professor/atividades'
+import { Route as AuthenticatedProfessorAvaliacoesRouteImport } from './routes/_authenticated/professor/avaliacoes'
+import { Route as AuthenticatedProfessorComunicacaoRouteImport } from './routes/_authenticated/professor/comunicacao'
+import { Route as AuthenticatedProfessorDisciplinasRouteImport } from './routes/_authenticated/professor/disciplinas'
+import { Route as AuthenticatedProfessorFrequenciaRouteImport } from './routes/_authenticated/professor/frequencia'
+import { Route as AuthenticatedProfessorNotasRouteImport } from './routes/_authenticated/professor/notas'
+import { Route as AuthenticatedProfessorTurmasRouteImport } from './routes/_authenticated/professor/turmas'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -69,40 +68,14 @@ const AuthenticatedAlunoRoute = AuthenticatedAlunoRouteImport.update({
   path: '/aluno',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAlunoTarefasRoute = AuthenticatedAlunoTarefasRouteImport.update({
-  id: '/_authenticated/aluno/tarefas',
-  path: '/tarefas',
-  getParentRoute: () => AuthenticatedAlunoRoute,
-} as any)
-const AuthenticatedAlunoDisciplinasRoute = AuthenticatedAlunoDisciplinasRouteImport.update({
-  id: '/_authenticated/aluno/disciplinas',
-  path: '/disciplinas',
-  getParentRoute: () => AuthenticatedAlunoRoute,
-} as any)
-const AuthenticatedAlunoNotasRoute = AuthenticatedAlunoNotasRouteImport.update({
-  id: '/_authenticated/aluno/notas',
-  path: '/notas',
-  getParentRoute: () => AuthenticatedAlunoRoute,
-} as any)
-const AuthenticatedAlunoFrequenciaRoute = AuthenticatedAlunoFrequenciaRouteImport.update({
-  id: '/_authenticated/aluno/frequencia',
-  path: '/frequencia',
-  getParentRoute: () => AuthenticatedAlunoRoute,
-} as any)
-const AuthenticatedAlunoAgendaRoute = AuthenticatedAlunoAgendaRouteImport.update({
-  id: '/_authenticated/aluno/agenda',
-  path: '/agenda',
-  getParentRoute: () => AuthenticatedAlunoRoute,
-} as any)
-const AuthenticatedAlunoAvisosRoute = AuthenticatedAlunoAvisosRouteImport.update({
-  id: '/_authenticated/aluno/avisos',
-  path: '/avisos',
-  getParentRoute: () => AuthenticatedAlunoRoute,
-} as any)
-
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   id: '/painel',
   path: '/painel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProfessorRoute = AuthenticatedProfessorRouteImport.update({
@@ -110,59 +83,89 @@ const AuthenticatedProfessorRoute = AuthenticatedProfessorRouteImport.update({
   path: '/professor',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedProfessorTurmasRoute = AuthenticatedProfessorTurmasRouteImport.update({
-  id: '/_authenticated/professor/turmas',
-  path: '/turmas',
-  getParentRoute: () => AuthenticatedProfessorRoute,
-} as any)
-
-const AuthenticatedProfessorDisciplinasRoute = AuthenticatedProfessorDisciplinasRouteImport.update({
-  id: '/_authenticated/professor/disciplinas',
-  path: '/disciplinas',
-  getParentRoute: () => AuthenticatedProfessorRoute,
-} as any)
-
-const AuthenticatedProfessorNotasRoute = AuthenticatedProfessorNotasRouteImport.update({
-  id: '/_authenticated/professor/notas',
+const AuthenticatedAlunoAgendaRoute =
+  AuthenticatedAlunoAgendaRouteImport.update({
+    id: '/agenda',
+    path: '/agenda',
+    getParentRoute: () => AuthenticatedAlunoRoute,
+  } as any)
+const AuthenticatedAlunoAvisosRoute =
+  AuthenticatedAlunoAvisosRouteImport.update({
+    id: '/avisos',
+    path: '/avisos',
+    getParentRoute: () => AuthenticatedAlunoRoute,
+  } as any)
+const AuthenticatedAlunoDisciplinasRoute =
+  AuthenticatedAlunoDisciplinasRouteImport.update({
+    id: '/disciplinas',
+    path: '/disciplinas',
+    getParentRoute: () => AuthenticatedAlunoRoute,
+  } as any)
+const AuthenticatedAlunoFrequenciaRoute =
+  AuthenticatedAlunoFrequenciaRouteImport.update({
+    id: '/frequencia',
+    path: '/frequencia',
+    getParentRoute: () => AuthenticatedAlunoRoute,
+  } as any)
+const AuthenticatedAlunoNotasRoute = AuthenticatedAlunoNotasRouteImport.update({
+  id: '/notas',
   path: '/notas',
-  getParentRoute: () => AuthenticatedProfessorRoute,
+  getParentRoute: () => AuthenticatedAlunoRoute,
 } as any)
-
-const AuthenticatedProfessorFrequenciaRoute = AuthenticatedProfessorFrequenciaRouteImport.update({
-  id: '/_authenticated/professor/frequencia',
-  path: '/frequencia',
-  getParentRoute: () => AuthenticatedProfessorRoute,
-} as any)
-
-const AuthenticatedProfessorAvaliacoesRoute = AuthenticatedProfessorAvaliacoesRouteImport.update({
-  id: '/_authenticated/professor/avaliacoes',
-  path: '/avaliacoes',
-  getParentRoute: () => AuthenticatedProfessorRoute,
-} as any)
-
-const AuthenticatedProfessorAtividadesRoute = AuthenticatedProfessorAtividadesRouteImport.update({
-  id: '/_authenticated/professor/atividades',
-  path: '/atividades',
-  getParentRoute: () => AuthenticatedProfessorRoute,
-} as any)
-
-const AuthenticatedProfessorAgendaRoute = AuthenticatedProfessorAgendaRouteImport.update({
-  id: '/_authenticated/professor/agenda',
-  path: '/agenda',
-  getParentRoute: () => AuthenticatedProfessorRoute,
-} as any)
-
-const AuthenticatedProfessorComunicacaoRoute = AuthenticatedProfessorComunicacaoRouteImport.update({
-  id: '/_authenticated/professor/comunicacao',
-  path: '/comunicacao',
-  getParentRoute: () => AuthenticatedProfessorRoute,
-} as any)
-
-const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
-  id: '/_authenticated/perfil',
-  path: '/perfil',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
+const AuthenticatedAlunoTarefasRoute =
+  AuthenticatedAlunoTarefasRouteImport.update({
+    id: '/tarefas',
+    path: '/tarefas',
+    getParentRoute: () => AuthenticatedAlunoRoute,
+  } as any)
+const AuthenticatedProfessorAgendaRoute =
+  AuthenticatedProfessorAgendaRouteImport.update({
+    id: '/agenda',
+    path: '/agenda',
+    getParentRoute: () => AuthenticatedProfessorRoute,
+  } as any)
+const AuthenticatedProfessorAtividadesRoute =
+  AuthenticatedProfessorAtividadesRouteImport.update({
+    id: '/atividades',
+    path: '/atividades',
+    getParentRoute: () => AuthenticatedProfessorRoute,
+  } as any)
+const AuthenticatedProfessorAvaliacoesRoute =
+  AuthenticatedProfessorAvaliacoesRouteImport.update({
+    id: '/avaliacoes',
+    path: '/avaliacoes',
+    getParentRoute: () => AuthenticatedProfessorRoute,
+  } as any)
+const AuthenticatedProfessorComunicacaoRoute =
+  AuthenticatedProfessorComunicacaoRouteImport.update({
+    id: '/comunicacao',
+    path: '/comunicacao',
+    getParentRoute: () => AuthenticatedProfessorRoute,
+  } as any)
+const AuthenticatedProfessorDisciplinasRoute =
+  AuthenticatedProfessorDisciplinasRouteImport.update({
+    id: '/disciplinas',
+    path: '/disciplinas',
+    getParentRoute: () => AuthenticatedProfessorRoute,
+  } as any)
+const AuthenticatedProfessorFrequenciaRoute =
+  AuthenticatedProfessorFrequenciaRouteImport.update({
+    id: '/frequencia',
+    path: '/frequencia',
+    getParentRoute: () => AuthenticatedProfessorRoute,
+  } as any)
+const AuthenticatedProfessorNotasRoute =
+  AuthenticatedProfessorNotasRouteImport.update({
+    id: '/notas',
+    path: '/notas',
+    getParentRoute: () => AuthenticatedProfessorRoute,
+  } as any)
+const AuthenticatedProfessorTurmasRoute =
+  AuthenticatedProfessorTurmasRouteImport.update({
+    id: '/turmas',
+    path: '/turmas',
+    getParentRoute: () => AuthenticatedProfessorRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -170,24 +173,24 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/aluno': typeof AuthenticatedAlunoRoute
+  '/aluno': typeof AuthenticatedAlunoRouteWithChildren
   '/painel': typeof AuthenticatedPainelRoute
-  '/professor': typeof AuthenticatedProfessorRoute
-  '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
-  '/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
-  '/professor/notas': typeof AuthenticatedProfessorNotasRoute
-  '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
-  '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
-  '/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
-  '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
-  '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
   '/perfil': typeof AuthenticatedPerfilRoute
-  '/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
-  '/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
-  '/aluno/notas': typeof AuthenticatedAlunoNotasRoute
-  '/aluno/frequencia': typeof AuthenticatedAlunoFrequenciaRoute
+  '/professor': typeof AuthenticatedProfessorRouteWithChildren
   '/aluno/agenda': typeof AuthenticatedAlunoAgendaRoute
   '/aluno/avisos': typeof AuthenticatedAlunoAvisosRoute
+  '/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
+  '/aluno/frequencia': typeof AuthenticatedAlunoFrequenciaRoute
+  '/aluno/notas': typeof AuthenticatedAlunoNotasRoute
+  '/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
+  '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
+  '/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
+  '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
+  '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
+  '/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
+  '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
+  '/professor/notas': typeof AuthenticatedProfessorNotasRoute
+  '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -195,23 +198,24 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
-  '/aluno': typeof AuthenticatedAlunoRoute
+  '/aluno': typeof AuthenticatedAlunoRouteWithChildren
   '/painel': typeof AuthenticatedPainelRoute
-  '/professor': typeof AuthenticatedProfessorRoute
-  '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
-  '/professor/notas': typeof AuthenticatedProfessorNotasRoute
-  '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
-  '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
-  '/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
-  '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
-  '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
   '/perfil': typeof AuthenticatedPerfilRoute
-  '/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
-  '/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
-  '/aluno/notas': typeof AuthenticatedAlunoNotasRoute
-  '/aluno/frequencia': typeof AuthenticatedAlunoFrequenciaRoute
+  '/professor': typeof AuthenticatedProfessorRouteWithChildren
   '/aluno/agenda': typeof AuthenticatedAlunoAgendaRoute
   '/aluno/avisos': typeof AuthenticatedAlunoAvisosRoute
+  '/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
+  '/aluno/frequencia': typeof AuthenticatedAlunoFrequenciaRoute
+  '/aluno/notas': typeof AuthenticatedAlunoNotasRoute
+  '/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
+  '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
+  '/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
+  '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
+  '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
+  '/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
+  '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
+  '/professor/notas': typeof AuthenticatedProfessorNotasRoute
+  '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -221,24 +225,24 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
-  '/_authenticated/aluno': typeof AuthenticatedAlunoRoute
+  '/_authenticated/aluno': typeof AuthenticatedAlunoRouteWithChildren
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
-  '/_authenticated/professor': typeof AuthenticatedProfessorRoute
-  '/_authenticated/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
-  '/_authenticated/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
-  '/_authenticated/professor/notas': typeof AuthenticatedProfessorNotasRoute
-  '/_authenticated/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
-  '/_authenticated/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
-  '/_authenticated/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
-  '/_authenticated/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
-  '/_authenticated/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
-  '/_authenticated/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
-  '/_authenticated/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
-  '/_authenticated/aluno/notas': typeof AuthenticatedAlunoNotasRoute
-  '/_authenticated/aluno/frequencia': typeof AuthenticatedAlunoFrequenciaRoute
+  '/_authenticated/professor': typeof AuthenticatedProfessorRouteWithChildren
   '/_authenticated/aluno/agenda': typeof AuthenticatedAlunoAgendaRoute
   '/_authenticated/aluno/avisos': typeof AuthenticatedAlunoAvisosRoute
+  '/_authenticated/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
+  '/_authenticated/aluno/frequencia': typeof AuthenticatedAlunoFrequenciaRoute
+  '/_authenticated/aluno/notas': typeof AuthenticatedAlunoNotasRoute
+  '/_authenticated/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
+  '/_authenticated/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
+  '/_authenticated/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
+  '/_authenticated/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
+  '/_authenticated/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
+  '/_authenticated/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
+  '/_authenticated/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
+  '/_authenticated/professor/notas': typeof AuthenticatedProfessorNotasRoute
+  '/_authenticated/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -250,17 +254,22 @@ export interface FileRouteTypes {
     | '/admin'
     | '/aluno'
     | '/painel'
-    | '/professor'
-    | '/professor/turmas'
-    | '/professor/disciplinas'
-    | '/professor/disciplinas'
-    | '/professor/notas'
-    | '/professor/frequencia'
-    | '/professor/avaliacoes'
-    | '/professor/atividades'
-    | '/professor/agenda'
-    | '/professor/comunicacao'
     | '/perfil'
+    | '/professor'
+    | '/aluno/agenda'
+    | '/aluno/avisos'
+    | '/aluno/disciplinas'
+    | '/aluno/frequencia'
+    | '/aluno/notas'
+    | '/aluno/tarefas'
+    | '/professor/agenda'
+    | '/professor/atividades'
+    | '/professor/avaliacoes'
+    | '/professor/comunicacao'
+    | '/professor/disciplinas'
+    | '/professor/frequencia'
+    | '/professor/notas'
+    | '/professor/turmas'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -270,15 +279,22 @@ export interface FileRouteTypes {
     | '/admin'
     | '/aluno'
     | '/painel'
-    | '/professor'
-    | '/professor/turmas'
-    | '/professor/notas'
-    | '/professor/frequencia'
-    | '/professor/avaliacoes'
-    | '/professor/atividades'
-    | '/professor/agenda'
-    | '/professor/comunicacao'
     | '/perfil'
+    | '/professor'
+    | '/aluno/agenda'
+    | '/aluno/avisos'
+    | '/aluno/disciplinas'
+    | '/aluno/frequencia'
+    | '/aluno/notas'
+    | '/aluno/tarefas'
+    | '/professor/agenda'
+    | '/professor/atividades'
+    | '/professor/avaliacoes'
+    | '/professor/comunicacao'
+    | '/professor/disciplinas'
+    | '/professor/frequencia'
+    | '/professor/notas'
+    | '/professor/turmas'
   id:
     | '__root__'
     | '/'
@@ -289,22 +305,22 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/aluno'
     | '/_authenticated/painel'
-    | '/_authenticated/professor'
-    | '/_authenticated/professor/turmas'
-    | '/_authenticated/professor/disciplinas'
-    | '/_authenticated/professor/notas'
-    | '/_authenticated/professor/frequencia'
-    | '/_authenticated/professor/avaliacoes'
-    | '/_authenticated/professor/atividades'
-    | '/_authenticated/professor/agenda'
-    | '/_authenticated/professor/comunicacao'
     | '/_authenticated/perfil'
-    | '/_authenticated/aluno/tarefas'
-    | '/_authenticated/aluno/disciplinas'
-    | '/_authenticated/aluno/notas'
-    | '/_authenticated/aluno/frequencia'
+    | '/_authenticated/professor'
     | '/_authenticated/aluno/agenda'
     | '/_authenticated/aluno/avisos'
+    | '/_authenticated/aluno/disciplinas'
+    | '/_authenticated/aluno/frequencia'
+    | '/_authenticated/aluno/notas'
+    | '/_authenticated/aluno/tarefas'
+    | '/_authenticated/professor/agenda'
+    | '/_authenticated/professor/atividades'
+    | '/_authenticated/professor/avaliacoes'
+    | '/_authenticated/professor/comunicacao'
+    | '/_authenticated/professor/disciplinas'
+    | '/_authenticated/professor/frequencia'
+    | '/_authenticated/professor/notas'
+    | '/_authenticated/professor/turmas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -318,227 +334,243 @@ export interface RootRouteChildren {
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
     '/': {
-      id: '/',
-      path: '/',
-      fullPath: '/',
-      preLoaderRoute: typeof IndexRouteImport,
-      parentRoute: typeof rootRouteImport,
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
-      id: '/_authenticated',
-      path: '',
-      fullPath: '/',
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport,
-      parentRoute: typeof rootRouteImport,
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/apresentacao': {
-      id: '/apresentacao',
-      path: '/apresentacao',
-      fullPath: '/apresentacao',
-      preLoaderRoute: typeof ApresentacaoRouteImport,
-      parentRoute: typeof rootRouteImport,
+      id: '/apresentacao'
+      path: '/apresentacao'
+      fullPath: '/apresentacao'
+      preLoaderRoute: typeof ApresentacaoRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth': {
-      id: '/auth',
-      path: '/auth',
-      fullPath: '/auth',
-      preLoaderRoute: typeof AuthRouteImport,
-      parentRoute: typeof rootRouteImport,
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
-      id: '/reset-password',
-      path: '/reset-password',
-      fullPath: '/reset-password',
-      preLoaderRoute: typeof ResetPasswordRouteImport,
-      parentRoute: typeof rootRouteImport,
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin': {
-      id: '/_authenticated/admin',
-      path: '/admin',
-      fullPath: '/admin',
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport,
-      parentRoute: typeof AuthenticatedRouteRoute,
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/aluno': {
-      id: '/_authenticated/aluno',
-      path: '/aluno',
-      fullPath: '/aluno',
-      preLoaderRoute: typeof AuthenticatedAlunoRouteImport,
-      parentRoute: typeof AuthenticatedRouteRoute,
+      id: '/_authenticated/aluno'
+      path: '/aluno'
+      fullPath: '/aluno'
+      preLoaderRoute: typeof AuthenticatedAlunoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/painel': {
-      id: '/_authenticated/painel',
-      path: '/painel',
-      fullPath: '/painel',
-      preLoaderRoute: typeof AuthenticatedPainelRouteImport,
-      parentRoute: typeof AuthenticatedRouteRoute,
-    }
-    '/_authenticated/professor': {
-      id: '/_authenticated/professor',
-      path: '/professor',
-      fullPath: '/professor',
-      preLoaderRoute: typeof AuthenticatedProfessorRouteImport,
-      parentRoute: typeof AuthenticatedRouteRoute,
-    }
-    '/_authenticated/professor/disciplinas': {
-      id: '/_authenticated/professor/disciplinas',
-      path: '/disciplinas',
-      fullPath: '/professor/disciplinas',
-      preLoaderRoute: typeof AuthenticatedProfessorDisciplinasRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRouteImport,
-    }
-    '/_authenticated/professor/turmas': {
-      id: '/_authenticated/professor/turmas',
-      path: '/turmas',
-      fullPath: '/professor/turmas',
-      preLoaderRoute: typeof AuthenticatedProfessorTurmasRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute,
-    }
-    '/_authenticated/professor/notas': {
-      id: '/_authenticated/professor/notas',
-      path: '/notas',
-      fullPath: '/professor/notas',
-      preLoaderRoute: typeof AuthenticatedProfessorNotasRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute,
-    }
-    '/_authenticated/professor/frequencia': {
-      id: '/_authenticated/professor/frequencia',
-      path: '/frequencia',
-      fullPath: '/professor/frequencia',
-      preLoaderRoute: typeof AuthenticatedProfessorFrequenciaRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute,
-    }
-    '/_authenticated/professor/avaliacoes': {
-      id: '/_authenticated/professor/avaliacoes',
-      path: '/avaliacoes',
-      fullPath: '/professor/avaliacoes',
-      preLoaderRoute: typeof AuthenticatedProfessorAvaliacoesRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute,
-    }
-    '/_authenticated/professor/atividades': {
-      id: '/_authenticated/professor/atividades',
-      path: '/atividades',
-      fullPath: '/professor/atividades',
-      preLoaderRoute: typeof AuthenticatedProfessorAtividadesRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute,
-    }
-    '/_authenticated/professor/agenda': {
-      id: '/_authenticated/professor/agenda',
-      path: '/agenda',
-      fullPath: '/professor/agenda',
-      preLoaderRoute: typeof AuthenticatedProfessorAgendaRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute,
-    }
-    '/_authenticated/professor/comunicacao': {
-      id: '/_authenticated/professor/comunicacao',
-      path: '/comunicacao',
-      fullPath: '/professor/comunicacao',
-      preLoaderRoute: typeof AuthenticatedProfessorComunicacaoRouteImport,
-      parentRoute: typeof AuthenticatedProfessorRoute,
+      id: '/_authenticated/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof AuthenticatedPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/perfil': {
-      id: '/_authenticated/perfil',
-      path: '/perfil',
-      fullPath: '/perfil',
-      preLoaderRoute: typeof AuthenticatedPerfilRouteImport,
-      parentRoute: typeof AuthenticatedRouteRoute,
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/aluno/tarefas': {
-      id: '/_authenticated/aluno/tarefas',
-      path: '/tarefas',
-      fullPath: '/aluno/tarefas',
-      preLoaderRoute: typeof AuthenticatedAlunoTarefasRouteImport,
-      parentRoute: typeof AuthenticatedAlunoRoute,
-    }
-    '/_authenticated/aluno/disciplinas': {
-      id: '/_authenticated/aluno/disciplinas',
-      path: '/disciplinas',
-      fullPath: '/aluno/disciplinas',
-      preLoaderRoute: typeof AuthenticatedAlunoDisciplinasRouteImport,
-      parentRoute: typeof AuthenticatedAlunoRoute,
-    }
-    '/_authenticated/aluno/notas': {
-      id: '/_authenticated/aluno/notas',
-      path: '/notas',
-      fullPath: '/aluno/notas',
-      preLoaderRoute: typeof AuthenticatedAlunoNotasRouteImport,
-      parentRoute: typeof AuthenticatedAlunoRoute,
-    }
-    '/_authenticated/aluno/frequencia': {
-      id: '/_authenticated/aluno/frequencia',
-      path: '/frequencia',
-      fullPath: '/aluno/frequencia',
-      preLoaderRoute: typeof AuthenticatedAlunoFrequenciaRouteImport,
-      parentRoute: typeof AuthenticatedAlunoRoute,
+    '/_authenticated/professor': {
+      id: '/_authenticated/professor'
+      path: '/professor'
+      fullPath: '/professor'
+      preLoaderRoute: typeof AuthenticatedProfessorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/aluno/agenda': {
-      id: '/_authenticated/aluno/agenda',
-      path: '/agenda',
-      fullPath: '/aluno/agenda',
-      preLoaderRoute: typeof AuthenticatedAlunoAgendaRouteImport,
-      parentRoute: typeof AuthenticatedAlunoRoute,
+      id: '/_authenticated/aluno/agenda'
+      path: '/agenda'
+      fullPath: '/aluno/agenda'
+      preLoaderRoute: typeof AuthenticatedAlunoAgendaRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
     }
     '/_authenticated/aluno/avisos': {
-      id: '/_authenticated/aluno/avisos',
-      path: '/avisos',
-      fullPath: '/aluno/avisos',
-      preLoaderRoute: typeof AuthenticatedAlunoAvisosRouteImport,
-      parentRoute: typeof AuthenticatedAlunoRoute,
+      id: '/_authenticated/aluno/avisos'
+      path: '/avisos'
+      fullPath: '/aluno/avisos'
+      preLoaderRoute: typeof AuthenticatedAlunoAvisosRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
+    '/_authenticated/aluno/disciplinas': {
+      id: '/_authenticated/aluno/disciplinas'
+      path: '/disciplinas'
+      fullPath: '/aluno/disciplinas'
+      preLoaderRoute: typeof AuthenticatedAlunoDisciplinasRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
+    '/_authenticated/aluno/frequencia': {
+      id: '/_authenticated/aluno/frequencia'
+      path: '/frequencia'
+      fullPath: '/aluno/frequencia'
+      preLoaderRoute: typeof AuthenticatedAlunoFrequenciaRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
+    '/_authenticated/aluno/notas': {
+      id: '/_authenticated/aluno/notas'
+      path: '/notas'
+      fullPath: '/aluno/notas'
+      preLoaderRoute: typeof AuthenticatedAlunoNotasRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
+    '/_authenticated/aluno/tarefas': {
+      id: '/_authenticated/aluno/tarefas'
+      path: '/tarefas'
+      fullPath: '/aluno/tarefas'
+      preLoaderRoute: typeof AuthenticatedAlunoTarefasRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
+    '/_authenticated/professor/agenda': {
+      id: '/_authenticated/professor/agenda'
+      path: '/agenda'
+      fullPath: '/professor/agenda'
+      preLoaderRoute: typeof AuthenticatedProfessorAgendaRouteImport
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/atividades': {
+      id: '/_authenticated/professor/atividades'
+      path: '/atividades'
+      fullPath: '/professor/atividades'
+      preLoaderRoute: typeof AuthenticatedProfessorAtividadesRouteImport
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/avaliacoes': {
+      id: '/_authenticated/professor/avaliacoes'
+      path: '/avaliacoes'
+      fullPath: '/professor/avaliacoes'
+      preLoaderRoute: typeof AuthenticatedProfessorAvaliacoesRouteImport
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/comunicacao': {
+      id: '/_authenticated/professor/comunicacao'
+      path: '/comunicacao'
+      fullPath: '/professor/comunicacao'
+      preLoaderRoute: typeof AuthenticatedProfessorComunicacaoRouteImport
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/disciplinas': {
+      id: '/_authenticated/professor/disciplinas'
+      path: '/disciplinas'
+      fullPath: '/professor/disciplinas'
+      preLoaderRoute: typeof AuthenticatedProfessorDisciplinasRouteImport
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/frequencia': {
+      id: '/_authenticated/professor/frequencia'
+      path: '/frequencia'
+      fullPath: '/professor/frequencia'
+      preLoaderRoute: typeof AuthenticatedProfessorFrequenciaRouteImport
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/notas': {
+      id: '/_authenticated/professor/notas'
+      path: '/notas'
+      fullPath: '/professor/notas'
+      preLoaderRoute: typeof AuthenticatedProfessorNotasRouteImport
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/turmas': {
+      id: '/_authenticated/professor/turmas'
+      path: '/turmas'
+      fullPath: '/professor/turmas'
+      preLoaderRoute: typeof AuthenticatedProfessorTurmasRouteImport
+      parentRoute: typeof AuthenticatedProfessorRoute
     }
   }
 }
 
 interface AuthenticatedAlunoRouteChildren {
-  AuthenticatedAlunoTarefasRoute: typeof AuthenticatedAlunoTarefasRoute
-  AuthenticatedAlunoDisciplinasRoute: typeof AuthenticatedAlunoDisciplinasRoute
-  AuthenticatedAlunoNotasRoute: typeof AuthenticatedAlunoNotasRoute
-  AuthenticatedAlunoFrequenciaRoute: typeof AuthenticatedAlunoFrequenciaRoute
   AuthenticatedAlunoAgendaRoute: typeof AuthenticatedAlunoAgendaRoute
   AuthenticatedAlunoAvisosRoute: typeof AuthenticatedAlunoAvisosRoute
+  AuthenticatedAlunoDisciplinasRoute: typeof AuthenticatedAlunoDisciplinasRoute
+  AuthenticatedAlunoFrequenciaRoute: typeof AuthenticatedAlunoFrequenciaRoute
+  AuthenticatedAlunoNotasRoute: typeof AuthenticatedAlunoNotasRoute
+  AuthenticatedAlunoTarefasRoute: typeof AuthenticatedAlunoTarefasRoute
 }
+
 const AuthenticatedAlunoRouteChildren: AuthenticatedAlunoRouteChildren = {
-  AuthenticatedAlunoTarefasRoute,
-  AuthenticatedAlunoDisciplinasRoute,
-  AuthenticatedAlunoNotasRoute,
-  AuthenticatedAlunoFrequenciaRoute,
-  AuthenticatedAlunoAgendaRoute,
-  AuthenticatedAlunoAvisosRoute,
+  AuthenticatedAlunoAgendaRoute: AuthenticatedAlunoAgendaRoute,
+  AuthenticatedAlunoAvisosRoute: AuthenticatedAlunoAvisosRoute,
+  AuthenticatedAlunoDisciplinasRoute: AuthenticatedAlunoDisciplinasRoute,
+  AuthenticatedAlunoFrequenciaRoute: AuthenticatedAlunoFrequenciaRoute,
+  AuthenticatedAlunoNotasRoute: AuthenticatedAlunoNotasRoute,
+  AuthenticatedAlunoTarefasRoute: AuthenticatedAlunoTarefasRoute,
 }
-const AuthenticatedAlunoRouteWithChildren = AuthenticatedAlunoRoute._addFileChildren(AuthenticatedAlunoRouteChildren)
+
+const AuthenticatedAlunoRouteWithChildren =
+  AuthenticatedAlunoRoute._addFileChildren(AuthenticatedAlunoRouteChildren)
 
 interface AuthenticatedProfessorRouteChildren {
-  AuthenticatedProfessorTurmasRoute: typeof AuthenticatedProfessorTurmasRoute
-  AuthenticatedProfessorNotasRoute: typeof AuthenticatedProfessorNotasRoute
-  AuthenticatedProfessorFrequenciaRoute: typeof AuthenticatedProfessorFrequenciaRoute
-  AuthenticatedProfessorAvaliacoesRoute: typeof AuthenticatedProfessorAvaliacoesRoute
-  AuthenticatedProfessorAtividadesRoute: typeof AuthenticatedProfessorAtividadesRoute
   AuthenticatedProfessorAgendaRoute: typeof AuthenticatedProfessorAgendaRoute
+  AuthenticatedProfessorAtividadesRoute: typeof AuthenticatedProfessorAtividadesRoute
+  AuthenticatedProfessorAvaliacoesRoute: typeof AuthenticatedProfessorAvaliacoesRoute
   AuthenticatedProfessorComunicacaoRoute: typeof AuthenticatedProfessorComunicacaoRoute
+  AuthenticatedProfessorDisciplinasRoute: typeof AuthenticatedProfessorDisciplinasRoute
+  AuthenticatedProfessorFrequenciaRoute: typeof AuthenticatedProfessorFrequenciaRoute
+  AuthenticatedProfessorNotasRoute: typeof AuthenticatedProfessorNotasRoute
+  AuthenticatedProfessorTurmasRoute: typeof AuthenticatedProfessorTurmasRoute
 }
-const AuthenticatedProfessorRouteChildren: AuthenticatedProfessorRouteChildren = {
-  AuthenticatedProfessorTurmasRoute,
-  AuthenticatedProfessorNotasRoute,
-  AuthenticatedProfessorFrequenciaRoute,
-  AuthenticatedProfessorAvaliacoesRoute,
-  AuthenticatedProfessorAtividadesRoute,
-  AuthenticatedProfessorAgendaRoute,
-  AuthenticatedProfessorComunicacaoRoute,
-}
-const AuthenticatedProfessorRouteWithChildren = AuthenticatedProfessorRoute._addFileChildren(AuthenticatedProfessorRouteChildren)
+
+const AuthenticatedProfessorRouteChildren: AuthenticatedProfessorRouteChildren =
+  {
+    AuthenticatedProfessorAgendaRoute: AuthenticatedProfessorAgendaRoute,
+    AuthenticatedProfessorAtividadesRoute:
+      AuthenticatedProfessorAtividadesRoute,
+    AuthenticatedProfessorAvaliacoesRoute:
+      AuthenticatedProfessorAvaliacoesRoute,
+    AuthenticatedProfessorComunicacaoRoute:
+      AuthenticatedProfessorComunicacaoRoute,
+    AuthenticatedProfessorDisciplinasRoute:
+      AuthenticatedProfessorDisciplinasRoute,
+    AuthenticatedProfessorFrequenciaRoute:
+      AuthenticatedProfessorFrequenciaRoute,
+    AuthenticatedProfessorNotasRoute: AuthenticatedProfessorNotasRoute,
+    AuthenticatedProfessorTurmasRoute: AuthenticatedProfessorTurmasRoute,
+  }
+
+const AuthenticatedProfessorRouteWithChildren =
+  AuthenticatedProfessorRoute._addFileChildren(
+    AuthenticatedProfessorRouteChildren,
+  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAlunoRoute: typeof AuthenticatedAlunoRouteWithChildren
-  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedProfessorRoute: typeof AuthenticatedProfessorRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAlunoRoute: AuthenticatedAlunoRouteWithChildren,
-  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedProfessorRoute: AuthenticatedProfessorRouteWithChildren,
 }
 
