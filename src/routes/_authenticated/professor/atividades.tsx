@@ -1,3 +1,3 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { TeacherModulePage } from "@/components/teacher-module-page";
-export const Route = createFileRoute("/_authenticated/professor/atividades")({ component:()=> <TeacherModulePage module="atividades"/> });
+export const Route = createFileRoute("/_authenticated/professor/atividades")({ head: () => ({ meta: [{ title: "Atividades do professor — SINA" }, { name: "description", content: "Área de atividades do professor no SINA." }, { property: "og:title", content: "Atividades do professor — SINA" }, { property: "og:description", content: "Área de atividades do professor no SINA." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }), component:()=> <TeacherModulePage module="atividades"/> });
