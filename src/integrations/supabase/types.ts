@@ -1101,6 +1101,32 @@ export type Database = {
           },
         ]
       }
+      user_institution_context: {
+        Row: {
+          institution_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          institution_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          institution_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_institution_context_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1125,8 +1151,23 @@ export type Database = {
     }
     Functions: {
       account_get_onboarding_state: { Args: never; Returns: Json }
+      account_list_institutions: {
+        Args: never
+        Returns: {
+          id: string
+          is_active: boolean
+          name: string
+          role: string
+          slug: string
+          status: string
+        }[]
+      }
       account_resubmit_role_request: {
         Args: { _requested_role: string }
+        Returns: boolean
+      }
+      account_set_institution: {
+        Args: { _institution_id: string }
         Returns: boolean
       }
       admin_archive_classroom: { Args: { _id: string }; Returns: boolean }
