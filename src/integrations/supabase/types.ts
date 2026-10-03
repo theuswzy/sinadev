@@ -367,6 +367,39 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           classroom_id: string | null
@@ -1101,6 +1134,32 @@ export type Database = {
           },
         ]
       }
+      user_institution_context: {
+        Row: {
+          institution_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          institution_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          institution_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_institution_context_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1125,8 +1184,23 @@ export type Database = {
     }
     Functions: {
       account_get_onboarding_state: { Args: never; Returns: Json }
+      account_list_institutions: {
+        Args: never
+        Returns: {
+          id: string
+          is_active: boolean
+          name: string
+          role: string
+          slug: string
+          status: string
+        }[]
+      }
       account_resubmit_role_request: {
         Args: { _requested_role: string }
+        Returns: boolean
+      }
+      account_set_institution: {
+        Args: { _institution_id: string }
         Returns: boolean
       }
       admin_archive_classroom: { Args: { _id: string }; Returns: boolean }
@@ -1142,6 +1216,10 @@ export type Database = {
         Args: { _classroom_id: string; _teacher_id: string }
         Returns: boolean
       }
+      admin_create_institution: {
+        Args: { _name: string; _school_directory_id?: string; _slug: string }
+        Returns: string
+      }
       admin_list_academic_setup: { Args: never; Returns: Json }
       admin_list_accounts: {
         Args: never
@@ -1153,6 +1231,25 @@ export type Database = {
           is_administrator: boolean
           user_id: string
         }[]
+      }
+      admin_list_audit_logs: {
+        Args: { _limit?: number }
+        Returns: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "audit_logs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       admin_list_institution_teachers: {
         Args: never
@@ -1392,6 +1489,28 @@ export type Database = {
           status: string
           title: string
         }[]
+      }
+      student_list_grades: {
+        Args: never
+        Returns: {
+          absences: number
+          created_at: string
+          id: string
+          institution_id: string | null
+          period: number
+          score: number
+          student_id: string
+          subject: string
+          subject_id: string | null
+          term_id: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "grades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       student_list_notifications: {
         Args: { _limit?: number; _unread_only?: boolean }
@@ -1785,6 +1904,28 @@ export type Database = {
           status: string
           student_count: number
         }[]
+      }
+      teacher_list_grades: {
+        Args: { _student_id: string }
+        Returns: {
+          absences: number
+          created_at: string
+          id: string
+          institution_id: string | null
+          period: number
+          score: number
+          student_id: string
+          subject: string
+          subject_id: string | null
+          term_id: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "grades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       teacher_list_roster: {
         Args: never
