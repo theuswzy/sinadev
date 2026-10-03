@@ -1216,6 +1216,10 @@ export type Database = {
         Args: { _classroom_id: string; _teacher_id: string }
         Returns: boolean
       }
+      admin_create_institution: {
+        Args: { _name: string; _school_directory_id?: string; _slug: string }
+        Returns: string
+      }
       admin_list_academic_setup: { Args: never; Returns: Json }
       admin_list_accounts: {
         Args: never
@@ -1485,6 +1489,28 @@ export type Database = {
           status: string
           title: string
         }[]
+      }
+      student_list_grades: {
+        Args: never
+        Returns: {
+          absences: number
+          created_at: string
+          id: string
+          institution_id: string | null
+          period: number
+          score: number
+          student_id: string
+          subject: string
+          subject_id: string | null
+          term_id: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "grades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       student_list_notifications: {
         Args: { _limit?: number; _unread_only?: boolean }
@@ -1878,6 +1904,28 @@ export type Database = {
           status: string
           student_count: number
         }[]
+      }
+      teacher_list_grades: {
+        Args: { _student_id: string }
+        Returns: {
+          absences: number
+          created_at: string
+          id: string
+          institution_id: string | null
+          period: number
+          score: number
+          student_id: string
+          subject: string
+          subject_id: string | null
+          term_id: string | null
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "grades"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       teacher_list_roster: {
         Args: never
