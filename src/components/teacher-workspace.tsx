@@ -12,7 +12,7 @@ import {
   createTeacherCalendarEvent, createTeacherClassroom, createTeacherSubject, createTeacherTask,
   errorText, gradeTaskSubmission, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
-  loadTeacherClassrooms, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
+  loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
   loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherGrades,
   saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
   teacherRemoveStudentFromClassroom, type AttendanceRow
@@ -52,6 +52,7 @@ function useData(section: Section){
       qc.invalidateQueries({queryKey:["teacher-new-classes"]}),
       qc.invalidateQueries({queryKey:["teacher-new-unassigned-classes"]}),
       qc.invalidateQueries({queryKey:["teacher-new-students"]}),
+      qc.invalidateQueries({queryKey:["teacher-new-students-page"]}),
       qc.invalidateQueries({queryKey:["teacher-new-subjects"]}),
       qc.invalidateQueries({queryKey:["teacher-new-assignments"]}),
     ]);
