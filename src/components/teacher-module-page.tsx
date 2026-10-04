@@ -372,7 +372,7 @@ function PublishBox({kind,classes}:{kind:"notice"|"task";classes:any[]}){
         if(kind==="notice") await updateTeacherAnnouncement({id:editing.id,classroom,title:title.trim(),content,attachmentPath:null,attachmentName:null,attachmentSize:null,attachmentType:null});
         else await updateTeacherTask({id:editing.id,classroom,subject,title:title.trim(),description:content,dueAt:due?new Date(due).toISOString():null,attachmentPath:null,attachmentName:null,attachmentSize:null,attachmentType:null});
       }else{
-        const {error}=kind==="notice"?await supabase.rpc("teacher_create_announcement",{_classroom:classroom,_title:title.trim(),_content:content,_attachment_path:null,_attachment_name:null,_attachment_size:null,_attachment_type:null}):await supabase.rpc("teacher_create_task",{_classroom:classroom,_subject:subject,_title:title.trim(),_description:content,_due_at:due?new Date(due).toISOString():null,_attachment_path:null,_attachment_name:null,_attachment_size:null,_attachment_type:null});
+        const {error}=kind==="notice"?await supabase.rpc("teacher_create_announcement",{_classroom:classroom,_title:title.trim(),_content:content}):await supabase.rpc("teacher_create_task",{_classroom:classroom,_subject:subject,_title:title.trim(),_description:content,_due_at:due?new Date(due).toISOString():null});
         if(error)throw error;
       }
       clearForm();await q.refetch();
