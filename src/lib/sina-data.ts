@@ -306,6 +306,24 @@ async function addAttachmentUrls<T extends {
   );
 }
 
+export async function loadDashboardAnnouncements(): Promise<StudentAnnouncement[]> {
+  const { data, error } = await supabase.rpc("student_list_announcements");
+  if (error) throw error;
+  return (data ?? []).map((item) => ({
+    ...(item as Tables<"announcements">),
+    attachment_url: null,
+  }));
+}
+
+export async function loadDashboardTasks(): Promise<StudentTask[]> {
+  const { data, error } = await supabase.rpc("student_list_tasks");
+  if (error) throw error;
+  return (data ?? []).map((item) => ({
+    ...(item as Omit<StudentTask, "attachment_url">),
+    attachment_url: null,
+  }));
+}
+
 export async function loadAnnouncements(): Promise<StudentAnnouncement[]> {
   const { data, error } = await supabase.rpc("student_list_announcements");
   if (error) throw error;
