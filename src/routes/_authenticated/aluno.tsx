@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
-import { errorText, formatScore, getRole, loadAnnouncements, loadGrades, loadMyStudent, loadTasks } from "@/lib/sina-data";
+import { errorText, formatScore, getRole, loadAnnouncements, loadGrades, loadMyStudent, loadStudentAttendance, loadTasks } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({ meta: [{ title: "Dashboard do aluno — SINA" }, { name: "description", content: "Visão geral da vida acadêmica do aluno." }] }),
@@ -16,6 +16,7 @@ function StudentDashboard() {
   const tasks = useQuery({ queryKey: ["dashboard-tasks"], queryFn: loadTasks, enabled: !!student.data });
   const grades = useQuery({ queryKey: ["dashboard-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id });
   const announcements = useQuery({ queryKey: ["dashboard-announcements"], queryFn: loadAnnouncements, enabled: !!student.data });
+  const attendance = useQuery({ queryKey: ["dashboard-attendance"], queryFn: loadStudentAttendance, enabled: !!student.data });
 
   if (role.isPending || student.isPending) {
     return <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico"><div className="sina-card mt-8 p-6">Carregando seu dashboard...</div></AcademicShell>;
@@ -36,7 +37,7 @@ function StudentDashboard() {
 
   const pending = (tasks.data ?? []).filter(t => !t.completed);
   const average = grades.data?.length ? grades.data.reduce((s,g)=>s+g.score,0)/(grades.data.length) : null;
-  const absences = grades.data?.reduce((s,g)=>s+g.absences,0) ?? 0;
+  const absences = attendance.data?.filter((item) => item.status === "absent").length ?? 0;
   const subjects = Array.from(new Set((grades.data ?? []).map(g=>g.subject)));
 
   return (
@@ -53,10 +54,17 @@ function StudentDashboard() {
         </div>
       </section>
 
+      {(!student.data.classroom_id || !student.data.classroom) && (
+        <section className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <p className="font-semibold">Seu cadastro está pronto</p>
+          <p className="mt-1 text-sm text-muted-foreground">Sua conta ainda precisa ser vinculada a uma turma pela escola. Depois disso, suas disciplinas, notas e frequência aparecerão aqui.</p>
+        </section>
+      )}
+
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="sina-card p-5"><ClipboardList className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Pendências</p><p className="mt-1 text-3xl font-semibold">{pending.length}</p><p className="mt-1 text-xs text-muted-foreground">tarefas para resolver</p></div>
         <div className="sina-card p-5"><BarChart3 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Média geral</p><p className="mt-1 text-3xl font-semibold">{average == null ? "—" : formatScore(average)}</p><p className="mt-1 text-xs text-muted-foreground">com base nos lançamentos</p></div>
-        <div className="sina-card p-5"><CheckCircle2 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-3xl font-semibold">{absences}</p><p className="mt-1 text-xs text-muted-foreground">registradas nas notas</p></div>
+        <div className="sina-card p-5"><CheckCircle2 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-3xl font-semibold">{attendance.isPending ? "—" : absences}</p><p className="mt-1 text-xs text-muted-foreground">registradas na frequência</p></div>
         <div className="sina-card p-5"><BookOpen className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Disciplinas</p><p className="mt-1 text-3xl font-semibold">{subjects.length}</p><p className="mt-1 text-xs text-muted-foreground">com dados acadêmicos</p></div>
       </section>
 
