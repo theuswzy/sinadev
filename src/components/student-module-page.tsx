@@ -57,11 +57,15 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     const rows = grades.data ?? [];
     return Array.from(new Set(rows.map((g) => g.subject))).map((subject) => {
       const items = rows.filter((g) => g.subject === subject);
+      const average = items.length > 0
+        ? items.reduce((sum, item) => sum + item.score, 0) / items.length
+        : null;
       return {
         subject,
-        average: items.reduce((sum, item) => sum + item.score, 0) / items.length,
+        average,
         absences: items.reduce((sum, item) => sum + item.absences, 0),
         periods: items.length,
+        periodScores: items.map((item) => ({ period: item.period, score: item.score })),
       };
     });
   }, [grades.data]);
@@ -144,7 +148,11 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                 <h2 className="mt-4 font-semibold">{item.name}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">{item.classroom_name} · {item.teacher_name || "Professor não informado"}</p>
                 <p className="mt-3 text-xs text-muted-foreground">{performance ? `${performance.periods} lançamento(s) · ${performance.absences} falta(s)` : "Nenhuma nota lançada ainda."}</p>
-                {performance && <><div className="mt-4 flex items-end justify-between"><span className="text-xs text-muted-foreground">Média</span><strong className="text-2xl">{formatScore(performance.average)}</strong></div><div className="mt-2 h-2 rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{width: `${Math.min(100, performance.average * 10)}%`}}/></div></>}
+                {performance && performance.average != null && <div className="mt-4 rounded-xl border border-border/70 bg-secondary/30 p-3">
+                  <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-semibold">Média dos lançamentos</p><p className="mt-1 text-[11px] text-muted-foreground">Média descritiva das notas registradas por período. Não representa automaticamente a média final oficial.</p></div><strong className="text-2xl">{formatScore(performance.average)}</strong></div>
+                  <div className="mt-3 h-2 rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{width: `${Math.min(100, performance.average * 10)}%`}}/></div>
+                  <div className="mt-3 flex flex-wrap gap-2">{performance.periodScores.map((item) => <span key={item.period} className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px]">Período {item.period}: <b>{formatScore(item.score)}</b></span>)}</div>
+                </div>}
               </article>;
             })}
           </div>
