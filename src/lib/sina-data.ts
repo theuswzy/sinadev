@@ -593,6 +593,18 @@ export async function loadTeacherClassrooms(): Promise<TeacherClassroom[]> {
   return (data ?? []) as TeacherClassroom[];
 }
 
+export async function loadTeacherUnassignedClassrooms(): Promise<TeacherClassroom[]> {
+  const { data, error } = await supabase.rpc("teacher_list_unassigned_classrooms");
+  if (error) throw error;
+  return (data ?? []) as TeacherClassroom[];
+}
+
+export async function teacherClaimClassroom(classroomId: string) {
+  const { data, error } = await supabase.rpc("teacher_claim_classroom", { _classroom_id: classroomId });
+  if (error) throw error;
+  return data ?? false;
+}
+
 export async function loadAttendance(classroomId: string, date: string): Promise<AttendanceRow[]> {
   const { data, error } = await supabase.rpc("teacher_get_attendance", { _classroom_id: classroomId, _date: date });
   if (error) throw error;
