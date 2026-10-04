@@ -292,3 +292,4 @@ function PublishBox({kind,classes}:{kind:"notice"|"task";classes:any[]}){
   </div>;
 }
 // SINA teacher workspace sync marker
+// Small UI polish batch: clearer empty states across student and teacher portals.
