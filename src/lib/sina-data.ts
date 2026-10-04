@@ -157,10 +157,28 @@ export type TeacherStudent = {
   teacher_id: string | null;
 };
 
+export type TeacherInstitutionStudent = TeacherStudent & {
+  class_status: "sem_turma" | "minha_turma" | "outra_turma";
+};
+
 export async function loadStudents(): Promise<TeacherStudent[]> {
   const { data, error } = await supabase.rpc("teacher_list_roster");
   if (error) throw error;
   return data ?? [];
+}
+
+export async function loadTeacherInstitutionStudents(): Promise<TeacherInstitutionStudent[]> {
+  const { data, error } = await supabase.rpc("teacher_list_institution_students");
+  if (error) throw error;
+  return (data ?? []) as TeacherInstitutionStudent[];
+}
+
+export async function teacherRemoveStudentFromClassroom(studentId: string) {
+  const { data, error } = await supabase.rpc("teacher_remove_student_from_classroom", {
+    _student_id: studentId,
+  });
+  if (error) throw error;
+  return data ?? false;
 }
 
 export async function loadMyStudent(): Promise<Student | null> {
