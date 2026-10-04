@@ -1740,7 +1740,7 @@ export type Database = {
           _attachment_type?: string
           _classroom: string
           _description: string
-          _due_at: string
+          _due_at?: string
           _subject: string
           _title: string
         }
@@ -2174,7 +2174,7 @@ export type Database = {
           _attachment_type?: string
           _classroom: string
           _description: string
-          _due_at: string
+          _due_at?: string
           _id: string
           _subject: string
           _title: string
