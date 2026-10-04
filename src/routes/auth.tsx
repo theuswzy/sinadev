@@ -337,7 +337,12 @@ function AuthPage() {
           : "Seu cadastro foi recebido. O administrador da instituição precisa aprovar seu acesso antes da entrada na área acadêmica.";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" aria-busy={busy || checkingSession}>
+      {(busy || checkingSession) && (
+        <div className="fixed inset-x-0 top-0 z-[100] h-1 bg-primary/20" role="progressbar" aria-label="Processando">
+          <div className="h-full w-1/3 animate-pulse bg-primary" />
+        </div>
+      )}
       <header className="border-b border-brand-border bg-brand text-brand-foreground">
         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
           <Link to="/" className="group flex items-center gap-2.5 font-display text-xl font-bold">
