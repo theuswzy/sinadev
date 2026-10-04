@@ -107,8 +107,12 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     return <AcademicShell title={title.title} subtitle={title.subtitle}><div className="sina-card mt-8 p-6">Carregando...</div></AcademicShell>;
   }
 
-  if (student.error || !student.data) {
-    return <AcademicShell title={title.title} subtitle={title.subtitle}><div className="sina-card mt-8 p-6 text-sm text-destructive">{errorText(student.error ?? new Error("Perfil acadêmico não encontrado."))}</div></AcademicShell>;
+  if (student.error) {
+    return <AcademicShell title={title.title} subtitle={title.subtitle}><div className="sina-card mt-8 p-6 text-sm text-destructive"><p>{errorText(student.error)}</p><Button className="mt-4" variant="outline" onClick={() => void student.refetch()}>Tentar novamente</Button></div></AcademicShell>;
+  }
+
+  if (!student.data) {
+    return <AcademicShell title={title.title} subtitle={title.subtitle}><div className="sina-card mt-8 p-6"><p className="font-semibold">Seu vínculo acadêmico ainda não foi concluído.</p><p className="mt-1 text-sm text-muted-foreground">Você já pode acessar sua conta, mas esta área só exibirá notas, frequência, disciplinas e atividades depois que a escola vincular você a uma turma.</p><Button className="mt-4" variant="outline" onClick={() => void student.refetch()}>Verificar vínculo novamente</Button></div></AcademicShell>;
   }
 
   if (activeQuery.isPending) {
