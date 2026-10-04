@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, GraduationCap, Megaphone, Plus, School, Users, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,7 +19,7 @@ import {
 } from "@/lib/sina-data";
 
 type Section = "inicio"|"turmas"|"alunos"|"disciplinas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"agenda"|"comunicacao";
-const menu: {id:Section;label:string;Icon:typeof Users}[]=[
+const menu: {id:Section;label:string;Icon:LucideIcon}[]=[
   {id:"inicio",label:"Visão geral",Icon:BarChart3},{id:"turmas",label:"Turmas",Icon:Users},
   {id:"alunos",label:"Alunos",Icon:GraduationCap},{id:"disciplinas",label:"Disciplinas",Icon:BookOpen},
   {id:"notas",label:"Notas",Icon:BarChart3},{id:"frequencia",label:"Frequência",Icon:CheckCircle2},
@@ -210,7 +211,8 @@ function Agenda({d}:{d:ReturnType<typeof useData>}){
 }
 
 function Communication({d}:{d:ReturnType<typeof useData>}){
-  const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [content,setContent]=useState("");const [busy,setBusy]=useState(false);
+  const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [content,setContent]=useState("");const [busy,setBusy]=useState("");
+
   const notices=useQuery({queryKey:["teacher-new-notices"],queryFn:loadTeacherAnnouncements,staleTime:15000});
   async function claim(id:string){setBusy("claim:"+id);try{await teacherClaimClassroom(id);await d.refresh();toast.success("Turma atribuída a você. Agora ela já pode receber avisos.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   async function create(){setBusy("publish");try{await createTeacherAnnouncement({classroom,title:title.trim(),content});setTitle("");setContent("");await notices.refetch();toast.success("Aviso publicado.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
@@ -225,7 +227,7 @@ function Communication({d}:{d:ReturnType<typeof useData>}){
 }
 
 export function TeacherWorkspace({initialSection="inicio"}:{initialSection?:Section}){
-  const [section,setSection]=useState<Section>(initialSection);const d=useData(section);const current=menu.find(x=>x.id===section)??menu[0];
+  const [section,setSection]=useState<Section>(initialSection);const d=useData(section);const current=menu.find(x=>x.id===section) ?? menu[0]!;
   const body=section==="inicio"?<Overview d={d}/>:section==="turmas"?<Classes d={d}/>:section==="alunos"?<Students d={d}/>:section==="disciplinas"?<Subjects d={d}/>:section==="notas"?<Grades d={d}/>:section==="frequencia"?<Attendance d={d}/>:section==="avaliacoes"?<Assessments d={d}/>:section==="atividades"?<Tasks d={d}/>:section==="agenda"?<Agenda d={d}/>:<Communication d={d}/>;
   return <AcademicShell title={current.label} subtitle="Gestão acadêmica docente" requiredRole="teacher"><div className="space-y-5"><DataError d={d}/><nav className="flex gap-2 overflow-x-auto pb-1">{menu.map(item=>{const Icon=item.Icon;return <button key={item.id} type="button" onClick={()=>setSection(item.id)} className={"inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold "+(item.id===section?"bg-primary text-primary-foreground":"border border-border bg-card text-muted-foreground hover:text-foreground")}><Icon className="size-4"/>{item.label}</button>})}</nav>{body}</div></AcademicShell>;
 }
