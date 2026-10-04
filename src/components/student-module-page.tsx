@@ -185,6 +185,6 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
           {!announcements.data?.length && <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhum aviso novo. Os comunicados da escola e dos professores aparecerão aqui.</div>}
         </section>
       )}
-    </AcademicShell>    </AcademicShell>
+    </AcademicShell>
   );
 }
