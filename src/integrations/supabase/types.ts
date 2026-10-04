@@ -1948,6 +1948,15 @@ export type Database = {
           weight: number
         }[]
       }
+      teacher_list_assessment_scores: {
+        Args: { _assessment_id: string }
+        Returns: {
+          feedback: string | null
+          graded_at: string | null
+          score: number | null
+          student_id: string
+        }[]
+      }
       teacher_list_calendar: {
         Args: { _from: string; _to: string }
         Returns: {
