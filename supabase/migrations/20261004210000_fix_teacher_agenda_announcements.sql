@@ -123,13 +123,13 @@ create or replace function public.teacher_create_calendar_event(
   _end_at timestamptz,
   _event_type text
 )
-returns public.calendar_events
+returns uuid
 language plpgsql
 security definer
 set search_path=''
 as $function$
 declare
-  result_row public.calendar_events;
+  event_id uuid;
   inst uuid;
 begin
   if not public.has_role(auth.uid(),'teacher'::public.app_role) then
@@ -171,9 +171,9 @@ begin
     inst,auth.uid(),_classroom_id,trim(_title),coalesce(trim(_description),''),
     _start_at,_end_at,coalesce(nullif(trim(_event_type),''),'aula'),'active'
   )
-  returning * into result_row;
+  returning id into event_id;
 
-  return result_row;
+  return event_id;
 end;
 $function$;
 
