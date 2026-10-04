@@ -1721,8 +1721,8 @@ export type Database = {
           _file_path: string
           _file_size: number
           _file_type: string
-          _subject_id: string
-          _term_id: string
+          _subject_id: string | null
+          _term_id: string | null
           _title: string
         }
         Returns: {
