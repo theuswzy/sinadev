@@ -19,13 +19,60 @@ import {
   Building2,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ReactNode, useEffect, useState } from "react";
+import { Component, type ErrorInfo, type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
 import { getRole, type UserRole } from "@/lib/sina-data";
 
 type AcademicNavPath = "/admin" | "/aluno" | "/aluno/tarefas" | "/aluno/disciplinas" | "/aluno/notas" | "/aluno/frequencia" | "/aluno/agenda" | "/aluno/avisos" | "/professor" | "/professor/turmas" | "/professor/disciplinas" | "/professor/notas" | "/professor/frequencia" | "/professor/avaliacoes" | "/professor/atividades" | "/professor/agenda" | "/professor/comunicacao";
+
+type ShellErrorBoundaryProps = { children: ReactNode };
+type ShellErrorBoundaryState = { hasError: boolean; message: string };
+
+class ShellErrorBoundary extends Component<ShellErrorBoundaryProps, ShellErrorBoundaryState> {
+  state: ShellErrorBoundaryState = { hasError: false, message: "" };
+
+  static getDerivedStateFromError(error: unknown): ShellErrorBoundaryState {
+    return {
+      hasError: true,
+      message: error instanceof Error ? error.message : "Ocorreu um erro inesperado ao carregar esta área.",
+    };
+  }
+
+  componentDidCatch(error: unknown, info: ErrorInfo) {
+    console.error("[SINA] Erro ao renderizar área acadêmica:", error, info);
+  }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, message: "" });
+  };
+
+  render() {
+    if (!this.state.hasError) return this.props.children;
+
+    return (
+      <div className="sina-card mt-6 p-6">
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="font-display text-base font-bold">Não foi possível carregar esta página</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              O SINA encontrou uma falha momentânea ao montar esta área. Tente novamente sem sair da conta.
+            </p>
+            {this.state.message && (
+              <p className="mt-3 break-words rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+                {this.state.message}
+              </p>
+            )}
+          </div>
+          <Button type="button" variant="outline" onClick={this.handleRetry}>
+            Tentar novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
+}
 
 type ShellLink = {
   href: AcademicNavPath;
@@ -245,7 +292,10 @@ export function AcademicShell({
                     onChange={async (event) => {
                       if (!event.target.value) return;
                       const { error } = await supabase.rpc("account_set_institution", { _institution_id: event.target.value });
-                      if (error) return;
+                      if (error) {
+                        console.error("[SINA] Não foi possível trocar a instituição:", error);
+                        return;
+                      }
                       await Promise.all([
                         queryClient.invalidateQueries({ queryKey: ["my-role"] }),
                         queryClient.invalidateQueries({ queryKey: ["my-institutions"] }),
@@ -347,7 +397,7 @@ export function AcademicShell({
           ) : accessMessage ? (
             <div className="sina-card mt-6 p-6 text-sm">{accessMessage}</div>
           ) : (
-            children
+            <ShellErrorBoundary>{children}</ShellErrorBoundary>
           )}
         </div>
       </main>
