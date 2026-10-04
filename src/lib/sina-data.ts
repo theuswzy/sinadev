@@ -899,6 +899,25 @@ export type TeacherClassReport = {
   assessment_count: number;
 };
 
+export type AcademicMaterial = {
+  id: string;
+  classroom_id: string;
+  classroom_name: string;
+  subject_id: string | null;
+  subject_name: string | null;
+  term_id: string | null;
+  term_name: string | null;
+  title: string;
+  description: string;
+  file_path: string;
+  file_name: string;
+  file_size: number;
+  file_type: string;
+  created_at: string;
+  updated_at?: string;
+  file_url?: string | null;
+};
+
 export type AcademicAttachment = {
   path: string;
   name: string;
@@ -923,7 +942,7 @@ const ALLOWED_ACADEMIC_ATTACHMENT_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]);
 
-export async function uploadAcademicAttachment(file: File, folder: "tasks" | "announcements"): Promise<AcademicAttachment> {
+export async function uploadAcademicAttachment(file: File, folder: "tasks" | "announcements" | "materials"): Promise<AcademicAttachment> {
   if (!ALLOWED_ACADEMIC_ATTACHMENT_TYPES.has(file.type)) {
     throw new Error("Tipo de arquivo não permitido. Envie PDF, imagem, Word, PowerPoint, Excel ou TXT.");
   }
@@ -947,6 +966,55 @@ export async function uploadAcademicAttachment(file: File, folder: "tasks" | "an
     .createSignedUrl(path, 60 * 60);
   if (signedError || !signed?.signedUrl) throw signedError ?? new Error("Não foi possível gerar o link do arquivo.");
   return { path, name: file.name, size: file.size, type: file.type, url: signed.signedUrl };
+}
+
+export async function loadTeacherAcademicMaterials(): Promise<AcademicMaterial[]> {
+  const { data, error } = await supabase.rpc("teacher_list_academic_materials");
+  if (error) throw error;
+  const items = (data ?? []) as AcademicMaterial[];
+  return Promise.all(items.map(async item => {
+    const { data: signed } = await supabase.storage.from(ACADEMIC_ATTACHMENT_BUCKET).createSignedUrl(item.file_path, 60 * 60);
+    return { ...item, file_url: signed?.signedUrl ?? null };
+  }));
+}
+
+export async function createTeacherAcademicMaterial(args: {
+  classroomId: string;
+  subjectId: string | null;
+  termId: string | null;
+  title: string;
+  description: string;
+  attachment: Pick<AcademicAttachment, "path" | "name" | "size" | "type">;
+}) {
+  const { data, error } = await supabase.rpc("teacher_create_academic_material", {
+    _classroom_id: args.classroomId,
+    _subject_id: args.subjectId,
+    _term_id: args.termId,
+    _title: args.title,
+    _description: args.description,
+    _file_path: args.attachment.path,
+    _file_name: args.attachment.name,
+    _file_size: args.attachment.size,
+    _file_type: args.attachment.type,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteTeacherAcademicMaterial(id: string) {
+  const { data, error } = await supabase.rpc("teacher_delete_academic_material", { _id: id });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function loadStudentAcademicMaterials(): Promise<AcademicMaterial[]> {
+  const { data, error } = await supabase.rpc("student_list_academic_materials");
+  if (error) throw error;
+  const items = (data ?? []) as AcademicMaterial[];
+  return Promise.all(items.map(async item => {
+    const { data: signed } = await supabase.storage.from(ACADEMIC_ATTACHMENT_BUCKET).createSignedUrl(item.file_path, 60 * 60);
+    return { ...item, file_url: signed?.signedUrl ?? null };
+  }));
 }
 
 export async function createTeacherTask(args: {
