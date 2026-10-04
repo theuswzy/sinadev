@@ -23,7 +23,7 @@ export function AdminStudentClassroom() {
   const [page, setPage] = useState(1);
   const pageSize = 25;
   const students = useQuery({
-    queryKey: ["admin-students", debouncedSearch, page],
+    queryKey: ["admin-students", debouncedSearch, onlyWithoutClass, page],
     queryFn: () => loadAdminStudentsPage(debouncedSearch, onlyWithoutClass, page, pageSize),
     placeholderData: previous => previous,
   });
