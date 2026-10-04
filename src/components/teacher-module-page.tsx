@@ -111,8 +111,7 @@ function TeacherRegisteredStudents({students,classes,onChanged}:{students:Teache
     if(!classroom||!enrollment)return;
     setBusy(student.id);
     try{
-      const {error}=await supabase.rpc("teacher_link_roster_student",{_student_id:student.id,_enrollment:enrollment,_classroom:classroom.name});
-      if(error)throw error;
+      await teacherEnrollStudentInClassroom(student.id, classroom.id, enrollment);
       await onChanged();
     }catch(error){window.alert(errorText(error));}
     finally{setBusy(null);}
