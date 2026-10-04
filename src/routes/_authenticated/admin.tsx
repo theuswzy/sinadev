@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { errorText, loadAccountRoleRequests, reviewAccountRoleRequest, searchSchoolDirectory, type SchoolDirectoryEntry } from "@/lib/sina-data";
 import { AdminAcademicSetup } from "@/components/admin-academic-setup";
 import { AdminStudentClassroom } from "@/components/admin-student-classroom";
+import { AdminTeacherSchool } from "@/components/admin-teacher-school";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [
@@ -453,6 +454,8 @@ function AdminArea() {
         <section id="alunos-turmas" className="scroll-mt-28">
           <AdminStudentClassroom />
         </section>
+
+        <AdminTeacherSchool />
 
         <section id="historico" className="sina-card sina-card-hover scroll-mt-28">
           <div className="flex items-center justify-between border-b border-border p-6">
