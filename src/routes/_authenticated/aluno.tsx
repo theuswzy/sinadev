@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
-import { errorText, formatScore, getRole, loadAnnouncements, loadGrades, loadMyStudent, loadStudentAttendance, loadTasks } from "@/lib/sina-data";
+import { errorText, formatScore, getRole, loadDashboardAnnouncements, loadDashboardTasks, loadGrades, loadMyStudent, loadStudentAttendance } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({ meta: [{ title: "Dashboard do aluno — SINA" }, { name: "description", content: "Visão geral da vida acadêmica do aluno." }] }),
@@ -13,9 +13,9 @@ export const Route = createFileRoute("/_authenticated/aluno")({
 function StudentDashboard() {
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
   const student = useQuery({ queryKey: ["my-student"], queryFn: loadMyStudent, enabled: role.data === "student" });
-  const tasks = useQuery({ queryKey: ["dashboard-tasks"], queryFn: loadTasks, enabled: !!student.data });
+  const tasks = useQuery({ queryKey: ["dashboard-tasks"], queryFn: loadDashboardTasks, enabled: !!student.data });
   const grades = useQuery({ queryKey: ["dashboard-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id });
-  const announcements = useQuery({ queryKey: ["dashboard-announcements"], queryFn: loadAnnouncements, enabled: !!student.data });
+  const announcements = useQuery({ queryKey: ["dashboard-announcements"], queryFn: loadDashboardAnnouncements, enabled: !!student.data });
   const attendance = useQuery({ queryKey: ["dashboard-attendance"], queryFn: loadStudentAttendance, enabled: !!student.data });
 
   if (role.isPending || student.isPending) {
@@ -36,7 +36,6 @@ function StudentDashboard() {
   }
 
   const pending = (tasks.data ?? []).filter(t => !t.completed);
-  const average = grades.data?.length ? grades.data.reduce((s,g)=>s+g.score,0)/(grades.data.length) : null;
   const absences = attendance.data?.filter((item) => item.status === "absent").length ?? 0;
   const subjects = Array.from(new Set((grades.data ?? []).map(g=>g.subject)));
 
@@ -63,7 +62,7 @@ function StudentDashboard() {
 
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="sina-card p-5"><ClipboardList className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Pendências</p><p className="mt-1 text-3xl font-semibold">{pending.length}</p><p className="mt-1 text-xs text-muted-foreground">tarefas para resolver</p></div>
-        <div className="sina-card p-5"><BarChart3 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Média geral</p><p className="mt-1 text-3xl font-semibold">{average == null ? "—" : formatScore(average)}</p><p className="mt-1 text-xs text-muted-foreground">com base nos lançamentos</p></div>
+        <div className="sina-card p-5"><BarChart3 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Notas lançadas</p><p className="mt-1 text-3xl font-semibold">{grades.isPending ? "—" : grades.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">detalhes e origem em Notas</p></div>
         <div className="sina-card p-5"><CheckCircle2 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-3xl font-semibold">{attendance.isPending ? "—" : absences}</p><p className="mt-1 text-xs text-muted-foreground">registradas na frequência</p></div>
         <div className="sina-card p-5"><BookOpen className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Disciplinas</p><p className="mt-1 text-3xl font-semibold">{subjects.length}</p><p className="mt-1 text-xs text-muted-foreground">com dados acadêmicos</p></div>
       </section>
