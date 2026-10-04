@@ -604,6 +604,46 @@ export async function gradeTaskSubmission(submissionId: string, score: number | 
   return data ?? false;
 }
 
+export async function updateTeacherTask(args: {
+  id: string; classroom: string; subject: string; title: string; description: string; dueAt: string | null;
+}) {
+  const { data, error } = await supabase.rpc("teacher_update_task", {
+    _id: args.id,
+    _classroom: args.classroom,
+    _subject: args.subject,
+    _title: args.title,
+    _description: args.description,
+    _due_at: args.dueAt as string,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteTeacherTask(id: string) {
+  const { data, error } = await supabase.rpc("teacher_delete_task", { _id: id });
+  if (error) throw error;
+  return data;
+}
+
+export async function updateTeacherAnnouncement(args: {
+  id: string; classroom: string; title: string; content: string;
+}) {
+  const { data, error } = await supabase.rpc("teacher_update_announcement", {
+    _id: args.id,
+    _classroom: args.classroom,
+    _title: args.title,
+    _content: args.content,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteTeacherAnnouncement(id: string) {
+  const { data, error } = await supabase.rpc("teacher_delete_announcement", { _id: id });
+  if (error) throw error;
+  return data;
+}
+
 export async function loadStudentAttendance(): Promise<{ attendance_date: string; status: string; note: string | null; classroom: string }[]> {
   const { data, error } = await supabase.rpc("student_list_attendance", { _limit: 90 });
   if (error) throw error;
