@@ -98,8 +98,15 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
       {actions.map(({label,value,desc,icon:Icon,go})=><button key={label} type="button" onClick={()=>onNavigate(go)} className="sina-card group p-5 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><span className="text-xs font-semibold text-primary opacity-0 transition group-hover:opacity-100">Abrir →</span></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></button>)}
     </div>
     <Card title="Próximas ações" description="Use o menu para executar cada etapa. O SINA mantém o vínculo entre a ação e a turma.">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[["Notas","Lance e confira notas por aluno.","notas"],["Frequência","Registre o diário por data.","frequencia"],["Avaliações","Crie instrumentos e acompanhe resultados.","avaliacoes"],["Atividades","Publique e corrija entregas.","atividades"]].map(([title,desc,go])=><button key={title} type="button" onClick={()=>onNavigate(go as Section)} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5"><b>{title}</b><p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p></button>)}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {[
+          ["Notas","Lance e confira notas por aluno.","notas"],
+          ["Frequência","Registre o diário por data.","frequencia"],
+          ["Avaliações","Crie instrumentos e acompanhe resultados.","avaliacoes"],
+          ["Atividades","Publique e corrija entregas.","atividades"],
+          ["Materiais","Publique PDFs, documentos e outros arquivos.","materiais"],
+          ["Agenda","Registre aulas, provas e eventos.","agenda"],
+        ].map(([title,desc,go])=><button key={title} type="button" onClick={()=>onNavigate(go as Section)} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5"><b>{title}</b><p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p></button>)}
       </div>
     </Card>
   </div>;
