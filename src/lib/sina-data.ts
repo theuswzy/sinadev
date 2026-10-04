@@ -483,6 +483,20 @@ export async function teacherLinkStudentToSchool(studentId: string) {
   return data ?? false;
 }
 
+export async function teacherEnrollStudentInClassroom(
+  studentId: string,
+  classroomId: string,
+  enrollment: string,
+) {
+  const { data, error } = await supabase.rpc("teacher_enroll_student_in_classroom", {
+    _student_id: studentId,
+    _classroom_id: classroomId,
+    _enrollment: enrollment,
+  });
+  if (error) throw error;
+  return data ?? false;
+}
+
 export type AdminLinkableInstitution = {
   id: string;
   name: string;
