@@ -83,6 +83,7 @@ function AuthPage() {
   const [pendingState, setPendingState] = useState<OnboardingState | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   async function finishAuth(explicitRole?: RequestedRole, explicitSchoolId?: string) {
     const schoolId = explicitSchoolId || window.localStorage.getItem("sina-school-directory-id") || undefined;
@@ -133,13 +134,29 @@ function AuthPage() {
   }, [mode, schoolSearch, schoolNetwork]);
 
   useEffect(() => {
-    void supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) return;
+    let cancelled = false;
 
+    // Usa a sessão persistida localmente para evitar uma chamada de rede
+    // extra só para descobrir se o usuário já está autenticado.
+    void supabase.auth.getSession().then(async ({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        setMessage(authErrorMessage(error));
+        setCheckingSession(false);
+        return;
+      }
+
+      const user = data.session?.user;
+      if (!user) {
+        setCheckingSession(false);
+        return;
+      }
+
+      setBusy(true);
       const storedRole = window.localStorage.getItem("sina-requested-role");
       const storedSchoolId = window.localStorage.getItem("sina-school-directory-id");
-      const metadataRole = data.user.user_metadata?.['requested_role'];
-      const metadataSchoolId = data.user.user_metadata?.['school_directory_id'];
+      const metadataRole = user.user_metadata?.['requested_role'];
+      const metadataSchoolId = user.user_metadata?.['school_directory_id'];
 
       try {
         await finishAuth(
@@ -151,9 +168,16 @@ function AuthPage() {
           storedSchoolId || (typeof metadataSchoolId === "string" ? metadataSchoolId : undefined),
         );
       } catch (error) {
-        setMessage(authErrorMessage(error));
+        if (!cancelled) setMessage(authErrorMessage(error));
+      } finally {
+        if (!cancelled) {
+          setCheckingSession(false);
+          setBusy(false);
+        }
       }
     });
+
+    return () => { cancelled = true; };
   }, []);
 
   async function submit(event: FormEvent) {
