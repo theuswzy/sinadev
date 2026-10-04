@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Search, UserCheck, Users, UserX, School } from "lucide-react";
@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   errorText,
   loadAdminAcademicSetup,
-  loadAdminStudents,
+  loadAdminStudentsPage,
   adminAssignStudentToClassroom,
   adminRemoveStudentFromClassroom,
   loadAdminStudentSchoolLinks,
@@ -18,7 +18,15 @@ import {
 
 export function AdminStudentClassroom() {
   const qc = useQueryClient();
-  const students = useQuery({ queryKey: ["admin-students"], queryFn: loadAdminStudents });
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
+  const students = useQuery({
+    queryKey: ["admin-students", debouncedSearch, page],
+    queryFn: () => loadAdminStudentsPage(debouncedSearch, onlyWithoutClass, page, pageSize),
+    placeholderData: previous => previous,
+  });
   const schoolLinks = useQuery({ queryKey: ["admin-student-school-links"], queryFn: loadAdminStudentSchoolLinks });
   const institutions = useQuery({ queryKey: ["admin-linkable-institutions"], queryFn: loadAdminLinkableInstitutions });
   const setup = useQuery({ queryKey: ["admin-academic-setup"], queryFn: loadAdminAcademicSetup });
@@ -26,27 +34,29 @@ export function AdminStudentClassroom() {
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [enrollments, setEnrollments] = useState<Record<string, string>>({});
   const [selectedSchool, setSelectedSchool] = useState<Record<string, string>>({});
-  const [search, setSearch] = useState("");
   const [onlyWithoutClass, setOnlyWithoutClass] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [onlyWithoutClass]);
   const [onlyWithoutSchool, setOnlyWithoutSchool] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   const classes = (setup.data?.classrooms ?? []).filter(c => c.status === "active");
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return (students.data ?? []).filter(student => {
-      const matchesSearch =
-        !term ||
-        `${student.full_name} ${student.enrollment ?? ""} ${student.classroom_name ?? ""}`.toLowerCase().includes(term);
-      const matchesClass = !onlyWithoutClass || !student.classroom_id;
-      return matchesSearch && matchesClass;
-    });
-  }, [students.data, search, onlyWithoutClass]);
-
-  const total = students.data?.length ?? 0;
-  const enrolled = students.data?.filter(s => !!s.classroom_id).length ?? 0;
-  const pendingClass = total - enrolled;
+  const items = students.data?.items ?? [];
+  const total = students.data?.total ?? 0;
+  const enrolled = items.filter(s => !!s.classroom_id).length;
+  const pendingClass = items.length - enrolled;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const waitingSchool = schoolLinks.data?.filter(s => s.status === "sem_escola").length ?? 0;
 
   async function refresh() {
@@ -211,7 +221,7 @@ export function AdminStudentClassroom() {
         <p className="mt-5 text-sm text-destructive">{errorText(students.error)}</p>
       ) : (
         <div className="mt-5 space-y-3">
-          {filtered.map(student => (
+          {items.map(student => (
             <div key={student.id} className="rounded-2xl border border-border p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -259,11 +269,21 @@ export function AdminStudentClassroom() {
               </div>
             </div>
           ))}
-          {!filtered.length && (
+          {!items.length && (
             <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              {students.data?.length ? "Nenhum aluno corresponde ao filtro." : "Nenhum perfil de aluno aprovado nesta instituição ainda."}
+              {total ? "Nenhum aluno corresponde ao filtro nesta página." : "Nenhum perfil de aluno aprovado nesta instituição ainda."}
             </p>
           )}
+        </div>
+      )}
+
+      {total > 0 && (
+        <div className="mt-5 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-muted-foreground">Página {page} de {totalPages} · {total} aluno(s) encontrados</p>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" disabled={page <= 1 || students.isFetching} onClick={() => setPage(value => Math.max(1, value - 1))}>Anterior</Button>
+            <Button type="button" variant="outline" size="sm" disabled={page >= totalPages || students.isFetching} onClick={() => setPage(value => Math.min(totalPages, value + 1))}>Próxima</Button>
+          </div>
         </div>
       )}
     </section>
