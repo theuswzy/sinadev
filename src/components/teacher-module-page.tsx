@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { BarChart3, BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, Megaphone, Users } from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, Megaphone, Users, School } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { errorText, formatScore, loadAttendance, loadGrades, loadStudents, loadTeacherInstitutionStudents, loadTeacherAcademicOptions, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassrooms, createTeacherClassroom, saveAttendance, createAssessment, createTeacherCalendarEvent, loadTaskSubmissions, gradeTaskSubmission, loadTeacherSubjects, createTeacherSubject, updateTeacherSubject, archiveTeacherSubject, loadTeacherSubjectAssignments, loadTeacherClassReport, assignTeacherSubjectToClass, unassignTeacherSubjectFromClass, teacherRemoveStudentFromClassroom, updateTeacherTask, deleteTeacherTask, updateTeacherAnnouncement, deleteTeacherAnnouncement, type AttendanceRow, type TeacherStudent, type TeacherClassroom, type TeacherInstitutionStudent, type TaskSubmission, type TeacherSubject } from "@/lib/sina-data";
+import { errorText, formatScore, loadAttendance, loadGrades, loadStudents, loadTeacherInstitutionStudents, loadTeacherAcademicOptions, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassrooms, createTeacherClassroom, saveAttendance, createAssessment, createTeacherCalendarEvent, loadTaskSubmissions, gradeTaskSubmission, loadTeacherSubjects, createTeacherSubject, updateTeacherSubject, archiveTeacherSubject, loadTeacherSubjectAssignments, loadTeacherClassReport, assignTeacherSubjectToClass, unassignTeacherSubjectFromClass, teacherRemoveStudentFromClassroom, loadTeacherUnassignedStudents, teacherLinkStudentToSchool, updateTeacherTask, deleteTeacherTask, updateTeacherAnnouncement, deleteTeacherAnnouncement, type AttendanceRow, type TeacherStudent, type TeacherClassroom, type TeacherInstitutionStudent, type TaskSubmission, type TeacherSubject } from "@/lib/sina-data";
 import { supabase } from "@/integrations/supabase/client";
 
 export type TeacherModule = "turmas"|"disciplinas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"agenda"|"comunicacao";
@@ -98,6 +98,7 @@ function TeacherRegisteredStudents({students,classes,onChanged}:{students:Teache
   const [enrollments,setEnrollments]=useState<Record<string,string>>({});
   const [classrooms,setClassrooms]=useState<Record<string,string>>({});
   const [busy,setBusy]=useState<string|null>(null);
+  const unassigned=useQuery({queryKey:["teacher-unassigned-students"],queryFn:loadTeacherUnassignedStudents});
   const visible=students.filter(student=>{
     const q=search.trim().toLowerCase();
     if(!q)return true;
@@ -116,6 +117,15 @@ function TeacherRegisteredStudents({students,classes,onChanged}:{students:Teache
     }catch(error){window.alert(errorText(error));}
     finally{setBusy(null);}
   }
+  async function linkSchool(studentId:string){
+    setBusy(studentId);
+    try{
+      await teacherLinkStudentToSchool(studentId);
+      await Promise.all([onChanged(),unassigned.refetch()]);
+      window.alert("Aluno vinculado à escola. Agora ele pode ser colocado em uma turma.");
+    }catch(error){window.alert(errorText(error));}
+    finally{setBusy(null);}
+  }
   async function remove(student:TeacherInstitutionStudent){
     if(!window.confirm("Remover "+student.full_name+" da sua turma? O aluno continuará cadastrado no SINA."))return;
     setBusy(student.id);
@@ -125,10 +135,30 @@ function TeacherRegisteredStudents({students,classes,onChanged}:{students:Teache
   }
   return <section className="sina-card p-6">
     <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-      <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Gestão de alunos</p><h2 className="mt-1 font-semibold">Alunos cadastrados</h2><p className="mt-1 text-sm text-muted-foreground">Consulte os alunos da instituição e vincule os que ainda estão sem turma às suas turmas.</p></div>
+      <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Gestão de alunos</p><h2 className="mt-1 font-semibold">Alunos cadastrados</h2><p className="mt-1 text-sm text-muted-foreground">Consulte os alunos da sua escola, vincule alunos sem escola à instituição ativa e depois coloque-os nas suas turmas.</p></div>
       <Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nome, matrícula ou turma" className="md:max-w-sm"/>
     </div>
-    <div className="mt-4 grid gap-2 sm:grid-cols-3">
+
+    <section className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-5">
+      <div className="flex items-start gap-3">
+        <School className="mt-0.5 size-5 text-primary"/>
+        <div>
+          <h3 className="font-semibold">Alunos sem escola</h3>
+          <p className="mt-1 text-sm text-muted-foreground">O professor pode vincular um aluno sem escola à <strong>escola ativa do próprio professor</strong>. Ele não pode escolher outra instituição.</p>
+        </div>
+      </div>
+      {unassigned.isPending ? <p className="mt-4 text-sm text-muted-foreground">Verificando alunos sem escola…</p> :
+       unassigned.error ? <p className="mt-4 text-sm text-destructive">{errorText(unassigned.error)}</p> :
+       unassigned.data?.length ? <div className="mt-4 space-y-2">
+         {unassigned.data.map(student=><div key={student.id} className="flex flex-col gap-3 rounded-xl border border-border bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
+           <div><p className="font-medium">{student.full_name}</p><p className="text-xs text-muted-foreground">{student.enrollment||"Sem matrícula"} · Ainda sem escola</p></div>
+           <Button disabled={busy===student.id} onClick={()=>void linkSchool(student.id)}>{busy===student.id?"Vinculando…":"Vincular à minha escola"}</Button>
+         </div>)}
+       </div> :
+       <p className="mt-4 text-sm text-muted-foreground">Não há alunos aguardando vínculo escolar.</p>}
+    </section>
+
+    <div className="mt-5 grid gap-2 sm:grid-cols-3">
       <div className="rounded-xl bg-muted/50 p-3"><p className="text-xs text-muted-foreground">Cadastrados</p><p className="mt-1 text-xl font-semibold">{students.length}</p></div>
       <div className="rounded-xl bg-muted/50 p-3"><p className="text-xs text-muted-foreground">Sem turma</p><p className="mt-1 text-xl font-semibold">{students.filter(x=>x.class_status==="sem_turma").length}</p></div>
       <div className="rounded-xl bg-muted/50 p-3"><p className="text-xs text-muted-foreground">Nas suas turmas</p><p className="mt-1 text-xl font-semibold">{students.filter(x=>x.class_status==="minha_turma").length}</p></div>
