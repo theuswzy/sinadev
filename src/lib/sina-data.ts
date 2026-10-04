@@ -457,6 +457,20 @@ export async function adminLinkStudentToInstitution(studentId: string, instituti
   return data ?? false;
 }
 
+export type AdminLinkableInstitution = {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  school_directory_id: string | null;
+};
+
+export async function loadAdminLinkableInstitutions(): Promise<AdminLinkableInstitution[]> {
+  const { data, error } = await supabase.rpc("admin_list_linkable_institutions");
+  if (error) throw error;
+  return (data ?? []) as AdminLinkableInstitution[];
+}
+
 export type AdminTeacherAssignment = { classroom_id: string; classroom_name: string; teacher_id: string; teacher_name: string; teacher_email: string };
 export type AdminTeacher = { user_id: string; display_name: string; email: string };
 
