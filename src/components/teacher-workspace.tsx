@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, GraduationCap, Megaphone, Plus, School, Users, BarChart3 } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, GraduationCap, Megaphone, Plus, School, Users, BarChart3, Paperclip, Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   assignTeacherSubjectToClass, createAssessment, createTeacherAnnouncement,
   createTeacherCalendarEvent, createTeacherClassroom, createTeacherSubject, createTeacherTask,
-  errorText, gradeTaskSubmission, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
+  errorText, gradeTaskSubmission, uploadAcademicAttachment, updateTeacherTask, deleteTeacherTask, updateTeacherAnnouncement, deleteTeacherAnnouncement, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
   loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
   loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherGrades,
@@ -257,10 +257,77 @@ function Assessments({d}:{d:ReturnType<typeof useData>}){
 
 function Tasks({d}:{d:ReturnType<typeof useData>}){
   const [classroom,setClassroom]=useState("");const [subject,setSubject]=useState("");const [title,setTitle]=useState("");const [description,setDescription]=useState("");const [due,setDue]=useState("");const [selected,setSelected]=useState("");const [busy,setBusy]=useState(false);const [scores,setScores]=useState<Record<string,string>>({});const [feedback,setFeedback]=useState<Record<string,string>>({});
+  const [attachment,setAttachment]=useState<File|null>(null);const [editing,setEditing]=useState<string|null>(null);
   const tasks=useQuery({queryKey:["teacher-new-tasks"],queryFn:loadTeacherTasks,staleTime:15000});const submissions=useQuery({queryKey:["teacher-new-submissions",selected],queryFn:()=>loadTaskSubmissions(selected),enabled:!!selected});
-  async function create(){setBusy(true);try{await createTeacherTask({classroom,subject,title:title.trim(),description,dueAt:due?new Date(due).toISOString():null});setTitle("");setDescription("");setDue("");await tasks.refetch();toast.success("Atividade publicada.");}catch(e){toast.error(errorText(e))}finally{setBusy(false)}}
-  async function grade(id:string){const n=Number(scores[id]);if(Number.isNaN(n)||n<0||n>10)return;try{await gradeTaskSubmission(id,n,feedback[id]??"");await submissions.refetch();toast.success("Entrega corrigida.");}catch(e){toast.error(errorText(e))}}
-  return <Card title="Atividades e entregas" description="Publique atividades, veja entregas e corrija notas."><div className="grid gap-3 md:grid-cols-2"><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.name}>{c.name}</option>)}</Select><Select label="Disciplina" value={subject} onChange={setSubject}><option value="">Selecione</option>{(d.subjects.data??[]).filter(s=>s.status==="active").map(s=><option key={s.id} value={s.name}>{s.name}</option>)}</Select><Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)}/></Field><Field label="Prazo"><Input type="datetime-local" value={due} onChange={e=>setDue(e.target.value)}/></Field><Field label="Descrição"><textarea value={description} onChange={e=>setDescription(e.target.value)} className="min-h-24 rounded-md border border-input bg-background p-3 text-sm"/></Field><div className="self-end"><Button disabled={busy||!classroom||!subject||!title.trim()} onClick={()=>void create()}>{busy?"Publicando…":"Publicar atividade"}</Button></div></div><div className="mt-5 grid gap-2 md:grid-cols-2">{tasks.error&&<div className="col-span-full rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar as atividades. <Button size="sm" variant="outline" onClick={()=>void tasks.refetch()}>Tentar novamente</Button></div>}{(tasks.data??[]).map(t=><button key={t.id} type="button" onClick={()=>setSelected(t.id)} className={"rounded-xl border p-3 text-left "+(selected===t.id?"border-primary bg-primary/5":"border-border")}><b>{t.title}</b><p className="text-xs text-muted-foreground">{t.classroom} · {t.subject}</p></button>)}</div>{selected&&<div className="mt-5 space-y-2">{submissions.error&&<div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar as entregas. <Button size="sm" variant="outline" onClick={()=>void submissions.refetch()}>Tentar novamente</Button></div>}{(submissions.data??[]).map(s=><div key={s.id} className="rounded-xl border border-border p-4"><b>{s.student_name}</b><p className="text-xs text-muted-foreground">{s.enrollment} · {s.status}</p><p className="mt-2 text-sm">{s.content||"Sem resposta textual."}</p><div className="mt-3 grid gap-2 sm:grid-cols-[120px_1fr_auto]"><Input type="number" min="0" max="10" step=".01" placeholder="Nota" value={scores[s.id]??(s.score==null?"":String(s.score))} onChange={e=>setScores(v=>({...v,[s.id]:e.target.value}))}/><Input placeholder="Feedback para o aluno" value={feedback[s.id]??(s.feedback??"")} onChange={e=>setFeedback(v=>({...v,[s.id]:e.target.value}))}/><Button disabled={scores[s.id]===""&&s.score==null} onClick={()=>void grade(s.id)}>Corrigir</Button></div></div>)}</div>}</Card>;
+  const selectedTask=tasks.data?.find(t=>t.id===editing)??null;
+
+  function resetForm(){setTitle("");setDescription("");setDue("");setAttachment(null);setEditing(null);}
+
+  async function create(){
+    if(!classroom||!subject||!title.trim()){toast.error("Selecione turma, disciplina e informe o título.");return;}
+    setBusy(true);
+    let uploadedPath:string|null=null;
+    try{
+      const uploaded=attachment?await uploadAcademicAttachment(attachment,"tasks"):null;
+      uploadedPath=uploaded?.path??null;
+      await createTeacherTask({classroom,subject,title:title.trim(),description:description.trim(),dueAt:due?new Date(due).toISOString():null,attachment:uploaded});
+      resetForm();await tasks.refetch();toast.success("Atividade publicada.");
+    }catch(e){
+      if(uploadedPath) void supabase.storage.from("academic-attachments").remove([uploadedPath]);
+      toast.error(errorText(e));
+    }finally{setBusy(false)}
+  }
+
+  async function update(){
+    if(!editing||!classroom||!subject||!title.trim()){toast.error("Preencha turma, disciplina e título.");return;}
+    setBusy(true);
+    let uploadedPath:string|null=null;
+    try{
+      const uploaded=attachment?await uploadAcademicAttachment(attachment,"tasks"):null;
+      uploadedPath=uploaded?.path??null;
+      await updateTeacherTask({id:editing,classroom,subject,title:title.trim(),description:description.trim(),dueAt:due?new Date(due).toISOString():null,attachmentPath:uploaded?.path??selectedTask?.attachment_path??null,attachmentName:uploaded?.name??selectedTask?.attachment_name??null,attachmentSize:uploaded?.size??selectedTask?.attachment_size??null,attachmentType:uploaded?.type??selectedTask?.attachment_type??null});
+      resetForm();await tasks.refetch();toast.success("Atividade atualizada.");
+    }catch(e){
+      if(uploadedPath) void supabase.storage.from("academic-attachments").remove([uploadedPath]);
+      toast.error(errorText(e));
+    }finally{setBusy(false)}
+  }
+
+  async function remove(id:string){
+    if(!window.confirm("Excluir esta atividade? As entregas vinculadas podem deixar de aparecer.")) return;
+    setBusy(true);try{await deleteTeacherTask(id);if(selected===id)setSelected("");await tasks.refetch();toast.success("Atividade excluída.");}catch(e){toast.error(errorText(e))}finally{setBusy(false)}
+  }
+
+  async function grade(id:string){const n=Number(scores[id]);if(Number.isNaN(n)||n<0||n>10){toast.error("A nota deve estar entre 0 e 10.");return;}try{await gradeTaskSubmission(id,n,feedback[id]??"");await submissions.refetch();toast.success("Entrega corrigida.");}catch(e){toast.error(errorText(e))}}
+
+  function startEdit(t:TeacherTask){
+    setEditing(t.id);setClassroom(t.classroom);setSubject(t.subject);setTitle(t.title);setDescription(t.description);setDue(t.due_at?new Date(t.due_at).toISOString().slice(0,16):"");setAttachment(null);
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  return <Card title="Atividades e entregas" description="Publique atividades, anexe PDF/arquivos e acompanhe as entregas.">
+    <div className="grid gap-3 md:grid-cols-2">
+      <Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.name}>{c.name}</option>)}</Select>
+      <Select label="Disciplina" value={subject} onChange={setSubject}><option value="">Selecione</option>{(d.subjects.data??[]).filter(s=>s.status==="active").map(s=><option key={s.id} value={s.name}>{s.name}</option>)}</Select>
+      <Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Ex.: Lista de exercícios"/></Field>
+      <Field label="Prazo"><Input type="datetime-local" value={due} onChange={e=>setDue(e.target.value)}/></Field>
+      <Field label="Descrição"><textarea value={description} onChange={e=>setDescription(e.target.value)} className="min-h-24 rounded-md border border-input bg-background p-3 text-sm"/></Field>
+      <Field label="Arquivo (PDF ou outro)"><div className="flex items-center gap-2"><Input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx" onChange={e=>setAttachment(e.target.files?.[0]??null)}/>{attachment&&<button type="button" className="text-muted-foreground hover:text-foreground" onClick={()=>setAttachment(null)} aria-label="Remover arquivo"><X className="size-4"/></button>}</div><p className="text-[11px] text-muted-foreground">Máximo 20 MB. O aluno receberá um link seguro.</p></Field>
+      <div className="flex items-end gap-2"><Button disabled={busy||!classroom||!subject||!title.trim()} onClick={()=>void(editing?update():create())}>{busy?(editing?"Salvando…":"Publicando…"):(editing?"Salvar alterações":"Publicar atividade")}</Button>{editing&&<Button type="button" variant="outline" onClick={resetForm} disabled={busy}>Cancelar</Button>}</div>
+    </div>
+    <div className="mt-5 grid gap-2 md:grid-cols-2">
+      {tasks.error&&<div className="col-span-full rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar as atividades. <Button size="sm" variant="outline" onClick={()=>void tasks.refetch()}>Tentar novamente</Button></div>}
+      {(tasks.data??[]).map(t=><div key={t.id} className={"rounded-xl border p-3 "+(selected===t.id?"border-primary bg-primary/5":"border-border")}>
+        <button type="button" onClick={()=>setSelected(t.id)} className="w-full text-left"><b>{t.title}</b><p className="text-xs text-muted-foreground">{t.classroom} · {t.subject} · {t.due_at?new Date(t.due_at).toLocaleString("pt-BR"):"Sem prazo"}</p></button>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {t.attachment_name&&<span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Paperclip className="size-3"/> {t.attachment_name}</span>}
+          <Button size="sm" variant="ghost" onClick={()=>startEdit(t)}><Pencil className="mr-1 size-3"/>Editar</Button>
+          <Button size="sm" variant="ghost" className="text-destructive" disabled={busy} onClick={()=>void remove(t.id)}><Trash2 className="mr-1 size-3"/>Excluir</Button>
+        </div>
+      </div>)}
+    </div>
+    {selected&&<div className="mt-5 space-y-2">{submissions.error&&<div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar as entregas. <Button size="sm" variant="outline" onClick={()=>void submissions.refetch()}>Tentar novamente</Button></div>}{(submissions.data??[]).map(s=><div key={s.id} className="rounded-xl border border-border p-4"><b>{s.student_name}</b><p className="text-xs text-muted-foreground">{s.enrollment} · {s.status}</p><p className="mt-2 text-sm">{s.content||"Sem resposta textual."}</p>{s.attachment_name&&<p className="mt-1 text-xs text-muted-foreground">Anexo enviado: {s.attachment_name}</p>}<div className="mt-3 grid gap-2 sm:grid-cols-[120px_1fr_auto]"><Input type="number" min="0" max="10" step=".01" placeholder="Nota" value={scores[s.id]??(s.score==null?"":String(s.score))} onChange={e=>setScores(v=>({...v,[s.id]:e.target.value}))}/><Input placeholder="Feedback para o aluno" value={feedback[s.id]??(s.feedback??"")} onChange={e=>setFeedback(v=>({...v,[s.id]:e.target.value}))}/><Button disabled={scores[s.id]===""&&s.score==null} onClick={()=>void grade(s.id)}>Corrigir</Button></div></div>)}</div>}
+  </Card>;
 }
 
 function Agenda({d}:{d:ReturnType<typeof useData>}){
@@ -278,17 +345,31 @@ function Agenda({d}:{d:ReturnType<typeof useData>}){
 }
 
 function Communication({d}:{d:ReturnType<typeof useData>}){
-  const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [content,setContent]=useState("");const [busy,setBusy]=useState("");
-
+  const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [content,setContent]=useState("");const [busy,setBusy]=useState("");const [attachment,setAttachment]=useState<File|null>(null);const [editing,setEditing]=useState<string|null>(null);
   const notices=useQuery({queryKey:["teacher-new-notices"],queryFn:loadTeacherAnnouncements,staleTime:15000});
+  const selected=notices.data?.find(n=>n.id===editing)??null;
   async function claim(id:string){setBusy("claim:"+id);try{await teacherClaimClassroom(id);await d.refresh();toast.success("Turma atribuída a você. Agora ela já pode receber avisos.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
-  async function create(){setBusy("publish");try{await createTeacherAnnouncement({classroom,title:title.trim(),content});setTitle("");setContent("");await notices.refetch();toast.success("Aviso publicado.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
+  function reset(){setClassroom("");setTitle("");setContent("");setAttachment(null);setEditing(null)}
+  function startEdit(n:TeacherAnnouncement){setEditing(n.id);setClassroom(n.classroom);setTitle(n.title);setContent(n.content);setAttachment(null);window.scrollTo({top:0,behavior:"smooth"})}
+  async function create(){
+    if(!classroom||!title.trim()||!content.trim()){toast.error("Selecione a turma e preencha título e mensagem.");return;}
+    setBusy("publish");let uploadedPath:string|null=null;
+    try{const uploaded=attachment?await uploadAcademicAttachment(attachment,"announcements"):null;uploadedPath=uploaded?.path??null;await createTeacherAnnouncement({classroom,title:title.trim(),content:content.trim(),attachment:uploaded});reset();await notices.refetch();toast.success("Aviso publicado.");}
+    catch(e){if(uploadedPath)void supabase.storage.from("academic-attachments").remove([uploadedPath]);toast.error(errorText(e))}finally{setBusy("")}
+  }
+  async function update(){
+    if(!editing||!classroom||!title.trim()||!content.trim()){toast.error("Preencha todos os campos.");return;}
+    setBusy("update");let uploadedPath:string|null=null;
+    try{const uploaded=attachment?await uploadAcademicAttachment(attachment,"announcements"):null;uploadedPath=uploaded?.path??null;await updateTeacherAnnouncement({id:editing,classroom,title:title.trim(),content:content.trim(),attachmentPath:uploaded?.path??selected?.attachment_path??null,attachmentName:uploaded?.name??selected?.attachment_name??null,attachmentSize:uploaded?.size??selected?.attachment_size??null,attachmentType:uploaded?.type??selected?.attachment_type??null});reset();await notices.refetch();toast.success("Aviso atualizado.");}
+    catch(e){if(uploadedPath)void supabase.storage.from("academic-attachments").remove([uploadedPath]);toast.error(errorText(e))}finally{setBusy("")}
+  }
+  async function remove(id:string){if(!window.confirm("Excluir este aviso?"))return;setBusy("delete");try{await deleteTeacherAnnouncement(id);await notices.refetch();toast.success("Aviso excluído.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   return <div className="space-y-5">
-    <Card title="Comunicação" description="Publique avisos apenas para suas turmas.">
+    <Card title="Comunicação" description="Publique avisos para suas turmas e anexe PDFs ou documentos.">
       {(d.classes.data??[]).filter(c=>c.status==="active").length===0 && (d.unassignedClasses.data??[]).length>0 && <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4"><b>Você ainda não tem uma turma atribuída.</b><p className="mt-1 text-sm text-muted-foreground">Assuma uma das turmas disponíveis para poder publicar avisos para os alunos.</p><div className="mt-3 space-y-2">{(d.unassignedClasses.data??[]).map(c=><div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background p-3"><div><b>{c.name}</b><p className="text-xs text-muted-foreground">{c.student_count} aluno(s)</p></div><Button size="sm" disabled={busy!==""} onClick={()=>void claim(c.id)}>{busy==="claim:"+c.id?"Atribuindo…":"Assumir turma"}</Button></div>)}</div></div>}
-      <div className="grid gap-3"><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.name}>{c.name}</option>)}</Select><Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)}/></Field><Field label="Mensagem"><textarea value={content} onChange={e=>setContent(e.target.value)} className="min-h-28 rounded-md border border-input bg-background p-3 text-sm"/></Field><div><Button disabled={busy!==""||!classroom||!title.trim()||!content.trim()} onClick={()=>void create()}>{busy==="publish"?"Publicando…":"Publicar aviso"}</Button></div></div>
+      <div className="grid gap-3"><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.name}>{c.name}</option>)}</Select><Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)}/></Field><Field label="Mensagem"><textarea value={content} onChange={e=>setContent(e.target.value)} className="min-h-28 rounded-md border border-input bg-background p-3 text-sm"/></Field><Field label="Anexo"><Input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx" onChange={e=>setAttachment(e.target.files?.[0]??null)}/><p className="text-[11px] text-muted-foreground">Até 20 MB.</p></Field><div className="flex gap-2"><Button disabled={busy!==""||!classroom||!title.trim()||!content.trim()} onClick={()=>void(editing?update():create())}>{busy==="publish"?"Publicando…":editing?"Salvar alterações":"Publicar aviso"}</Button>{editing&&<Button variant="outline" disabled={busy!==""} onClick={reset}>Cancelar</Button>}</div></div>
       {notices.error&&<div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm"><b>Não foi possível carregar os avisos.</b><Button className="ml-3" size="sm" variant="outline" onClick={()=>void notices.refetch()}>Tentar novamente</Button></div>}
-      <div className="mt-5 space-y-2">{(notices.data??[]).map(n=><div key={n.id} className="rounded-xl border border-border p-3"><b>{n.title}</b><p className="text-xs text-muted-foreground">{n.classroom}</p><p className="mt-1 text-sm text-muted-foreground">{n.content}</p></div>)}</div>
+      <div className="mt-5 space-y-2">{(notices.data??[]).map(n=><div key={n.id} className="rounded-xl border border-border p-3"><div className="flex items-start justify-between gap-3"><div><b>{n.title}</b><p className="text-xs text-muted-foreground">{n.classroom}</p><p className="mt-1 text-sm text-muted-foreground">{n.content}</p>{n.attachment_name&&<p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground"><Paperclip className="size-3"/>{n.attachment_name}</p>}</div><div className="flex shrink-0 gap-1"><Button size="sm" variant="ghost" onClick={()=>startEdit(n)}><Pencil className="size-3"/></Button><Button size="sm" variant="ghost" className="text-destructive" disabled={busy!==""} onClick={()=>void remove(n.id)}><Trash2 className="size-3"/></Button></div></div></div>)}</div>
     </Card>
   </div>;
 }
