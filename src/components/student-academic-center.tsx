@@ -71,7 +71,7 @@ export function StudentAcademicCenter() {
             return (
               <article key={task.id} className="rounded-2xl border border-border p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div className="min-w-0"><p className="font-semibold">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject} · {task.due_at ? `Entrega ${new Date(task.due_at).toLocaleString("pt-BR")}` : "Sem prazo"}</p>{task.description && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>}</div>
+                  <div className="min-w-0"><p className="font-semibold">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject} · {task.due_at ? `Entrega ${new Date(task.due_at).toLocaleString("pt-BR")}` : "Sem prazo"}</p>{task.description && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>}{task.attachment_url && <a href={task.attachment_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><FileText className="size-4"/>{task.attachment_name || "Abrir material anexado"}</a>}</div>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${submission?.status === "graded" ? "bg-primary/10 text-primary" : task.completed ? "bg-secondary text-foreground" : "bg-amber-500/10 text-amber-700 dark:text-amber-300"}`}>{submission?.status === "graded" ? "Corrigida" : task.completed ? "Concluída" : "Pendente"}</span>
                 </div>
                 <div className="mt-4 space-y-2">
