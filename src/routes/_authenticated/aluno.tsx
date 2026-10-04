@@ -61,10 +61,12 @@ function StudentDashboard() {
       )}
 
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="sina-card p-5"><ClipboardList className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Pendências</p><p className="mt-1 text-3xl font-semibold">{pending.length}</p><p className="mt-1 text-xs text-muted-foreground">tarefas para resolver</p></div>
-        <div className="sina-card p-5"><BarChart3 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Notas lançadas</p><p className="mt-1 text-3xl font-semibold">{grades.isPending ? "—" : grades.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">detalhes e origem em Notas</p></div>
-        <div className="sina-card p-5"><CheckCircle2 className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-3xl font-semibold">{attendance.isPending ? "—" : absences}</p><p className="mt-1 text-xs text-muted-foreground">registradas na frequência</p></div>
-        <div className="sina-card p-5"><BookOpen className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Disciplinas</p><p className="mt-1 text-3xl font-semibold">{subjects.length}</p><p className="mt-1 text-xs text-muted-foreground">com dados acadêmicos</p></div>
+        {[
+          {to:"/aluno/tarefas",icon:ClipboardList,label:"Pendências",value:pending.length,desc:"tarefas para resolver"},
+          {to:"/aluno/notas",icon:BarChart3,label:"Notas lançadas",value:grades.isPending ? "—" : grades.data?.length ?? 0,desc:"ver origem e avaliações"},
+          {to:"/aluno/frequencia",icon:CheckCircle2,label:"Faltas",value:attendance.isPending ? "—" : absences,desc:"abrir histórico completo"},
+          {to:"/aluno/disciplinas",icon:BookOpen,label:"Disciplinas",value:subjects.length,desc:"ver professores e turmas"},
+        ].map(({to,icon:Icon,label,value,desc})=><Link key={label} to={to} className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary"/></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></Link>)}
       </section>
 
       <section className="mt-6 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
