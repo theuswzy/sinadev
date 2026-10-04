@@ -19,7 +19,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +45,44 @@ export function AcademicShell({
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+
+    void supabase.auth.getUser().then(({ data }) => {
+      const userId = data.user?.id;
+      if (!userId || cancelled) return;
+
+      channel = supabase
+        .channel("institution-context-realtime-" + userId)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "institution_memberships", filter: "user_id=eq." + userId },
+          () => {
+            void queryClient.invalidateQueries({ queryKey: ["my-role"] });
+            void queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
+            void queryClient.invalidateQueries();
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "user_institution_context", filter: "user_id=eq." + userId },
+          () => {
+            void queryClient.invalidateQueries({ queryKey: ["my-role"] });
+            void queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
+            void queryClient.invalidateQueries();
+          },
+        )
+        .subscribe();
+    });
+
+    return () => {
+      cancelled = true;
+      if (channel) void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
   const institutions = useQuery({
     queryKey: ["my-institutions"],
