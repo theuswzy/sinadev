@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, UserCheck, Users, UserX } from "lucide-react";
+import { Search, UserCheck, Users, UserX, School } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 import {
   errorText,
   loadAdminAcademicSetup,
@@ -11,6 +12,7 @@ import {
   adminAssignStudentToClassroom,
   adminRemoveStudentFromClassroom,
   loadAdminStudentSchoolLinks,
+  loadAdminLinkableInstitutions,
   adminLinkStudentToInstitution,
 } from "@/lib/sina-data";
 
@@ -18,44 +20,25 @@ export function AdminStudentClassroom() {
   const qc = useQueryClient();
   const students = useQuery({ queryKey: ["admin-students"], queryFn: loadAdminStudents });
   const schoolLinks = useQuery({ queryKey: ["admin-student-school-links"], queryFn: loadAdminStudentSchoolLinks });
-  const institutions = useQuery({
-    queryKey: ["admin-managed-institutions"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("account_list_institutions");
-      if (error) throw error;
-      return (data ?? []).filter(item => item.role === "admin" && item.status === "active");
-    },
-  });
-  const schoolLinks = useQuery({ queryKey: ["admin-student-school-links"], queryFn: loadAdminStudentSchoolLinks });
-  const institutions = useQuery({
-    queryKey: ["admin-linkable-institutions"],
-    queryFn: async () => {
-      const { data, error } = await import("@/integrations/supabase/client").then(({ supabase }) =>
-        supabase.rpc("account_list_institutions"),
-      );
-      if (error) throw error;
-      const seen = new Set<string>();
-      return (data ?? []).filter((item) => {
-        if (item.role !== "admin" || seen.has(item.id)) return false;
-        seen.add(item.id);
-        return true;
-      });
-    },
-  });
+  const institutions = useQuery({ queryKey: ["admin-linkable-institutions"], queryFn: loadAdminLinkableInstitutions });
   const setup = useQuery({ queryKey: ["admin-academic-setup"], queryFn: loadAdminAcademicSetup });
+
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [enrollments, setEnrollments] = useState<Record<string, string>>({});
+  const [selectedSchool, setSelectedSchool] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [onlyWithoutClass, setOnlyWithoutClass] = useState(false);
+  const [onlyWithoutSchool, setOnlyWithoutSchool] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [selectedSchool, setSelectedSchool] = useState<Record<string, string>>({});
-  const [selectedSchool, setSelectedSchool] = useState<Record<string, string>>({});
 
   const classes = (setup.data?.classrooms ?? []).filter(c => c.status === "active");
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (students.data ?? []).filter(student => {
-      const matchesSearch = !term || `${student.full_name} ${student.enrollment ?? ""} ${student.classroom_name ?? ""}`.toLowerCase().includes(term);
+      const matchesSearch =
+        !term ||
+        `${student.full_name} ${student.enrollment ?? ""} ${student.classroom_name ?? ""}`.toLowerCase().includes(term);
       const matchesClass = !onlyWithoutClass || !student.classroom_id;
       return matchesSearch && matchesClass;
     });
@@ -64,6 +47,7 @@ export function AdminStudentClassroom() {
   const total = students.data?.length ?? 0;
   const enrolled = students.data?.filter(s => !!s.classroom_id).length ?? 0;
   const pendingClass = total - enrolled;
+  const waitingSchool = schoolLinks.data?.filter(s => s.status === "sem_escola").length ?? 0;
 
   async function refresh() {
     await Promise.all([
@@ -103,25 +87,6 @@ export function AdminStudentClassroom() {
     }
   }
 
-  async function linkSchool(studentId: string) {
-    const institutionId = selectedSchool[studentId];
-    if (!institutionId) return;
-    setBusy(studentId);
-    try {
-      await adminLinkStudentToInstitution(studentId, institutionId);
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["admin-student-school-links"] }),
-        qc.invalidateQueries({ queryKey: ["admin-students"] }),
-        qc.invalidateQueries({ queryKey: ["admin-accounts"] }),
-      ]);
-      toast.success("Aluno vinculado à escola.");
-    } catch (e) {
-      toast.error(errorText(e));
-    } finally {
-      setBusy(null);
-    }
-  }
-
   async function remove(id: string) {
     setBusy(id);
     try {
@@ -144,64 +109,84 @@ export function AdminStudentClassroom() {
             <h2 className="font-semibold">Usuários matriculados</h2>
           </div>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            Gerencie os alunos aprovados da instituição, defina matrícula e vincule cada um à turma correta.
-            O vínculo feito aqui libera o aluno para o professor trabalhar com notas, frequência, avaliações e atividades.
+            Primeiro vincule o aluno à escola. Depois, defina matrícula e turma. O vínculo escolar determina em qual instituição os dados acadêmicos do aluno ficam registrados.
           </p>
         </div>
-        <div className="grid grid-cols-3 gap-2 text-center text-xs">
+        <div className="grid grid-cols-4 gap-2 text-center text-xs">
           <div className="rounded-xl border border-border px-3 py-2"><p className="font-bold text-lg">{total}</p><p className="text-muted-foreground">Alunos</p></div>
-          <div className="rounded-xl border border-border px-3 py-2"><p className="font-bold text-lg">{enrolled}</p><p className="text-muted-foreground">Matriculados</p></div>
+          <div className="rounded-xl border border-border px-3 py-2"><p className="font-bold text-lg">{enrolled}</p><p className="text-muted-foreground">Turmas</p></div>
           <div className="rounded-xl border border-border px-3 py-2"><p className="font-bold text-lg">{pendingClass}</p><p className="text-muted-foreground">Sem turma</p></div>
+          <div className="rounded-xl border border-border px-3 py-2"><p className="font-bold text-lg">{waitingSchool}</p><p className="text-muted-foreground">Sem escola</p></div>
         </div>
       </div>
 
       <section className="mt-6 rounded-2xl border border-primary/20 bg-primary/5 p-5">
-        <div className="flex items-start gap-3">
-          <Users className="mt-0.5 size-5 text-primary" />
-          <div>
-            <h3 className="font-semibold">Vincular aluno à escola</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Antes de matricular o aluno em uma turma, o administrador pode definir a escola/instituição à qual a conta pertence.
-            </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <School className="mt-0.5 size-5 text-primary" />
+            <div>
+              <h3 className="font-semibold">Vincular aluno à escola</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                O administrador pode escolher a escola ativa do SINA para cada aluno que ainda não possui vínculo institucional.
+              </p>
+            </div>
           </div>
+          <Button type="button" variant={onlyWithoutSchool ? "default" : "outline"} onClick={() => setOnlyWithoutSchool(v => !v)}>
+            {onlyWithoutSchool ? "Mostrando sem escola" : `Aguardando escola: ${waitingSchool}`}
+          </Button>
         </div>
 
-        {schoolLinks.isPending ? (
-          <p className="mt-4 text-sm text-muted-foreground">Verificando alunos sem escola…</p>
+        {schoolLinks.isPending || institutions.isPending ? (
+          <p className="mt-4 text-sm text-muted-foreground">Carregando escolas e alunos…</p>
         ) : schoolLinks.error ? (
           <p className="mt-4 text-sm text-destructive">{errorText(schoolLinks.error)}</p>
+        ) : institutions.error ? (
+          <p className="mt-4 text-sm text-destructive">{errorText(institutions.error)}</p>
         ) : (
           <div className="mt-4 space-y-3">
-            {(schoolLinks.data ?? []).filter(student => student.status === "sem_escola").map(student => (
-              <div key={student.id} className="rounded-xl border border-border bg-background p-4">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <p className="font-medium">{student.full_name}</p>
-                    <p className="text-xs text-muted-foreground">{student.enrollment || "Sem matrícula"} · Conta cadastrada</p>
-                  </div>
-                  <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
-                    <select
-                      value={selectedSchool[student.id] ?? ""}
-                      onChange={e => setSelectedSchool(prev => ({ ...prev, [student.id]: e.target.value }))}
-                      className="h-10 min-w-64 rounded-md border border-input bg-background px-3 text-sm"
-                      aria-label={`Escola de ${student.full_name}`}
-                    >
-                      <option value="">Selecione a escola</option>
-                      {(institutions.data ?? []).map(institution => (
-                        <option key={institution.id} value={institution.id}>{institution.name}</option>
-                      ))}
-                    </select>
-                    <Button
-                      onClick={() => void linkSchool(student.id)}
-                      disabled={busy === student.id || !selectedSchool[student.id]}
-                    >
-                      {busy === student.id ? "Vinculando…" : "Vincular escola"}
-                    </Button>
+            {(schoolLinks.data ?? [])
+              .filter(student => !onlyWithoutSchool || student.status === "sem_escola")
+              .map(student => (
+                <div key={student.id} className="rounded-xl border border-border bg-background p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{student.full_name}</p>
+                        {student.status === "sem_escola" ? (
+                          <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">Sem escola</span>
+                        ) : (
+                          <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">Vinculado</span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {student.enrollment || "Sem matrícula"} · {student.institution_name || "Nenhuma escola vinculada"}
+                      </p>
+                    </div>
+
+                    <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+                      <select
+                        value={selectedSchool[student.id] ?? student.institution_id ?? ""}
+                        onChange={e => setSelectedSchool(prev => ({ ...prev, [student.id]: e.target.value }))}
+                        className="h-10 min-w-64 rounded-md border border-input bg-background px-3 text-sm"
+                        aria-label={`Escola de ${student.full_name}`}
+                      >
+                        <option value="">Selecione a escola</option>
+                        {(institutions.data ?? []).map(institution => (
+                          <option key={institution.id} value={institution.id}>{institution.name}</option>
+                        ))}
+                      </select>
+                      <Button
+                        onClick={() => void linkSchool(student.id)}
+                        disabled={busy === student.id || !selectedSchool[student.id] || !!student.institution_id}
+                      >
+                        {busy === student.id ? "Vinculando…" : student.institution_id ? "Escola vinculada" : "Vincular escola"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {!schoolLinks.data?.some(student => student.status === "sem_escola") && (
+              ))}
+
+            {!schoolLinks.data?.filter(student => !onlyWithoutSchool || student.status === "sem_escola").length && (
               <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
                 Não há alunos aguardando vínculo com uma escola.
               </p>
@@ -210,72 +195,12 @@ export function AdminStudentClassroom() {
         )}
       </section>
 
-      <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-5">
-        <div className="flex items-start gap-3">
-          <UserCheck className="mt-0.5 size-5 text-primary" />
-          <div>
-            <h3 className="font-semibold">Vincular aluno à escola</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Antes de matricular em uma turma, o administrador pode definir em qual escola/instituição o aluno está matriculado.
-              Só aparecem escolas nas quais esta conta possui acesso administrativo.
-            </p>
-          </div>
-        </div>
-
-        {institutions.isPending || schoolLinks.isPending ? (
-          <p className="mt-4 text-sm text-muted-foreground">Carregando escolas e alunos…</p>
-        ) : institutions.error ? (
-          <p className="mt-4 text-sm text-destructive">{errorText(institutions.error)}</p>
-        ) : (
-          <div className="mt-4 space-y-2">
-            {(schoolLinks.data ?? []).filter(student => !student.institution_id || (institutions.data ?? []).some(i => i.id === student.institution_id)).map(student => (
-              <div key={student.id} className="flex flex-col gap-3 rounded-xl border border-border bg-background p-3 md:flex-row md:items-center md:justify-between">
-                <div className="min-w-0">
-                  <p className="font-medium">{student.full_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {student.enrollment || "Sem matrícula"} · {student.institution_name || "Sem escola"}
-                  </p>
-                </div>
-                <div className="flex w-full gap-2 md:max-w-xl">
-                  <select
-                    value={selectedSchool[student.id] ?? student.institution_id ?? ""}
-                    onChange={e => setSelectedSchool(v => ({ ...v, [student.id]: e.target.value }))}
-                    className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
-                    aria-label={`Escola de ${student.full_name}`}
-                  >
-                    <option value="">Selecione a escola</option>
-                    {(institutions.data ?? []).map(institution => (
-                      <option key={institution.id} value={institution.id}>{institution.name}</option>
-                    ))}
-                  </select>
-                  <Button
-                    onClick={() => void linkSchool(student.id)}
-                    disabled={busy === student.id || !selectedSchool[student.id]}
-                  >
-                    {busy === student.id ? "Salvando…" : student.institution_id ? "Alterar escola" : "Vincular escola"}
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {!schoolLinks.data?.length && (
-              <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                Nenhum aluno disponível para vínculo de escola.
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-
       <div className="mt-5 flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar aluno, e-mail, matrícula ou turma" className="pl-9" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar aluno, matrícula ou turma" className="pl-9" />
         </div>
-        <Button
-          type="button"
-          variant={onlyWithoutClass ? "default" : "outline"}
-          onClick={() => setOnlyWithoutClass(v => !v)}
-        >
+        <Button type="button" variant={onlyWithoutClass ? "default" : "outline"} onClick={() => setOnlyWithoutClass(v => !v)}>
           {onlyWithoutClass ? "Mostrando sem turma" : "Somente sem turma"}
         </Button>
       </div>
