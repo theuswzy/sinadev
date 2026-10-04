@@ -199,7 +199,7 @@ function BulkGradeForm({students,qc}:{students:TeacherStudent[];qc:QueryClient})
   }
   return <section className="sina-card p-6"><div><h2 className="font-semibold">Lançamento rápido da turma</h2><p className="mt-1 text-sm text-muted-foreground">Lance a mesma disciplina e período para vários alunos de uma vez.</p></div><div className="mt-4 grid gap-3 md:grid-cols-[1fr_150px_auto]"><select value={subject} onChange={e=>setSubject(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Disciplina</option>{(subjects.data||[]).map(x=><option key={x.id} value={x.name}>{x.name}</option>)}</select><select value={period} onChange={e=>setPeriod(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">{[1,2,3,4].map(n=><option key={n} value={n}>{n}º período</option>)}</select><Button disabled={!subject||!Object.values(scores).some(Boolean)||saving} onClick={()=>void save()}>{saving?"Salvando…":"Salvar notas"}</Button></div><div className="mt-4 grid gap-2 md:grid-cols-2">{students.map(s=><div key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3"><div><p className="font-medium">{s.full_name}</p><p className="text-xs text-muted-foreground">{s.enrollment}</p></div><Input className="max-w-28" type="number" min="0" max="10" step=".01" value={scores[s.id]??""} onChange={e=>setScores(v=>({...v,[s.id]:e.target.value}))} placeholder="Nota"/></div>)}</div></section>;
 }
-function GradeForm({student,qc}:{student:TeacherStudent;qc:any}){
+function GradeForm({student,qc}:{student:TeacherStudent;qc:QueryClient}){
   const subjects=useQuery({queryKey:["teacher-single-grade-subjects"],queryFn:loadTeacherSubjects});
   const [subject,setSubject]=useState("");const [period,setPeriod]=useState("1");const [score,setScore]=useState("");const [absences,setAbsences]=useState("");const [saving,setSaving]=useState(false);
   async function save(){
@@ -216,7 +216,7 @@ function GradeForm({student,qc}:{student:TeacherStudent;qc:any}){
   }
   return <section className="sina-card p-6"><h2 className="font-semibold">Lançar nota — {student.full_name}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2"><select value={subject} onChange={e=>setSubject(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Disciplina</option>{(subjects.data||[]).map(x=><option key={x.id} value={x.name}>{x.name}</option>)}</select><select value={period} onChange={e=>setPeriod(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">{[1,2,3,4].map(n=><option key={n} value={n}>{n}º período</option>)}</select><Input value={score} onChange={e=>setScore(e.target.value)} type="number" min="0" max="10" step=".01" placeholder="Nota"/><Input value={absences} onChange={e=>setAbsences(e.target.value)} type="number" min="0" step="1" placeholder="Faltas"/><Button className="sm:col-span-2" disabled={!subject||!score||saving} onClick={()=>void save()}>{saving?"Salvando…":"Salvar nota"}</Button></div></section>;
 }
-function AttendanceBox({classes,active,onChange,data,qc}:{classes:any[];active:string;onChange:(v:string)=>void;data:AttendanceRow[];qc:any}){
+function AttendanceBox({classes,active,onChange,data,qc}:{classes:TeacherClassroom[];active:string;onChange:(v:string)=>void;data:AttendanceRow[];qc:QueryClient}){
   const [draft,setDraft]=useState<Record<string,{status:AttendanceRow["status"];note:string}>>({});
   const [saving,setSaving]=useState(false);
 
@@ -264,7 +264,7 @@ function AttendanceBox({classes,active,onChange,data,qc}:{classes:any[];active:s
     </section>
   </div>;
 }
-function AssessmentsBox({classes,active,onChange}:{classes:any[];active:string;onChange:(v:string)=>void}){
+function AssessmentsBox({classes,active,onChange}:{classes:TeacherClassroom[];active:string;onChange:(v:string)=>void}){
   const o=useQuery({queryKey:["teacher-options"],queryFn:loadTeacherAcademicOptions});
   const subjects=useQuery({queryKey:["teacher-assessment-subjects"],queryFn:loadTeacherSubjects});
   const a=useQuery({queryKey:["teacher-assessments",active],queryFn:()=>loadTeacherAssessments(active),enabled:!!active});
@@ -350,14 +350,16 @@ function AssessmentsBox({classes,active,onChange}:{classes:any[];active:string;o
   </div>;
 }
 
-function AgendaBox({classes}:{classes:any[]}){
+function AgendaBox({classes}:{classes:TeacherClassroom[]}){
   const q=useQuery({queryKey:["teacher-agenda-module"],queryFn:()=>{const a=new Date(),b=new Date();b.setMonth(b.getMonth()+2);return loadTeacherCalendar(a.toISOString(),b.toISOString())}});
   const [title,setTitle]=useState("");const [start,setStart]=useState("");const [classroom,setClassroom]=useState("");const [type,setType]=useState("aula");const [saving,setSaving]=useState(false);
   async function create(){if(!title.trim()||!start||saving)return;setSaving(true);try{await createTeacherCalendarEvent({classroomId:classroom||null,title:title.trim(),description:"",startAt:new Date(start).toISOString(),endAt:null,eventType:type});setTitle("");setStart("");setClassroom("");await q.refetch();toast.success("Evento adicionado à agenda.");}catch(error){toast.error(errorText(error));}finally{setSaving(false);}}
   return <div className="mt-6 space-y-5"><section className="sina-card p-6"><h2 className="font-semibold">Novo evento</h2><p className="mt-1 text-sm text-muted-foreground">Crie aulas, provas, trabalhos e outros eventos para suas turmas.</p><div className="mt-4 grid gap-3 md:grid-cols-2"><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Título"/><Input type="datetime-local" value={start} onChange={e=>setStart(e.target.value)}/><select value={classroom} onChange={e=>setClassroom(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Evento institucional</option>{classes.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select><select value={type} onChange={e=>setType(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="aula">Aula</option><option value="prova">Prova</option><option value="trabalho">Trabalho</option><option value="evento">Evento</option><option value="outro">Outro</option></select><Button className="md:col-span-2" disabled={saving||!title.trim()||!start} onClick={()=>void create()}>{saving?"Salvando…":"Adicionar à agenda"}</Button></div></section><div className="grid gap-3 md:grid-cols-2">{(q.data||[]).map(x=><article key={x.id} className="sina-card p-5"><p className="font-semibold">{x.title}</p><p className="mt-1 text-xs text-muted-foreground">{x.classroom_name||"Institucional"} · {new Date(x.start_at).toLocaleString("pt-BR")} · {x.event_type}</p></article>)}</div></div>;
 }
 
-function PublishBox({kind,classes}:{kind:"notice"|"task";classes:any[]}){
+type PublishedItem = { id: string; classroom: string; title: string; content?: string | null; description?: string | null; subject?: string | null; due_at?: string | null };
+
+function PublishBox({kind,classes}:{kind:"notice"|"task";classes:TeacherClassroom[]}){
   const q=useQuery<PublishedItem[]>({queryKey:["teacher-publish",kind],queryFn:async():Promise<PublishedItem[]>=>{const {data,error}=await supabase.rpc(kind==="notice"?"teacher_list_announcements":"teacher_list_tasks");if(error)throw error;return (data||[]) as PublishedItem[];}});
   const subjects=useQuery({queryKey:["teacher-subjects"],queryFn:loadTeacherSubjects,enabled:kind==="task"});
   const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [subject,setSubject]=useState("");const [content,setContent]=useState("");const [due,setDue]=useState("");const [selectedTask,setSelectedTask]=useState("");const [editing,setEditing]=useState<PublishedItem | null>(null);const [saving,setSaving]=useState(false);
