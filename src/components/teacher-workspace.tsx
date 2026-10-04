@@ -13,7 +13,7 @@ import {
   errorText, gradeTaskSubmission, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
   loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
-  loadTeacherUnassignedClassrooms, teacherClaimClassroom,
+  loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherGrades,
   saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
   teacherRemoveStudentFromClassroom, type AttendanceRow
 } from "@/lib/sina-data";
@@ -137,8 +137,9 @@ function Classes({d}:{d:ReturnType<typeof useData>}){
 }
 
 function Students({d}:{d:ReturnType<typeof useData>}){
-  const [search,setSearch]=useState("");const [busy,setBusy]=useState("");const [targetClass,setTargetClass]=useState<Record<string,string>>({});const [enrollments,setEnrollments]=useState<Record<string,string>>({});
+  const [search,setSearch]=useState("");const [busy,setBusy]=useState("");const [targetClass,setTargetClass]=useState<Record<string,string>>({});const [enrollments,setEnrollments]=useState<Record<string,string>>({});const [selectedStudent,setSelectedStudent]=useState<string|null>(null);
   const waiting=useQuery({queryKey:["teacher-new-unassigned"],queryFn:loadTeacherUnassignedStudents,staleTime:15000});
+  const academic=useQuery({queryKey:["teacher-student-academic",selectedStudent],queryFn:()=>loadTeacherGrades(selectedStudent!),enabled:!!selectedStudent,staleTime:10000});
   const list=(d.students.data??[]).filter(s=>(s.full_name+" "+s.enrollment+" "+s.classroom).toLowerCase().includes(search.toLowerCase()));
   function classFor(id:string){return targetClass[id]??""}
   function enrollmentFor(s:{id:string;enrollment:string|null}){return enrollments[s.id]??s.enrollment??""}
