@@ -75,7 +75,7 @@ function DataError({d}:{d:ReturnType<typeof useData>}) {
   </section>;
 }
 
-function Overview({d}:{d:ReturnType<typeof useData>}){
+function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(section:Section)=>void}){
   const classes=(d.classes.data??[]).filter(x=>x.status==="active");
   const students=(d.students.data??[]).filter(x=>x.class_status==="minha_turma");
   const subjects=(d.subjects.data??[]).filter(x=>x.status==="active");
@@ -94,11 +94,11 @@ function Overview({d}:{d:ReturnType<typeof useData>}){
       </div>
     </section>
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {actions.map(({label,value,desc,icon:Icon,go})=><button key={label} type="button" onClick={()=>d.setSection?.(go)} className="sina-card group p-5 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><span className="text-xs font-semibold text-primary opacity-0 transition group-hover:opacity-100">Abrir →</span></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></button>)}
+      {actions.map(({label,value,desc,icon:Icon,go})=><button key={label} type="button" onClick={()=>onNavigate(go)} className="sina-card group p-5 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><span className="text-xs font-semibold text-primary opacity-0 transition group-hover:opacity-100">Abrir →</span></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></button>)}
     </div>
     <Card title="Próximas ações" description="Use o menu para executar cada etapa. O SINA mantém o vínculo entre a ação e a turma.">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[["Notas","Lance e confira notas por aluno.","notas"],["Frequência","Registre o diário por data.","frequencia"],["Avaliações","Crie instrumentos e acompanhe resultados.","avaliacoes"],["Atividades","Publique e corrija entregas.","atividades"]].map(([title,desc,go])=><button key={title} type="button" onClick={()=>d.setSection?.(go as Section)} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5"><b>{title}</b><p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p></button>)}
+        {[["Notas","Lance e confira notas por aluno.","notas"],["Frequência","Registre o diário por data.","frequencia"],["Avaliações","Crie instrumentos e acompanhe resultados.","avaliacoes"],["Atividades","Publique e corrija entregas.","atividades"]].map(([title,desc,go])=><button key={title} type="button" onClick={()=>onNavigate(go as Section)} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5"><b>{title}</b><p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p></button>)}
       </div>
     </Card>
   </div>;
@@ -245,6 +245,6 @@ function Communication({d}:{d:ReturnType<typeof useData>}){
 
 export function TeacherWorkspace({initialSection="inicio"}:{initialSection?:Section}){
   const [section,setSection]=useState<Section>(initialSection);const d=useData(section);const current=menu.find(x=>x.id===section) ?? menu[0]!;
-  const body=section==="inicio"?<Overview d={d}/>:section==="turmas"?<Classes d={d}/>:section==="alunos"?<Students d={d}/>:section==="disciplinas"?<Subjects d={d}/>:section==="notas"?<Grades d={d}/>:section==="frequencia"?<Attendance d={d}/>:section==="avaliacoes"?<Assessments d={d}/>:section==="atividades"?<Tasks d={d}/>:section==="agenda"?<Agenda d={d}/>:<Communication d={d}/>;
+  const body=section==="inicio"?<Overview d={d} onNavigate={setSection}/>:section==="turmas"?<Classes d={d}/>:section==="alunos"?<Students d={d}/>:section==="disciplinas"?<Subjects d={d}/>:section==="notas"?<Grades d={d}/>:section==="frequencia"?<Attendance d={d}/>:section==="avaliacoes"?<Assessments d={d}/>:section==="atividades"?<Tasks d={d}/>:section==="agenda"?<Agenda d={d}/>:<Communication d={d}/>;
   return <AcademicShell title={current.label} subtitle="Gestão acadêmica docente" requiredRole="teacher"><div className="space-y-5"><DataError d={d}/><nav className="flex gap-2 overflow-x-auto pb-1">{menu.map(item=>{const Icon=item.Icon;return <button key={item.id} type="button" onClick={()=>setSection(item.id)} className={"inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold "+(item.id===section?"bg-primary text-primary-foreground":"border border-border bg-card text-muted-foreground hover:text-foreground")}><Icon className="size-4"/>{item.label}</button>})}</nav>{body}</div></AcademicShell>;
 }
