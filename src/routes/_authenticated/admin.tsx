@@ -343,7 +343,7 @@ function AdminArea() {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <a href="#aprovacoes" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Aprovar cadastros</a>
               <a href="#autorizacao" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Gerenciar contas</a>
-              <a href="#configuracao-academica" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Estrutura acadêmica</a>
+              <a href="#configuracao-academica" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Estrutura acadêmica</a><a href="#professores-escolas" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Vincular professores</a>
               <a href="#historico" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Ver histórico</a>
             </div>
           </div>
