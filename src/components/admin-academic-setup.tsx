@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, CalendarRange, Layers3, Save, Archive, Users } from "lucide-react";
+import { BookOpen, CalendarRange, Layers3, Save, Archive, Users, FileUp } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,42 @@ import {
   loadAdminInstitutionTeachers,
   loadAdminTeacherAssignments,
   adminAssignTeacherToClassroom,
-  adminUnassignTeacherFromClassroom,
+  adminUnassignTeacherFromClassroom,\n  adminImportAcademicCsv,
 } from "@/lib/sina-data";
 
-export function AdminAcademicSetup() {
+
+
+function parseCsvLine(line: string) {
+  const values: string[] = [];
+  let value = "";
+  let quoted = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (quoted && line[i + 1] === '"') { value += '"'; i += 1; }
+      else quoted = !quoted;
+    } else if ((ch === "," || ch === ";") && !quoted) {
+      values.push(value.trim());
+      value = "";
+    } else {
+      value += ch;
+    }
+  }
+  values.push(value.trim());
+  return values;
+}
+
+function parseAcademicCsv(text: string) {
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter(line => line.trim());
+  if (lines.length < 2) throw new Error("CSV vazio ou sem linhas de dados.");
+  const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+  const rows = lines.slice(1).map(line => {
+    const values = parseCsvLine(line);
+    return Object.fromEntries(headers.map((header, i) => [header, values[i] ?? ""]));
+  });
+  return rows;
+}
+\nexport function AdminAcademicSetup() {
   const qc = useQueryClient();
   const setup = useQuery({ queryKey: ["admin-academic-setup"], queryFn: loadAdminAcademicSetup });
   const teachers = useQuery({ queryKey: ["admin-institution-teachers"], queryFn: loadAdminInstitutionTeachers });
@@ -31,7 +63,7 @@ export function AdminAcademicSetup() {
   const [termEnd, setTermEnd] = useState("");
   const [termCurrent, setTermCurrent] = useState(true);
   const [teacherId, setTeacherId] = useState("");
-  const [teacherClassroomId, setTeacherClassroomId] = useState("");
+  const [teacherClassroomId, setTeacherClassroomId] = useState("");\n  const [importing, setImporting] = useState(false);
 
   async function refresh() {
     await Promise.all([
@@ -71,7 +103,38 @@ export function AdminAcademicSetup() {
     <section id="academico-setup" className="sina-card sina-card-hover p-6 scroll-mt-28">
       <div className="flex items-start gap-3"><Layers3 className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Estrutura acadêmica</h2><p className="mt-1 text-sm text-muted-foreground">Cadastre turmas, disciplinas e períodos. Esses dados alimentam diário, avaliações, calendário e relatórios.</p></div></div>
       {setup.isPending ? <p className="mt-5 text-sm text-muted-foreground">Carregando estrutura…</p> : setup.error ? <p className="mt-5 text-sm text-destructive">{errorText(setup.error)}</p> : (
-        <div className="mt-6 space-y-6">
+        <div className="mt-6 space-y-6">\n        <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <FileUp className="mt-0.5 size-5 text-primary" />
+            <div className="min-w-0">
+              <p className="font-semibold">Importar alunos e turmas por CSV</p>
+              <p className="mt-1 text-sm text-muted-foreground">Use as colunas <b>tipo,nome,codigo,matricula,turma</b>. Para turma, informe tipo=turma e nome/código. Para aluno, use tipo=aluno, nome, matrícula e, opcionalmente, turma.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Exemplo: <code>aluno,João Silva,,2026001,8º Ano A</code></p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <Input type="file" accept=".csv,text/csv" disabled={importing} onChange={async e => {
+              const file = e.target.files?.[0];
+              e.currentTarget.value = "";
+              if (!file) return;
+              setImporting(true);
+              try {
+                const text = await file.text();
+                const rows = parseAcademicCsv(text);
+                const result = await adminImportAcademicCsv(rows);
+                await refresh();
+                toast.success(`Importação concluída: ${result.classes} turma(s), ${result.students} aluno(s), ${result.skipped} linha(s) ignorada(s).`);
+              } catch (error) {
+                toast.error(errorText(error));
+              } finally {
+                setImporting(false);
+              }
+            }} />
+            {importing && <p className="mt-2 text-xs text-muted-foreground">Importando dados…</p>}
+          </div>
+        </div>
+
+
           <div className="grid gap-5 lg:grid-cols-3">
             <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><Layers3 className="size-4 text-primary" /><p className="font-semibold">Turmas</p></div><div className="mt-4 space-y-2"><Input placeholder="Nome da turma" value={classroomName} onChange={e => setClassroomName(e.target.value)} /><Input placeholder="Código (opcional)" value={classroomCode} onChange={e => setClassroomCode(e.target.value)} /><Button onClick={() => void saveClassroom()} disabled={!classroomName.trim()}><Save className="mr-2 size-4" />Criar turma</Button></div><div className="mt-4 space-y-2">{setup.data?.classrooms.map(c => <div key={c.id} className="flex items-center justify-between gap-2 rounded-xl bg-secondary/50 p-3 text-sm"><div><p className="font-medium">{c.name}</p><p className="text-xs text-muted-foreground">{c.code || "Sem código"} · {c.status === "active" ? "Ativa" : "Arquivada"}</p></div>{c.status === "active" && <Button size="sm" variant="ghost" onClick={() => void archiveClassroom(c.id)} aria-label={`Arquivar ${c.name}`}><Archive className="size-4" /></Button>}</div>)}</div></div>
 
