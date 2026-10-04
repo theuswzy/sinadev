@@ -55,7 +55,23 @@ function useData(section: Section){
       qc.invalidateQueries({queryKey:["teacher-new-assignments"]}),
     ]);
   }
-  return {classes,students,subjects,assignments,refresh};
+  return {classes,students,subjects,assignments,unassignedClasses,refresh};
+}
+
+function DataError({d}:{d:ReturnType<typeof useData>}) {
+  const errors = [
+    d.classes.error && "turmas",
+    d.students.error && "alunos",
+    d.subjects.error && "disciplinas",
+    d.assignments.error && "vínculos de disciplinas",
+    d.unassignedClasses.error && "turmas disponíveis",
+  ].filter(Boolean) as string[];
+  if (!errors.length) return null;
+  return <section className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
+    <p className="font-semibold">Não foi possível carregar alguns dados</p>
+    <p className="mt-1 text-sm text-muted-foreground">Falha ao carregar: {errors.join(", ")}.</p>
+    <Button className="mt-3" variant="outline" onClick={()=>void d.refresh()}>Tentar novamente</Button>
+  </section>;
 }
 
 function Overview({d}:{d:ReturnType<typeof useData>}){
@@ -189,5 +205,5 @@ function Communication({d}:{d:ReturnType<typeof useData>}){
 export function TeacherWorkspace({initialSection="inicio"}:{initialSection?:Section}){
   const [section,setSection]=useState<Section>(initialSection);const d=useData(section);const current=menu.find(x=>x.id===section)??menu[0];
   const body=section==="inicio"?<Overview d={d}/>:section==="turmas"?<Classes d={d}/>:section==="alunos"?<Students d={d}/>:section==="disciplinas"?<Subjects d={d}/>:section==="notas"?<Grades d={d}/>:section==="frequencia"?<Attendance d={d}/>:section==="avaliacoes"?<Assessments d={d}/>:section==="atividades"?<Tasks d={d}/>:section==="agenda"?<Agenda d={d}/>:<Communication d={d}/>;
-  return <AcademicShell title={current.label} subtitle="Gestão acadêmica docente" requiredRole="teacher"><div className="space-y-5"><nav className="flex gap-2 overflow-x-auto pb-1">{menu.map(item=>{const Icon=item.Icon;return <button key={item.id} type="button" onClick={()=>setSection(item.id)} className={"inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold "+(item.id===section?"bg-primary text-primary-foreground":"border border-border bg-card text-muted-foreground hover:text-foreground")}><Icon className="size-4"/>{item.label}</button>})}</nav>{body}</div></AcademicShell>;
+  return <AcademicShell title={current.label} subtitle="Gestão acadêmica docente" requiredRole="teacher"><div className="space-y-5"><DataError d={d}/><nav className="flex gap-2 overflow-x-auto pb-1">{menu.map(item=>{const Icon=item.Icon;return <button key={item.id} type="button" onClick={()=>setSection(item.id)} className={"inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold "+(item.id===section?"bg-primary text-primary-foreground":"border border-border bg-card text-muted-foreground hover:text-foreground")}><Icon className="size-4"/>{item.label}</button>})}</nav>{body}</div></AcademicShell>;
 }
