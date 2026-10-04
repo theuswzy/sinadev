@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -85,13 +85,13 @@ function SubjectBox(){
   const assignments=useQuery({queryKey:["teacher-subject-assignments"],queryFn:loadTeacherSubjectAssignments});
   const [name,setName]=useState(""); const [code,setCode]=useState(""); const [editing,setEditing]=useState<TeacherSubject|null>(null);
   const [assignSubject,setAssignSubject]=useState(""); const [assignClass,setAssignClass]=useState("");
-  const save=async()=>{if(!name.trim())return;try{if(editing) await updateTeacherSubject(editing.id,name,code); else await createTeacherSubject(name,code);setName("");setCode("");setEditing(null);await q.refetch();}catch(error){toast.error(errorText(error));}};
-  const assign=async()=>{if(!assignSubject||!assignClass)return;try{await assignTeacherSubjectToClass(assignSubject,assignClass);setAssignSubject("");await assignments.refetch();}catch(error){toast.error(errorText(error));}};
+  const save=async()=>{if(!name.trim())return;try{if(editing) await updateTeacherSubject(editing.id,name.trim(),code.trim()); else await createTeacherSubject(name.trim(),code.trim());setName("");setCode("");setEditing(null);await q.refetch();toast.success(editing?"Disciplina atualizada.":"Disciplina criada.");}catch(error){toast.error(errorText(error));}};
+  const assign=async()=>{if(!assignSubject||!assignClass)return;try{await assignTeacherSubjectToClass(assignSubject,assignClass);setAssignSubject("");await assignments.refetch();toast.success("Disciplina associada à turma.");}catch(error){toast.error(errorText(error));}};
   return <div className="mt-6 space-y-5">
     <section className="rounded-3xl bg-brand p-6 text-brand-foreground md:p-8"><p className="text-xs font-bold uppercase tracking-[.14em] text-brand-muted">Gestão docente</p><h1 className="mt-1 font-display text-2xl font-bold">Minhas disciplinas</h1><p className="mt-2 max-w-2xl text-sm text-brand-muted">Crie suas disciplinas e associe cada uma às turmas em que você leciona.</p></section>
     <section className="sina-card p-6"><div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">{editing?"Editar disciplina":"Nova disciplina"}</h2><p className="text-sm text-muted-foreground">A disciplina fica vinculada à sua instituição.</p></div>{editing&&<Button variant="outline" onClick={()=>{setEditing(null);setName("");setCode("")}}>Cancelar</Button>}</div><div className="mt-4 grid gap-3 md:grid-cols-[1fr_180px_auto]"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome da disciplina"/><Input value={code} onChange={e=>setCode(e.target.value)} placeholder="Código (opcional)"/><Button disabled={!name.trim()} onClick={()=>void save()}>{editing?"Salvar alterações":"Criar disciplina"}</Button></div></section>
     <section className="sina-card p-6"><h2 className="font-semibold">Associar disciplina a uma turma</h2><p className="mt-1 text-sm text-muted-foreground">Depois da associação, a disciplina passa a aparecer nos fluxos de atividades, avaliações e para os alunos.</p><div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]"><select value={assignSubject} onChange={e=>setAssignSubject(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Disciplina</option>{(q.data||[]).map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select><select value={assignClass} onChange={e=>setAssignClass(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Turma</option>{(classes.data||[]).map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select><Button disabled={!assignSubject||!assignClass} onClick={()=>void assign()}>Associar</Button></div><div className="mt-5 grid gap-2 md:grid-cols-2">{(assignments.data||[]).map(x=><div key={x.id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3"><div><p className="font-medium">{x.subject_name}</p><p className="text-xs text-muted-foreground">{x.classroom_name}</p></div><Button size="sm" variant="ghost" onClick={async()=>{try{await unassignTeacherSubjectFromClass(x.id);await assignments.refetch();}catch(error){toast.error(errorText(error));}}}>Remover</Button></div>)}</div></section>
-    <section className="sina-card p-6"><h2 className="font-semibold">Disciplinas disponíveis</h2><div className="mt-4 grid gap-3 md:grid-cols-2">{(q.data||[]).map(subject=><article key={subject.id} className="rounded-2xl border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{subject.name}</p><p className="mt-1 text-xs text-muted-foreground">{subject.code||"Sem código"}{subject.created_by?" · criada por você":""}</p></div>{subject.created_by&&<div className="flex gap-2"><Button size="sm" variant="outline" onClick={()=>{setEditing(subject);setName(subject.name);setCode(subject.code||"")}}>Editar</Button><Button size="sm" variant="ghost" onClick={async()=>{await archiveTeacherSubject(subject.id);await q.refetch()}}>Arquivar</Button></div>}</div></article>)}</div>{!q.isPending&&!q.data?.length&&<p className="mt-4 text-sm text-muted-foreground">Nenhuma disciplina disponível ainda. Crie uma disciplina ou aguarde a escola disponibilizar uma para sua instituição.</p>}</section>
+    <section className="sina-card p-6"><h2 className="font-semibold">Disciplinas disponíveis</h2><div className="mt-4 grid gap-3 md:grid-cols-2">{(q.data||[]).map(subject=><article key={subject.id} className="rounded-2xl border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{subject.name}</p><p className="mt-1 text-xs text-muted-foreground">{subject.code||"Sem código"}{subject.created_by?" · criada por você":""}</p></div>{subject.created_by&&<div className="flex gap-2"><Button size="sm" variant="outline" onClick={()=>{setEditing(subject);setName(subject.name);setCode(subject.code||"")}}>Editar</Button><Button size="sm" variant="ghost" onClick={async()=>{try{await archiveTeacherSubject(subject.id);await q.refetch();toast.success("Disciplina arquivada.");}catch(error){toast.error(errorText(error));}}}>Arquivar</Button></div>}</div></article>)}</div>{!q.isPending&&!q.data?.length&&<p className="mt-4 text-sm text-muted-foreground">Nenhuma disciplina disponível ainda. Crie uma disciplina ou aguarde a escola disponibilizar uma para sua instituição.</p>}</section>
   </div>;
 }
 function TeacherRegisteredStudents({students,classes,onChanged}:{students:TeacherInstitutionStudent[];classes:TeacherClassroom[];onChanged:()=>Promise<void>}){
@@ -218,19 +218,49 @@ function GradeForm({student,qc}:{student:TeacherStudent;qc:any}){
 }
 function AttendanceBox({classes,active,onChange,data,qc}:{classes:any[];active:string;onChange:(v:string)=>void;data:AttendanceRow[];qc:any}){
   const [draft,setDraft]=useState<Record<string,{status:AttendanceRow["status"];note:string}>>({});
+  const [saving,setSaving]=useState(false);
+
+  useEffect(()=>{
+    const next: Record<string,{status:AttendanceRow["status"];note:string}> = {};
+    for(const row of data) next[row.student_id]={status:row.status,note:row.note||""};
+    setDraft(next);
+  },[data,active]);
+
   async function save(){
-    if(!active)return;
+    if(!active || saving)return;
+    setSaving(true);
     try{
-      const total=await saveAttendance(active,new Date().toISOString().slice(0,10),Object.entries(draft).map(([student_id,v])=>({student_id,...v})));
+      const total=await saveAttendance(
+        active,
+        new Date().toISOString().slice(0,10),
+        Object.entries(draft).map(([student_id,v])=>({student_id,...v}))
+      );
       await qc.invalidateQueries({queryKey:["teacher-module-attendance",active]});
       toast.success(`${total} registros de frequência salvos.`);
     }catch(error){toast.error(errorText(error));}
+    finally{setSaving(false);}
   }
+
   return <div className="mt-6 space-y-5">
     <ClassSelect classes={classes} value={active} onChange={onChange}/>
     <section className="sina-card p-6">
-      <div className="flex items-center justify-between gap-3"><div><h2 className="font-semibold">Diário de frequência</h2><p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("pt-BR")}</p></div><Button onClick={()=>void save()}>Salvar frequência</Button></div>
-      <div className="mt-4 divide-y divide-border">{data.map(r=>{const v=draft[r.student_id]||{status:r.status,note:r.note||""};return <div key={r.student_id} className="grid gap-2 py-3 sm:grid-cols-[1fr_170px_1fr] sm:items-center"><div><p className="font-medium">{r.full_name}</p><p className="text-xs text-muted-foreground">{r.enrollment}</p></div><select value={v.status} onChange={e=>setDraft(d=>({...d,[r.student_id]:{...v,status:e.target.value as AttendanceRow["status"]}}))} className="h-9 rounded-md border border-input bg-background px-2 text-sm"><option value="present">Presente</option><option value="late">Atrasado</option><option value="absent">Falta</option><option value="excused">Justificada</option></select><Input value={v.note} onChange={e=>setDraft(d=>({...d,[r.student_id]:{...v,note:e.target.value}}))} placeholder="Observação"/></div>})}</div>
+      <div className="flex items-center justify-between gap-3">
+        <div><h2 className="font-semibold">Diário de frequência</h2><p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("pt-BR")}</p></div>
+        <Button onClick={()=>void save()} disabled={saving || !data.length}>{saving?"Salvando…":"Salvar frequência"}</Button>
+      </div>
+      <div className="mt-4 divide-y divide-border">
+        {data.map(r=>{
+          const v=draft[r.student_id]||{status:r.status,note:r.note||""};
+          return <div key={r.student_id} className="grid gap-2 py-3 sm:grid-cols-[1fr_170px_1fr] sm:items-center">
+            <div><p className="font-medium">{r.full_name}</p><p className="text-xs text-muted-foreground">{r.enrollment}</p></div>
+            <select value={v.status} onChange={e=>setDraft(d=>({...d,[r.student_id]:{...v,status:e.target.value as AttendanceRow["status"]}}))} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+              <option value="present">Presente</option><option value="late">Atrasado</option><option value="absent">Falta</option><option value="excused">Justificada</option>
+            </select>
+            <Input value={v.note} onChange={e=>setDraft(d=>({...d,[r.student_id]:{...v,note:e.target.value}}))} placeholder="Observação"/>
+          </div>;
+        })}
+        {!data.length&&<p className="py-4 text-sm text-muted-foreground">Nenhum aluno está vinculado a esta turma para a data selecionada.</p>}
+      </div>
     </section>
   </div>;
 }
@@ -278,7 +308,7 @@ function AssessmentsBox({classes,active,onChange}:{classes:any[];active:string;o
     if(raw==null||raw==="")return;
     const max=Number(selectedAssessment?.max_score??10);
     const score=Number(raw);
-    if(score<0||score>max){window.alert("A nota deve estar entre 0 e "+max+".");return;}
+    if(!Number.isFinite(score)||score<0||score>max){toast.error("A nota deve estar entre 0 e "+max+".");return;}
     try{
       const {error}=await supabase.rpc("teacher_upsert_assessment_score",{_assessment_id:selected,_student_id:studentId,_score:score,_feedback:""});
       if(error)throw error;
@@ -322,8 +352,9 @@ function AssessmentsBox({classes,active,onChange}:{classes:any[];active:string;o
 
 function AgendaBox({classes}:{classes:any[]}){
   const q=useQuery({queryKey:["teacher-agenda-module"],queryFn:()=>{const a=new Date(),b=new Date();b.setMonth(b.getMonth()+2);return loadTeacherCalendar(a.toISOString(),b.toISOString())}});
-  const [title,setTitle]=useState("");const [start,setStart]=useState("");const [classroom,setClassroom]=useState("");const [type,setType]=useState("aula");
-  return <div className="mt-6 space-y-5"><section className="sina-card p-6"><h2 className="font-semibold">Novo evento</h2><p className="mt-1 text-sm text-muted-foreground">Crie aulas, provas, trabalhos e outros eventos para suas turmas.</p><div className="mt-4 grid gap-3 md:grid-cols-2"><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Título"/><Input type="datetime-local" value={start} onChange={e=>setStart(e.target.value)}/><select value={classroom} onChange={e=>setClassroom(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Evento institucional</option>{classes.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select><select value={type} onChange={e=>setType(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="aula">Aula</option><option value="prova">Prova</option><option value="trabalho">Trabalho</option><option value="evento">Evento</option><option value="outro">Outro</option></select><Button className="md:col-span-2" onClick={async()=>{if(!title||!start)return;try{await createTeacherCalendarEvent({classroomId:classroom||null,title,description:"",startAt:new Date(start).toISOString(),endAt:null,eventType:type});setTitle("");setStart("");await q.refetch();}catch(error){toast.error(errorText(error));}}}>Adicionar à agenda</Button></div></section><div className="grid gap-3 md:grid-cols-2">{(q.data||[]).map(x=><article key={x.id} className="sina-card p-5"><p className="font-semibold">{x.title}</p><p className="mt-1 text-xs text-muted-foreground">{x.classroom_name||"Institucional"} · {new Date(x.start_at).toLocaleString("pt-BR")} · {x.event_type}</p></article>)}</div></div>}
+  const [title,setTitle]=useState("");const [start,setStart]=useState("");const [classroom,setClassroom]=useState("");const [type,setType]=useState("aula");const [saving,setSaving]=useState(false);
+  async function create(){if(!title.trim()||!start||saving)return;setSaving(true);try{await createTeacherCalendarEvent({classroomId:classroom||null,title:title.trim(),description:"",startAt:new Date(start).toISOString(),endAt:null,eventType:type});setTitle("");setStart("");setClassroom("");await q.refetch();toast.success("Evento adicionado à agenda.");}catch(error){toast.error(errorText(error));}finally{setSaving(false);}}
+  return <div className="mt-6 space-y-5"><section className="sina-card p-6"><h2 className="font-semibold">Novo evento</h2><p className="mt-1 text-sm text-muted-foreground">Crie aulas, provas, trabalhos e outros eventos para suas turmas.</p><div className="mt-4 grid gap-3 md:grid-cols-2"><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Título"/><Input type="datetime-local" value={start} onChange={e=>setStart(e.target.value)}/><select value={classroom} onChange={e=>setClassroom(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Evento institucional</option>{classes.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select><select value={type} onChange={e=>setType(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="aula">Aula</option><option value="prova">Prova</option><option value="trabalho">Trabalho</option><option value="evento">Evento</option><option value="outro">Outro</option></select><Button className="md:col-span-2" disabled={saving||!title.trim()||!start} onClick={()=>void create()}>{saving?"Salvando…":"Adicionar à agenda"}</Button></div></section><div className="grid gap-3 md:grid-cols-2">{(q.data||[]).map(x=><article key={x.id} className="sina-card p-5"><p className="font-semibold">{x.title}</p><p className="mt-1 text-xs text-muted-foreground">{x.classroom_name||"Institucional"} · {new Date(x.start_at).toLocaleString("pt-BR")} · {x.event_type}</p></article>)}</div></div>
 
 function PublishBox({kind,classes}:{kind:"notice"|"task";classes:any[]}){
   const q=useQuery({queryKey:["teacher-publish",kind],queryFn:async()=>{const {data,error}=await supabase.rpc(kind==="notice"?"teacher_list_announcements":"teacher_list_tasks");if(error)throw error;return data||[]}});
