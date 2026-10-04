@@ -13,7 +13,7 @@ import {
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
   loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
   loadTeacherUnassignedClassrooms, teacherClaimClassroom,
-  loadTeacherUnassignedStudents, saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
+  saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
   teacherRemoveStudentFromClassroom, type AttendanceRow
 } from "@/lib/sina-data";
 
