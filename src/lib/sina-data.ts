@@ -2,6 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables, Json } from "@/integrations/supabase/types";
 export type Student = Tables<"students">;
 export type Grade = Tables<"grades">;
+export type TeacherTask = Tables<"tasks">;
+export type TeacherAnnouncement = Tables<"announcements">;
 export type UserRole = "teacher" | "student" | "admin";
 export type AcademicArea = "/aluno" | "/professor" | "/admin";
 
