@@ -177,9 +177,9 @@ export function AdminStudentClassroom() {
                       </select>
                       <Button
                         onClick={() => void linkSchool(student.id)}
-                        disabled={busy === student.id || !selectedSchool[student.id] || !!student.institution_id}
+                        disabled={busy === student.id || !selectedSchool[student.id] || selectedSchool[student.id] === student.institution_id}
                       >
-                        {busy === student.id ? "Vinculando…" : student.institution_id ? "Escola vinculada" : "Vincular escola"}
+                        {busy === student.id ? "Salvando…" : student.institution_id ? (selectedSchool[student.id] !== student.institution_id ? "Salvar alteração" : "Escola vinculada") : "Salvar vínculo"}
                       </Button>
                     </div>
                   </div>
