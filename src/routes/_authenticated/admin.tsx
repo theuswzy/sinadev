@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { errorText, loadAccountRoleRequests, reviewAccountRoleRequest, searchSchoolDirectory, type SchoolDirectoryEntry } from "@/lib/sina-data";
+import { errorText, loadAccountRoleRequests, reviewAccountRoleRequest, searchSchoolDirectory, type SchoolDirectoryEntry, type AdminAcademicSetup } from "@/lib/sina-data";
 import { AdminAcademicSetup } from "@/components/admin-academic-setup";
 import { AdminStudentClassroom } from "@/components/admin-student-classroom";
 import { AdminTeacherSchool } from "@/components/admin-teacher-school";
@@ -63,7 +63,7 @@ function AdminArea() {
   const [accountStatusFilter, setAccountStatusFilter] = useState<"all" | "active" | "pending" | "suspended">("all");
   const adminStudents = useQuery({ queryKey: ["admin-students"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_student_school_links"); if (error) throw error; return data ?? []; }, enabled: role.data === true });
   const adminTeachers = useQuery({ queryKey: ["admin-teachers"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_teacher_school_links"); if (error) throw error; return data ?? []; }, enabled: role.data === true });
-  const academicSetup = useQuery({ queryKey: ["admin-academic-setup"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_academic_setup"); if (error) throw error; return data ?? { classrooms: [], subjects: [], terms: [] }; }, enabled: role.data === true });
+  const academicSetup = useQuery<AdminAcademicSetup>({ queryKey: ["admin-academic-setup"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_academic_setup"); if (error) throw error; return (data ?? { classrooms: [], subjects: [], terms: [] }) as AdminAcademicSetup; }, enabled: role.data === true });
   const roleRequests = useQuery({
     queryKey: ["admin-role-requests"],
     queryFn: loadAccountRoleRequests,
