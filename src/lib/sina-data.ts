@@ -759,10 +759,10 @@ export async function updateTeacherAnnouncement(args: {
     _classroom: args.classroom,
     _title: args.title,
     _content: args.content,
-    _attachment_path: args.attachmentPath ?? null,
-    _attachment_name: args.attachmentName ?? null,
-    _attachment_size: args.attachmentSize ?? null,
-    _attachment_type: args.attachmentType ?? null,
+    ...(args.attachmentPath ? { _attachment_path: args.attachmentPath } : {}),
+    ...(args.attachmentName ? { _attachment_name: args.attachmentName } : {}),
+    ...(args.attachmentSize != null ? { _attachment_size: args.attachmentSize } : {}),
+    ...(args.attachmentType ? { _attachment_type: args.attachmentType } : {}),
   });
   if (error) throw error;
   return data;
