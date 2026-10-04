@@ -67,15 +67,11 @@ begin
 
   if not exists (
     select 1
-    from public.institution_memberships im
-    join public.institutions i on i.id=im.institution_id
-    where im.user_id=auth.uid()
-      and im.institution_id=_institution_id
-      and im.role='admin'::public.app_role
-      and im.status='active'
+    from public.institutions i
+    where i.id=_institution_id
       and i.status='active'
   ) then
-    raise exception 'Você não administra esta escola.';
+    raise exception 'Escola não encontrada ou inativa.';
   end if;
 
   select s.user_id
@@ -122,3 +118,21 @@ revoke all on function public.admin_list_student_school_links() from public,anon
 revoke all on function public.admin_link_student_to_institution(uuid,uuid) from public,anon;
 grant execute on function public.admin_list_student_school_links() to authenticated;
 grant execute on function public.admin_link_student_to_institution(uuid,uuid) to authenticated;
+
+
+create or replace function public.admin_list_linkable_institutions()
+returns table(id uuid,name text,slug text,status text,school_directory_id uuid)
+language sql
+stable
+security definer
+set search_path=''
+as $$
+  select i.id,i.name,i.slug,i.status,i.school_directory_id
+  from public.institutions i
+  where i.status='active'
+    and public.has_role(auth.uid(),'admin'::public.app_role)
+  order by lower(i.name);
+$$;
+
+revoke all on function public.admin_list_linkable_institutions() from public,anon;
+grant execute on function public.admin_list_linkable_institutions() to authenticated;
