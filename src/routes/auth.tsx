@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
+  acceptInstitutionInvitation,
   ensureAccountOnboarding,
   getAccountOnboardingState,
   resubmitRoleRequest,
@@ -86,6 +87,17 @@ function AuthPage() {
   const [checkingSession, setCheckingSession] = useState(true);
 
   async function finishAuth(explicitRole?: RequestedRole, explicitSchoolId?: string) {
+    const inviteToken = window.localStorage.getItem("sina-institution-invite-token");
+    if (inviteToken) {
+      try {
+        await acceptInstitutionInvitation(inviteToken);
+        window.localStorage.removeItem("sina-institution-invite-token");
+        setMessage("Convite aceito. Sua conta foi vinculada à instituição.");
+      } catch (error) {
+        setMessage(authErrorMessage(error));
+        throw error;
+      }
+    }
     const schoolId = explicitSchoolId || window.localStorage.getItem("sina-school-directory-id") || undefined;
     window.localStorage.removeItem("sina-school-directory-id");
 
