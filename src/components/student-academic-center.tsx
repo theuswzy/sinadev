@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CalendarDays, CheckCircle2, ClipboardCheck, Clock3, FileText } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -32,6 +32,12 @@ export function StudentAcademicCenter() {
   const attendance = useQuery({ queryKey: ["student-attendance-history"], queryFn: loadStudentAttendance });
   const calendar = useQuery({ queryKey: ["student-calendar-center"], queryFn: () => loadStudentCalendar(monthStart(), monthEnd()) });
   const submissions = useQuery({ queryKey: ["student-task-submissions"], queryFn: loadStudentTaskSubmissions });
+  const weightedAverage = useMemo(() => {
+    const graded = (assessments.data ?? []).filter(item => item.score != null && item.max_score > 0 && item.weight > 0);
+    const totalWeight = graded.reduce((sum, item) => sum + Number(item.weight), 0);
+    if (!totalWeight) return null;
+    return graded.reduce((sum, item) => sum + ((Number(item.score) / Number(item.max_score)) * 10 * Number(item.weight)), 0) / totalWeight;
+  }, [assessments.data]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
 
@@ -78,7 +84,13 @@ export function StudentAcademicCenter() {
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-3">
+        <div className="sina-card p-6">
+          <p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p>
+          <h3 className="mt-1 font-semibold">Média ponderada</h3>
+          <p className="mt-2 text-3xl font-bold">{weightedAverage == null ? "—" : weightedAverage.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Calculada apenas com avaliações que já possuem nota, respeitando o peso de cada avaliação.</p>
+        </div>
         <div className="sina-card p-6">
           <div className="flex items-center gap-3"><FileText className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Avaliações</p><h3 className="font-semibold">Notas por avaliação</h3></div></div>
           <div className="mt-4 space-y-2">{(assessments.data ?? []).length ? (assessments.data ?? []).map(item => <div key={item.id} className="rounded-xl border border-border p-4"><div className="flex items-center justify-between gap-3"><p className="font-semibold">{item.title}</p><span className="rounded-full bg-secondary px-2.5 py-1 text-xs">peso {item.weight}</span></div><p className="mt-1 text-xs text-muted-foreground">{item.subject_name} {item.term_name ? `· ${item.term_name}` : ""}</p><div className="mt-3 flex flex-wrap items-center gap-3 text-sm">{item.score == null ? <span className="text-muted-foreground">Ainda sem nota</span> : <span className="font-bold text-primary">{item.score.toLocaleString("pt-BR")} / {item.max_score}</span>}{item.feedback && <span className="text-muted-foreground">{item.feedback}</span>}</div></div>) : <p className="text-sm text-muted-foreground">Nenhuma avaliação publicada.</p>}</div>
