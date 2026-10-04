@@ -900,12 +900,63 @@ export type TeacherClassReport = {
   assessment_count: number;
 };
 
+export type AcademicAttachment = {
+  path: string;
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+};
+
+const ACADEMIC_ATTACHMENT_BUCKET = "academic-attachments";
+const MAX_ACADEMIC_ATTACHMENT_SIZE = 20 * 1024 * 1024;
+const ALLOWED_ACADEMIC_ATTACHMENT_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+]);
+
+export async function uploadAcademicAttachment(file: File, folder: "tasks" | "announcements"): Promise<AcademicAttachment> {
+  if (!ALLOWED_ACADEMIC_ATTACHMENT_TYPES.has(file.type)) {
+    throw new Error("Tipo de arquivo não permitido. Envie PDF, imagem, Word, PowerPoint, Excel ou TXT.");
+  }
+  if (file.size <= 0 || file.size > MAX_ACADEMIC_ATTACHMENT_SIZE) {
+    throw new Error("O arquivo deve ter entre 1 byte e 20 MB.");
+  }
+
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) throw new Error("Sua sessão expirou. Entre novamente.");
+  const safeName = file.name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "arquivo";
+  const path = `${auth.user.id}/${folder}/${crypto.randomUUID()}-${safeName}`;
+  const { error } = await supabase.storage.from(ACADEMIC_ATTACHMENT_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type || "application/octet-stream",
+  });
+  if (error) throw error;
+
+  const { data: signed, error: signedError } = await supabase.storage
+    .from(ACADEMIC_ATTACHMENT_BUCKET)
+    .createSignedUrl(path, 60 * 60);
+  if (signedError || !signed?.signedUrl) throw signedError ?? new Error("Não foi possível gerar o link do arquivo.");
+  return { path, name: file.name, size: file.size, type: file.type, url: signed.signedUrl };
+}
+
 export async function createTeacherTask(args: {
   classroom: string;
   subject: string;
   title: string;
   description: string;
   dueAt?: string | null;
+  attachment?: Pick<AcademicAttachment, "path" | "name" | "size" | "type"> | null;
 }) {
   const { data, error } = await supabase.rpc("teacher_create_task", {
     _classroom: args.classroom,
@@ -913,6 +964,12 @@ export async function createTeacherTask(args: {
     _title: args.title,
     _description: args.description,
     ...(args.dueAt ? { _due_at: args.dueAt } : {}),
+    ...(args.attachment ? {
+      _attachment_path: args.attachment.path,
+      _attachment_name: args.attachment.name,
+      _attachment_size: args.attachment.size,
+      _attachment_type: args.attachment.type,
+    } : {}),
   });
   if (error) throw error;
   return data;
@@ -922,11 +979,18 @@ export async function createTeacherAnnouncement(args: {
   classroom: string;
   title: string;
   content: string;
+  attachment?: Pick<AcademicAttachment, "path" | "name" | "size" | "type"> | null;
 }) {
   const { data, error } = await supabase.rpc("teacher_create_announcement", {
     _classroom: args.classroom,
     _title: args.title,
     _content: args.content,
+    ...(args.attachment ? {
+      _attachment_path: args.attachment.path,
+      _attachment_name: args.attachment.name,
+      _attachment_size: args.attachment.size,
+      _attachment_type: args.attachment.type,
+    } : {}),
   });
   if (error) throw error;
   return data;
