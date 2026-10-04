@@ -950,6 +950,52 @@ export async function loadTeacherClassReport(classroomId: string): Promise<Teach
   return (data ?? []) as TeacherClassReport[];
 }
 
+export type InstitutionInvitation = {
+  id: string;
+  email: string;
+  role: "teacher" | "student";
+  classroom_id: string | null;
+  classroom_name: string | null;
+  expires_at: string;
+  accepted_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+};
+
+export async function createAdminInstitutionInvitation(
+  email: string,
+  role: "teacher" | "student",
+  classroomId: string | null,
+  expiresHours = 72,
+) {
+  const { data, error } = await supabase.rpc("admin_create_institution_invitation", {
+    _email: email,
+    _role: role,
+    _classroom_id: classroomId,
+    _expires_hours: expiresHours,
+  });
+  if (error) throw error;
+  return (data?.[0] ?? null) as { invitation_id: string; token: string; expires_at: string } | null;
+}
+
+export async function loadAdminInstitutionInvitations(): Promise<InstitutionInvitation[]> {
+  const { data, error } = await supabase.rpc("admin_list_institution_invitations");
+  if (error) throw error;
+  return (data ?? []) as InstitutionInvitation[];
+}
+
+export async function revokeAdminInstitutionInvitation(id: string) {
+  const { data, error } = await supabase.rpc("admin_revoke_institution_invitation", { _id: id });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function acceptInstitutionInvitation(token: string) {
+  const { data, error } = await supabase.rpc("accept_institution_invitation", { _token: token });
+  if (error) throw error;
+  return data?.[0] ?? null;
+}
+
 export async function loadAdminAcademicSetup(): Promise<AdminAcademicSetup> {
   const { data, error } = await supabase.rpc("admin_list_academic_setup");
   if (error) throw error;
