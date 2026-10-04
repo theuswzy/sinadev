@@ -138,8 +138,8 @@ function AuthPage() {
 
       const storedRole = window.localStorage.getItem("sina-requested-role");
       const storedSchoolId = window.localStorage.getItem("sina-school-directory-id");
-      const metadataRole = data.user.user_metadata?.requested_role;
-      const metadataSchoolId = data.user.user_metadata?.school_directory_id;
+      const metadataRole = data.user.user_metadata?.['requested_role'];
+      const metadataSchoolId = data.user.user_metadata?.['school_directory_id'];
 
       try {
         await finishAuth(

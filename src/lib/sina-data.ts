@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables, Json } from "@/integrations/supabase/types";
 export type Student = Tables<"students">;
 export type Grade = Tables<"grades">;
 export type UserRole = "teacher" | "student" | "admin";
@@ -66,7 +66,7 @@ export async function searchSchoolDirectory(
 ): Promise<SchoolDirectoryEntry[]> {
   const { data, error } = await supabase.rpc("school_directory_search", {
     _search: search,
-    _network_type: networkType ?? null,
+    ...(networkType ? { _network_type: networkType } : {}),
     _municipality: municipality,
   });
   if (error) throw error;
@@ -87,7 +87,7 @@ export async function ensureAccountOnboardingForSchool(
 
 export async function ensureAccountOnboarding(requestedRole?: "student" | "teacher"): Promise<OnboardingState> {
   const { data, error } = await supabase.rpc("ensure_account_onboarding", {
-    _requested_role: requestedRole ?? null,
+    ...(requestedRole ? { _requested_role: requestedRole } : {}),
   });
   if (error) throw error;
   return data as OnboardingState;
@@ -134,7 +134,7 @@ export async function reviewAccountRoleRequest(
   approvedRole: "student" | "teacher",
   note: string,
 ): Promise<boolean> {
-  const { data, error } = await supabase.rpc("admin_review_role_request_v2", {
+  const { data, error } = await supabase.rpc("admin_review_role_request", {
     _request_id: requestId,
     _decision: decision,
     _approved_role: approvedRole,
@@ -262,7 +262,7 @@ export type StudentNotification = {
   title: string;
   body: string;
   link: string | null;
-  metadata: Record<string, unknown>;
+  metadata: Json;
   read_at: string | null;
   created_at: string;
 };
@@ -372,7 +372,7 @@ export type AcademicOptions = {
 
 export type AdminStudentClassroom = { id: string; user_id: string; full_name: string; enrollment: string | null; classroom_id: string | null; classroom_name: string | null; status: string };
 export async function loadAdminStudents(): Promise<AdminStudentClassroom[]> { const {data,error}=await supabase.rpc("admin_list_students"); if(error) throw error; return (data??[]) as AdminStudentClassroom[]; }
-export async function adminAssignStudentToClassroom(studentId:string,classroomId:string,enrollment:string) { const {data,error}=await supabase.rpc("admin_assign_student_to_classroom",{_student_id:studentId,_classroom_id:classroomId,_enrollment:enrollment||null}); if(error) throw error; return data??false; }
+export async function adminAssignStudentToClassroom(studentId:string,classroomId:string,enrollment:string) { const {data,error}=await supabase.rpc("admin_assign_student_to_classroom",{_student_id:studentId,_classroom_id:classroomId,...(enrollment ? {_enrollment:enrollment} : {})}); if(error) throw error; return data??false; }
 export async function adminRemoveStudentFromClassroom(studentId:string) { const {data,error}=await supabase.rpc("admin_remove_student_from_classroom",{_student_id:studentId}); if(error) throw error; return data??false; }
 
 export type AdminTeacherAssignment = { classroom_id: string; classroom_name: string; teacher_id: string; teacher_name: string; teacher_email: string };
@@ -510,13 +510,13 @@ export async function createAssessment(args: {
 }) {
   const { data, error } = await supabase.rpc("teacher_create_assessment", {
     _classroom_id: args.classroomId,
-    _subject_id: args.subjectId,
-    _term_id: args.termId,
+    _subject_id: args.subjectId as string,
+    _term_id: args.termId as string,
     _title: args.title,
     _type: args.type,
     _weight: args.weight,
     _max_score: args.maxScore,
-    _due_at: args.dueAt,
+    _due_at: args.dueAt as string,
   });
   if (error) throw error;
   return data;
@@ -549,7 +549,7 @@ export async function loadTaskSubmissions(taskId: string): Promise<TaskSubmissio
 export async function gradeTaskSubmission(submissionId: string, score: number | null, feedback: string) {
   const { data, error } = await supabase.rpc("teacher_grade_submission", {
     _submission_id: submissionId,
-    _score: score,
+    _score: score as number,
     _feedback: feedback,
   });
   if (error) throw error;
@@ -583,11 +583,11 @@ export async function createTeacherCalendarEvent(args: {
   eventType: string;
 }) {
   const { data, error } = await supabase.rpc("teacher_create_calendar_event", {
-    _classroom_id: args.classroomId,
+    _classroom_id: args.classroomId as string,
     _title: args.title,
     _description: args.description,
     _start_at: args.startAt,
-    _end_at: args.endAt,
+    _end_at: args.endAt as string,
     _event_type: args.eventType,
   });
   if (error) throw error;
@@ -616,7 +616,7 @@ export async function loadAdminAcademicSetup(): Promise<AdminAcademicSetup> {
 }
 
 export async function adminUpsertClassroom(id: string | null, name: string, code: string) {
-  const { data, error } = await supabase.rpc("admin_upsert_classroom", { _id: id, _name: name, _code: code });
+  const { data, error } = await supabase.rpc("admin_upsert_classroom", { _id: id as string, _name: name, _code: code });
   if (error) throw error;
   return data;
 }
@@ -628,17 +628,17 @@ export async function adminArchiveClassroom(id: string) {
 }
 
 export async function adminUpsertSubject(id: string | null, name: string, code: string) {
-  const { data, error } = await supabase.rpc("admin_upsert_subject", { _id: id, _name: name, _code: code });
+  const { data, error } = await supabase.rpc("admin_upsert_subject", { _id: id as string, _name: name, _code: code });
   if (error) throw error;
   return data;
 }
 
 export async function adminUpsertTerm(id: string | null, name: string, startsAt: string | null, endsAt: string | null, isCurrent: boolean) {
   const { data, error } = await supabase.rpc("admin_upsert_term", {
-    _id: id,
+    _id: id as string,
     _name: name,
-    _starts_at: startsAt,
-    _ends_at: endsAt,
+    _starts_at: startsAt as string,
+    _ends_at: endsAt as string,
     _is_current: isCurrent,
   });
   if (error) throw error;

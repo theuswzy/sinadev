@@ -42,7 +42,7 @@ function StudentProfile() {
 
   const currentStudent = student.data;
   const accountName =
-    account.data?.user_metadata?.display_name ||
+    account.data?.user_metadata?.['display_name'] ||
     account.data?.email?.split("@")[0] ||
     "Usuário";
   const roleLabel =
@@ -50,7 +50,7 @@ function StudentProfile() {
     role.data === "teacher" ? "Professor" :
     "Aluno";
   const currentName = currentStudent?.full_name || accountName;
-  const currentAvatar = currentStudent?.avatar_url ?? account.data?.user_metadata?.avatar_url ?? null;
+  const currentAvatar = currentStudent?.avatar_url ?? account.data?.user_metadata?.['avatar_url'] ?? null;
   const displayName = editing ? name : currentName;
   const displayAvatar = editing ? avatar : currentAvatar;
 
@@ -150,7 +150,7 @@ function StudentProfile() {
 
         const { data, error } = await supabase.rpc("student_update_profile", {
           _full_name: trimmedName,
-          _avatar_url: avatar,
+          ...(avatar !== null ? { _avatar_url: avatar } : {}),
         });
 
         if (error) throw error;
