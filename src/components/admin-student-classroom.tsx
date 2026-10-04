@@ -22,6 +22,11 @@ export function AdminStudentClassroom() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 25;
+  const [selected, setSelected] = useState<Record<string, string>>({});
+  const [enrollments, setEnrollments] = useState<Record<string, string>>({});
+  const [selectedSchool, setSelectedSchool] = useState<Record<string, string>>({});
+  const [onlyWithoutClass, setOnlyWithoutClass] = useState(false);
+
   const students = useQuery({
     queryKey: ["admin-students", debouncedSearch, onlyWithoutClass, page],
     queryFn: () => loadAdminStudentsPage(debouncedSearch, onlyWithoutClass, page, pageSize),
@@ -30,11 +35,6 @@ export function AdminStudentClassroom() {
   const schoolLinks = useQuery({ queryKey: ["admin-student-school-links"], queryFn: loadAdminStudentSchoolLinks });
   const institutions = useQuery({ queryKey: ["admin-linkable-institutions"], queryFn: loadAdminLinkableInstitutions });
   const setup = useQuery({ queryKey: ["admin-academic-setup"], queryFn: loadAdminAcademicSetup });
-
-  const [selected, setSelected] = useState<Record<string, string>>({});
-  const [enrollments, setEnrollments] = useState<Record<string, string>>({});
-  const [selectedSchool, setSelectedSchool] = useState<Record<string, string>>({});
-  const [onlyWithoutClass, setOnlyWithoutClass] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
