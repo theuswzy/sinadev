@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { getRole, routeForRole } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/painel")({
@@ -16,9 +17,11 @@ function PanelRedirect() {
   const navigate = useNavigate();
   const account = useQuery({ queryKey: ["my-role"], queryFn: getRole });
 
-  if (account.data) {
-    void navigate({ to: routeForRole(account.data), replace: true });
-  }
+  useEffect(() => {
+    if (account.data) {
+      void navigate({ to: routeForRole(account.data), replace: true });
+    }
+  }, [account.data, navigate]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
