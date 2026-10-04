@@ -475,3 +475,44 @@ $$;
 
 revoke all on function public.teacher_list_institution_students() from public,anon;
 grant execute on function public.teacher_list_institution_students() to authenticated;
+
+
+create or replace function public.teacher_remove_student_from_classroom(_student_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path=''
+as $$
+declare
+  inst uuid;
+begin
+  if not public.has_role(auth.uid(),'teacher'::public.app_role) then
+    raise exception 'Acesso reservado a professores autorizados.';
+  end if;
+
+  inst:=sina_private.current_institution('teacher'::public.app_role);
+
+  update public.students s
+  set classroom_id=null,
+      classroom='',
+      teacher_id=null,
+      updated_at=now()
+  where s.id=_student_id
+    and s.institution_id=inst
+    and exists (
+      select 1
+      from public.classroom_teachers ct
+      where ct.classroom_id=s.classroom_id
+        and ct.user_id=auth.uid()
+    );
+
+  if not found then
+    raise exception 'Aluno não pertence a uma turma deste professor.';
+  end if;
+
+  return true;
+end;
+$$;
+
+revoke all on function public.teacher_remove_student_from_classroom(uuid) from public,anon;
+grant execute on function public.teacher_remove_student_from_classroom(uuid) to authenticated;
