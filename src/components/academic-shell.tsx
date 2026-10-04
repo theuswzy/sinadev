@@ -164,11 +164,13 @@ export function AcademicShell({
           : "SINA";
 
   const accessBlocked = requiredRole && !role.isPending && !role.error && role.data !== requiredRole;
-  const accessMessage = role.error
-    ? role.error instanceof Error ? role.error.message : "Não foi possível validar seu acesso."
-    : accessBlocked
-      ? "Esta área é exclusiva para professores autorizados."
-      : null;
+  const accessMessage = requiredRole
+    ? role.error
+      ? role.error instanceof Error ? role.error.message : "Não foi possível validar seu acesso."
+      : accessBlocked
+        ? "Esta área é exclusiva para professores autorizados."
+        : null
+    : null;
 
   const renderNavItem = (item: ShellLink) => {
     const active = isActive(item);
