@@ -1726,6 +1726,47 @@ export type Database = {
         }
         Returns: string
       }
+      accept_institution_invitation: {
+        Args: { _token: string }
+        Returns: {
+          classroom_id: string | null
+          classroom_name: string | null
+          institution_id: string
+          institution_name: string
+          role: string
+        }[]
+      }
+      admin_create_institution_invitation: {
+        Args: {
+          _classroom_id?: string
+          _email: string
+          _expires_hours?: number
+          _role: string
+        }
+        Returns: {
+          expires_at: string
+          invitation_id: string
+          token: string
+        }[]
+      }
+      admin_list_institution_invitations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          accepted_at: string | null
+          classroom_id: string | null
+          classroom_name: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          revoked_at: string | null
+          role: string
+        }[]
+      }
+      admin_revoke_institution_invitation: {
+        Args: { _id: string }
+        Returns: boolean
+      }
       teacher_create_calendar_event: {
         Args: {
           _classroom_id: string
