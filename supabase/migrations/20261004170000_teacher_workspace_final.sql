@@ -169,6 +169,12 @@ begin
 end;
 $$;
 
+-- Remove legacy overloads whose implementation depended on students.teacher_id.
+-- The canonical functions below use classroom_teachers, so teachers can work
+-- with empty/new classes as well.
+drop function if exists public.teacher_create_task(text,text,text,text,timestamptz);
+drop function if exists public.teacher_create_announcement(text,text,text);
+
 -- Teacher publishing is explicitly scoped to the teacher's active institution
 -- and classroom ownership. This is the academic equivalent of admin CRUD, not
 -- global site administration.
