@@ -13,7 +13,7 @@ import {
   errorText, gradeTaskSubmission, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
   loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
-  loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherGrades,
+  loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherStudentAcademicProfile,
   saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
   teacherRemoveStudentFromClassroom, type AttendanceRow
 } from "@/lib/sina-data";
@@ -139,7 +139,7 @@ function Classes({d}:{d:ReturnType<typeof useData>}){
 function Students({d}:{d:ReturnType<typeof useData>}){
   const [search,setSearch]=useState("");const [busy,setBusy]=useState("");const [targetClass,setTargetClass]=useState<Record<string,string>>({});const [enrollments,setEnrollments]=useState<Record<string,string>>({});const [selectedStudent,setSelectedStudent]=useState<string|null>(null);
   const waiting=useQuery({queryKey:["teacher-new-unassigned"],queryFn:loadTeacherUnassignedStudents,staleTime:15000});
-  const academic=useQuery({queryKey:["teacher-student-academic",selectedStudent],queryFn:()=>loadTeacherGrades(selectedStudent!),enabled:!!selectedStudent,staleTime:10000});
+  const academic=useQuery({queryKey:["teacher-student-academic",selectedStudent],queryFn:()=>loadTeacherStudentAcademicProfile(selectedStudent!),enabled:!!selectedStudent,staleTime:10000});
   const list=(d.students.data??[]).filter(s=>(s.full_name+" "+s.enrollment+" "+s.classroom).toLowerCase().includes(search.toLowerCase()));
   function classFor(id:string){return targetClass[id]??""}
   function enrollmentFor(s:{id:string;enrollment:string|null}){return enrollments[s.id]??s.enrollment??""}
@@ -152,7 +152,7 @@ function Students({d}:{d:ReturnType<typeof useData>}){
       <div className="mt-4 space-y-2">
         {list.map(s=><div key={s.id} className="rounded-xl border border-border p-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div><b>{s.full_name}</b><p className="text-xs text-muted-foreground">{s.enrollment||"Sem matrícula"} · {s.classroom||"Sem turma"} · {s.class_status}</p></div>
+            <div><b>{s.full_name}</b><p className="text-xs text-muted-foreground">{s.enrollment||"Sem matrícula"} · {s.classroom||"Sem turma"} · {s.class_status}</p></div><Button size="sm" variant="outline" onClick={()=>setSelectedStudent(selectedStudent===s.id?null:s.id)}>{selectedStudent===s.id?"Fechar":"Ver perfil acadêmico"}</Button>
             {s.class_status!=="outra_turma"&&<div className="grid gap-2 sm:grid-cols-[minmax(160px,1fr)_160px_auto_auto]">
               <select value={classFor(s.id)} onChange={e=>setTargetClass(v=>({...v,[s.id]:e.target.value}))} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Escolha a turma</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
               <Input value={enrollmentFor(s)} onChange={e=>setEnrollments(v=>({...v,[s.id]:e.target.value}))} placeholder="Matrícula"/>
@@ -160,6 +160,17 @@ function Students({d}:{d:ReturnType<typeof useData>}){
               {s.class_status==="minha_turma"&&<Button variant="outline" disabled={!!busy} onClick={()=>void remove(s.id)}>Remover</Button>}
             </div>}
           </div>
+          {selectedStudent===s.id&&<div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+            {academic.isPending&&<p className="text-sm text-muted-foreground">Carregando perfil acadêmico…</p>}
+            {academic.error&&<div className="text-sm text-destructive">Não foi possível carregar o perfil. <Button size="sm" variant="outline" onClick={()=>void academic.refetch()}>Tentar novamente</Button></div>}
+            {!academic.isPending&&!academic.error&&academic.data&&<div className="space-y-4">
+              <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Perfil acadêmico</p><p className="font-semibold">{academic.data.full_name}</p><p className="text-xs text-muted-foreground">{academic.data.classroom_name||"Sem turma"} · {academic.data.enrollment||"Sem matrícula"}</p></div><Button size="sm" variant="ghost" onClick={()=>setSelectedStudent(null)}>Fechar</Button></div>
+              <div className="grid gap-2 sm:grid-cols-4"><div className="rounded-lg bg-background p-3"><p className="text-xs text-muted-foreground">Notas</p><b>{academic.data.grades.length}</b></div><div className="rounded-lg bg-background p-3"><p className="text-xs text-muted-foreground">Média</p><b>{academic.data.grades.length?(academic.data.grades.reduce((a,g)=>a+g.score,0)/academic.data.grades.length).toFixed(1):"—"}</b></div><div className="rounded-lg bg-background p-3"><p className="text-xs text-muted-foreground">Faltas</p><b>{academic.data.grades.reduce((a,g)=>a+g.absences,0)}</b></div><div className="rounded-lg bg-background p-3"><p className="text-xs text-muted-foreground">Frequência</p><b>{academic.data.attendance.length?Math.round(100*academic.data.attendance.filter(a=>a.status==="present").length/academic.data.attendance.length)+"%":"—"}</b></div></div>
+              <div><p className="mb-2 text-sm font-semibold">Notas</p><div className="overflow-x-auto"><table className="w-full min-w-[520px] text-sm"><thead><tr className="border-b border-border text-left"><th className="p-2">Disciplina</th><th className="p-2">Período</th><th className="p-2">Nota</th><th className="p-2">Faltas</th></tr></thead><tbody>{academic.data.grades.map(g=><tr key={g.id} className="border-b border-border/60"><td className="p-2">{g.subject}</td><td className="p-2">{g.period}º</td><td className="p-2 font-semibold">{g.score.toFixed(1)}</td><td className="p-2">{g.absences}</td></tr>)}</tbody></table></div></div>
+              <div><p className="mb-2 text-sm font-semibold">Avaliações</p><div className="grid gap-2 sm:grid-cols-2">{academic.data.assessments.slice(0,6).map(a=><div key={a.id} className="rounded-lg bg-background p-3"><b>{a.title}</b><p className="text-xs text-muted-foreground">{a.subject_name} · {a.term_name||"Sem período"} · peso {a.weight}</p><p className="mt-1 text-sm">{a.score==null?"Aguardando correção":a.score+" / "+a.max_score}</p>{a.feedback&&<p className="mt-1 text-xs text-muted-foreground">Feedback: {a.feedback}</p>}</div>)}{!academic.data.assessments.length&&<p className="text-sm text-muted-foreground">Nenhuma avaliação encontrada.</p>}</div></div>
+              <div><p className="mb-2 text-sm font-semibold">Atividades</p><div className="grid gap-2 sm:grid-cols-2">{academic.data.tasks.slice(0,6).map(t=><div key={t.id} className="rounded-lg bg-background p-3"><b>{t.title}</b><p className="text-xs text-muted-foreground">{t.subject} · {t.due_at?new Date(t.due_at).toLocaleDateString("pt-BR"):"Sem prazo"}</p><p className="mt-1 text-sm">{t.submission_status==="graded"?"Corrigida":t.submission_status==="submitted"?"Entregue":"Sem entrega"}{t.score!=null?" · nota "+t.score:""}</p>{t.feedback&&<p className="mt-1 text-xs text-muted-foreground">Feedback: {t.feedback}</p>}</div>)}{!academic.data.tasks.length&&<p className="text-sm text-muted-foreground">Nenhuma atividade encontrada.</p>}</div></div>
+            </div>}
+          </div>          </div>
         </div>)}
         {list.length===0&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum aluno encontrado nesta escola.</p>}
       </div>
