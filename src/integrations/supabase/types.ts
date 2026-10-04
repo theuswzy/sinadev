@@ -1308,6 +1308,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_import_academic_csv: {
+        Args: { _rows: Json }
+        Returns: Json
+      }
       admin_list_student_school_links: {
         Args: never
         Returns: {
