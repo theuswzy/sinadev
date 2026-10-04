@@ -40,7 +40,8 @@ export async function getRole(): Promise<UserRole> {
   // one possible institution; otherwise the teacher/admin RPCs have no tenant
   // context and the academic area can appear empty or fail.
   if (activeInstitutions.length === 0 && (institutions ?? []).length === 1) {
-    const institutionId = institutions![0].id;
+    const institutionId = institutions?.[0]?.id;
+    if (!institutionId) throw new Error("Instituição não encontrada.");
     const { error: contextError } = await supabase.rpc("account_set_institution", {
       _institution_id: institutionId,
     });
@@ -734,10 +735,10 @@ export async function updateTeacherTask(args: {
     _title: args.title,
     _description: args.description,
     _due_at: args.dueAt as string,
-    _attachment_path: args.attachmentPath ?? null,
-    _attachment_name: args.attachmentName ?? null,
-    _attachment_size: args.attachmentSize ?? null,
-    _attachment_type: args.attachmentType ?? null,
+    ...(args.attachmentPath ? { _attachment_path: args.attachmentPath } : {}),
+    ...(args.attachmentName ? { _attachment_name: args.attachmentName } : {}),
+    ...(args.attachmentSize != null ? { _attachment_size: args.attachmentSize } : {}),
+    ...(args.attachmentType ? { _attachment_type: args.attachmentType } : {}),
   });
   if (error) throw error;
   return data;
