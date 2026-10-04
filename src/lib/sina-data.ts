@@ -252,10 +252,13 @@ export async function loadMyStudent(): Promise<Student | null> {
   return student;
 }
 export async function loadGrades(studentId: string): Promise<Grade[]> {
-  const role = await getRole();
-  const { data, error } = role === "teacher"
-    ? await supabase.rpc("teacher_list_grades", { _student_id: studentId })
-    : await supabase.rpc("student_list_grades");
+  const { data, error } = await supabase.rpc("student_list_grades");
+  if (error) throw error;
+  return (data ?? []) as Grade[];
+}
+
+export async function loadTeacherGrades(studentId: string): Promise<Grade[]> {
+  const { data, error } = await supabase.rpc("teacher_list_grades", { _student_id: studentId });
   if (error) throw error;
   return (data ?? []) as Grade[];
 }
