@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, CalendarRange, Layers3, Save, Archive, Users, FileUp } from "lucide-react";
+import { BookOpen, CalendarRange, Layers3, Save, Archive, Users, FileUp, Mail, Copy, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   adminAssignTeacherToClassroom,
   adminUnassignTeacherFromClassroom,
   adminImportAcademicCsv,
+  createAdminInstitutionInvitation, loadAdminInstitutionInvitations, revokeAdminInstitutionInvitation,
 } from "@/lib/sina-data";
 
 
@@ -56,6 +57,7 @@ export function AdminAcademicSetup() {
   const setup = useQuery({ queryKey: ["admin-academic-setup"], queryFn: loadAdminAcademicSetup });
   const teachers = useQuery({ queryKey: ["admin-institution-teachers"], queryFn: loadAdminInstitutionTeachers });
   const assignments = useQuery({ queryKey: ["admin-teacher-classroom-assignments"], queryFn: loadAdminTeacherAssignments });
+  const invitations = useQuery({ queryKey: ["admin-institution-invitations"], queryFn: loadAdminInstitutionInvitations });
   const [classroomName, setClassroomName] = useState("");
   const [classroomCode, setClassroomCode] = useState("");
   const [subjectName, setSubjectName] = useState("");
@@ -67,12 +69,18 @@ export function AdminAcademicSetup() {
   const [teacherId, setTeacherId] = useState("");
   const [teacherClassroomId, setTeacherClassroomId] = useState("");
   const [importing, setImporting] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"teacher" | "student">("teacher");
+  const [inviteClassroom, setInviteClassroom] = useState("");
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [generatedToken, setGeneratedToken] = useState<string | null>(null);
 
   async function refresh() {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["admin-academic-setup"] }),
       qc.invalidateQueries({ queryKey: ["admin-teacher-classroom-assignments"] }),
       qc.invalidateQueries({ queryKey: ["admin-institution-teachers"] }),
+      qc.invalidateQueries({ queryKey: ["admin-institution-invitations"] }),
     ]);
   }
   async function assignTeacher() {
@@ -145,6 +153,29 @@ export function AdminAcademicSetup() {
             <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><BookOpen className="size-4 text-primary" /><p className="font-semibold">Disciplinas</p></div><div className="mt-4 space-y-2"><Input placeholder="Nome da disciplina" value={subjectName} onChange={e => setSubjectName(e.target.value)} /><Input placeholder="Código (opcional)" value={subjectCode} onChange={e => setSubjectCode(e.target.value)} /><Button onClick={() => void saveSubject()} disabled={!subjectName.trim()}><Save className="mr-2 size-4" />Criar disciplina</Button></div><div className="mt-4 space-y-2">{setup.data?.subjects.map(s => <div key={s.id} className="rounded-xl bg-secondary/50 p-3 text-sm"><p className="font-medium">{s.name}</p><p className="text-xs text-muted-foreground">{s.code || "Sem código"} · {s.status === "active" ? "Ativa" : "Inativa"}</p></div>)}</div></div>
 
             <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><CalendarRange className="size-4 text-primary" /><p className="font-semibold">Períodos</p></div><div className="mt-4 space-y-2"><Input placeholder="Ex.: 1º Bimestre" value={termName} onChange={e => setTermName(e.target.value)} /><div className="grid grid-cols-2 gap-2"><Input type="date" value={termStart} onChange={e => setTermStart(e.target.value)} /><Input type="date" value={termEnd} onChange={e => setTermEnd(e.target.value)} /></div><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={termCurrent} onChange={e => setTermCurrent(e.target.checked)} /> Marcar como período atual</label><Button onClick={() => void saveTerm()} disabled={!termName.trim()}><Save className="mr-2 size-4" />Criar período</Button></div><div className="mt-4 space-y-2">{setup.data?.terms.map(t => <div key={t.id} className="rounded-xl bg-secondary/50 p-3 text-sm"><div className="flex items-center justify-between gap-2"><p className="font-medium">{t.name}</p>{t.is_current && <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">Atual</span>}</div><p className="text-xs text-muted-foreground">{t.starts_at || "Sem início"} · {t.ends_at || "Sem fim"}</p></div>)}</div></div>
+          </div>
+
+          <div className="rounded-2xl border border-border p-4">
+            <div className="flex items-center gap-2"><Mail className="size-4 text-primary" /><p className="font-semibold">Convites institucionais</p></div>
+            <p className="mt-1 text-sm text-muted-foreground">Convide professores ou alunos para a instituição. O convite expira em 72 horas e fica limitado à escola ativa.</p>
+            <div className="mt-4 grid gap-2 md:grid-cols-[1.5fr_180px_1fr_auto]">
+              <Input value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="E-mail do convidado" type="email" />
+              <select value={inviteRole} onChange={e=>setInviteRole(e.target.value as "teacher"|"student")} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="teacher">Professor</option><option value="student">Aluno</option></select>
+              <select value={inviteClassroom} onChange={e=>setInviteClassroom(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Sem turma específica</option>{(setup.data?.classrooms??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
+              <Button disabled={inviteBusy||!inviteEmail.trim()} onClick={async()=>{setInviteBusy(true);try{const result=await createAdminInstitutionInvitation(inviteEmail.trim(),inviteRole,inviteClassroom||null,72);setGeneratedToken(result?.token??null);setInviteEmail("");await invitations.refetch();toast.success("Convite criado. Copie o token para enviar ao convidado.");}catch(error){toast.error(errorText(error));}finally{setInviteBusy(false);}}}>{inviteBusy?"Criando…":"Criar convite"}</Button>
+            </div>
+            {generatedToken&&<div className="mt-4 rounded-xl border border-primary/30 bg-primary/5 p-3">
+              <p className="text-sm font-semibold">Token do convite</p>
+              <p className="mt-1 break-all font-mono text-xs">{generatedToken}</p>
+              <div className="mt-2 flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={()=>void navigator.clipboard.writeText(generatedToken).then(()=>toast.success("Token copiado."))}><Copy className="mr-2 size-4"/>Copiar token</Button><Button size="sm" variant="ghost" onClick={()=>setGeneratedToken(null)}>Fechar</Button></div>
+            </div>}
+            <div className="mt-4 space-y-2">
+              {(invitations.data??[]).map(inv=><div key={inv.id} className="flex flex-col gap-2 rounded-xl bg-secondary/50 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <div><p className="font-medium">{inv.email} · {inv.role==="teacher"?"Professor":"Aluno"}</p><p className="text-xs text-muted-foreground">{inv.classroom_name||"Sem turma"} · {inv.accepted_at?"Aceito":inv.revoked_at?"Revogado":new Date(inv.expires_at)<new Date()?"Expirado":"Pendente"}</p></div>
+                {!inv.accepted_at&&!inv.revoked_at&&new Date(inv.expires_at)>=new Date()&&<Button size="sm" variant="ghost" onClick={async()=>{try{await revokeAdminInstitutionInvitation(inv.id);await invitations.refetch();toast.success("Convite revogado.");}catch(error){toast.error(errorText(error));}}}><X className="mr-1 size-4"/>Revogar</Button>}
+              </div>)}
+              {!invitations.isPending&&!invitations.data?.length&&<p className="text-sm text-muted-foreground">Nenhum convite criado.</p>}
+            </div>
           </div>
 
           <div className="rounded-2xl border border-border p-4">
