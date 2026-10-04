@@ -59,6 +59,11 @@ function AdminArea() {
   const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [accountSearch, setAccountSearch] = useState("");
+  const [accountRoleFilter, setAccountRoleFilter] = useState<"all" | "student" | "teacher">("all");
+  const [accountStatusFilter, setAccountStatusFilter] = useState<"all" | "active" | "pending" | "suspended">("all");
+  const adminStudents = useQuery({ queryKey: ["admin-students"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_students"); if (error) throw error; return data ?? []; }, enabled: role.data === true });
+  const adminTeachers = useQuery({ queryKey: ["admin-teachers"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_teacher_school_links"); if (error) throw error; return data ?? []; }, enabled: role.data === true });
+  const academicSetup = useQuery({ queryKey: ["admin-academic-setup"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_academic_setup"); if (error) throw error; return data ?? { classrooms: [], subjects: [], terms: [] }; }, enabled: role.data === true });
   const roleRequests = useQuery({
     queryKey: ["admin-role-requests"],
     queryFn: loadAccountRoleRequests,
@@ -189,8 +194,19 @@ function AdminArea() {
     await queryClient.invalidateQueries({ queryKey: ["admin-accounts"] });
   }
 
-  const filteredAccounts = useMemo(() => accounts.data?.filter(account => `${account.display_name} ${account.email}`.toLowerCase().includes(accountSearch.toLowerCase())) ?? [], [accounts.data, accountSearch]);
+  const filteredAccounts = useMemo(() => accounts.data?.filter(account => {
+    const matchesText = `${account.display_name} ${account.email}`.toLowerCase().includes(accountSearch.toLowerCase());
+    const matchesRole = accountRoleFilter === "all" || account.academic_role === accountRoleFilter;
+    const matchesStatus = accountStatusFilter === "all" || account.account_status === accountStatusFilter;
+    return matchesText && matchesRole && matchesStatus;
+  }) ?? [], [accounts.data, accountSearch, accountRoleFilter, accountStatusFilter]);
   const teacherCount = accounts.data?.filter(account => account.academic_role === "teacher").length ?? 0;
+  const studentCount = adminStudents.data?.length ?? 0;
+  const unassignedStudents = adminStudents.data?.filter(student => !student.institution_id || !student.classroom_id).length ?? 0;
+  const activeTeacherLinks = adminTeachers.data?.filter(teacher => teacher.institution_id).length ?? 0;
+  const classroomCount = academicSetup.data?.classrooms?.length ?? 0;
+  const subjectCount = academicSetup.data?.subjects?.length ?? 0;
+  const currentTerm = academicSetup.data?.terms?.find(term => term.is_current)?.name ?? "Nenhum período atual";
 
   async function logout() {
     await supabase.auth.signOut();
@@ -307,31 +323,27 @@ function AdminArea() {
           </div>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="sina-card sina-card-hover p-5">
-            <Users className="size-5 text-primary" />
-            <p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Contas</p>
-            <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{accounts.data?.length ?? 0}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Usuários cadastrados</p>
-          </div>
-          <div className="sina-card sina-card-hover p-5">
-            <ShieldCheck className="size-5 text-primary" />
-            <p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Professores</p>
-            <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{teacherCount}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Contas com função docente</p>
-          </div>
-          <div className="sina-card sina-card-hover p-5">
-            <UserRoundCheck className="size-5 text-primary" />
-            <p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Aprovações</p>
-            <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{roleRequests.data?.filter(item => item.status === "pending").length ?? 0}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Solicitações aguardando análise</p>
-          </div>
-          <div className="sina-card sina-card-hover p-5">
-            <LayoutDashboard className="size-5 text-primary" />
-            <p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Configuração</p>
-            <p className="mt-1 font-semibold">Estrutura acadêmica</p>
-            <p className="mt-1 text-xs text-muted-foreground">Turmas, disciplinas e períodos</p>
-          </div>
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            ["Contas", accounts.data?.length ?? 0, "Usuários cadastrados", Users],
+            ["Alunos", studentCount, unassignedStudents ? `${unassignedStudents} sem vínculo completo` : "Com vínculo acadêmico", GraduationCap],
+            ["Professores", teacherCount, `${activeTeacherLinks} com instituição`, ShieldCheck],
+            ["Aprovações", roleRequests.data?.filter(item => item.status === "pending").length ?? 0, "Solicitações aguardando análise", UserRoundCheck],
+            ["Turmas", classroomCount, "Estrutura da instituição ativa", LayoutDashboard],
+            ["Disciplinas", subjectCount, currentTerm, BookOpen],
+          ].map(([label, value, caption, Icon]) => (
+            <div key={String(label)} className="sina-card sina-card-hover p-5">
+              <Icon className="size-5 text-primary" />
+              <p className="mt-3 text-xs font-bold uppercase text-muted-foreground">{label}</p>
+              <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="rounded-2xl border border-primary/15 bg-primary/5 p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-primary">Leitura dos indicadores</p>
+          <p className="mt-1 text-sm text-muted-foreground">Os números são contagens dos registros da instituição ativa. Não representam estimativas ou dados demonstrativos.</p>
         </section>
 
         <section aria-label="Atalhos administrativos" className="rounded-2xl border border-primary/15 bg-primary/5 p-4 sm:p-5">
@@ -408,8 +420,13 @@ function AdminArea() {
 
         <section id="autorizacao" className="sina-card sina-card-hover scroll-mt-28 p-6">
           <div className="flex items-start gap-3"><Users className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Funções acadêmicas</h2><p className="mt-1 text-sm text-muted-foreground">Escolha aluno ou professor para cada conta cadastrada.</p></div></div>
-          <div className="relative mt-5 max-w-md"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar contas" placeholder="Buscar por nome ou e-mail" className="pl-9" value={accountSearch} onChange={(e) => setAccountSearch(e.target.value)} /></div>
-          {message && <p role="status" className="mt-4 text-sm">{message}</p>}
+          <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_180px]">
+            <div className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar contas" placeholder="Buscar por nome ou e-mail" className="pl-9" value={accountSearch} onChange={(e) => setAccountSearch(e.target.value)} /></div>
+            <select aria-label="Filtrar por função" value={accountRoleFilter} onChange={e => setAccountRoleFilter(e.target.value as typeof accountRoleFilter)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="all">Todas as funções</option><option value="student">Alunos</option><option value="teacher">Professores</option></select>
+            <select aria-label="Filtrar por status" value={accountStatusFilter} onChange={e => setAccountStatusFilter(e.target.value as typeof accountStatusFilter)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="all">Todos os status</option><option value="active">Ativas</option><option value="pending">Pendentes</option><option value="suspended">Suspensas</option></select>
+          </div>
+          {message && <p role="status" className="mt-4 rounded-xl border border-primary/15 bg-primary/5 p-3 text-sm">{message}</p>}
+          {accounts.data && <p className="mt-3 text-xs text-muted-foreground">Exibindo {filteredAccounts.length} de {accounts.data.length} contas.</p>}
           {accounts.isPending ? <p className="mt-5 text-sm text-muted-foreground">Carregando contas…</p> : accounts.error ? <p role="alert" className="mt-5 text-sm text-destructive">{errorText(accounts.error)}</p> : filteredAccounts.length ? (
             <div className="mt-5 divide-y divide-border border-t border-border">
               {filteredAccounts.map(account => (
