@@ -2107,6 +2107,20 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      teacher_list_unassigned_classrooms: {
+        Args: Record<string, never>
+        Returns: {
+          id: string
+          name: string
+          code: string | null
+          status: string
+          student_count: number
+        }[]
+      }
+      teacher_claim_classroom: {
+        Args: { _classroom_id: string }
+        Returns: boolean
+      }
       teacher_list_unassigned_students: {
         Args: never
         Returns: {
