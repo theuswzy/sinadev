@@ -325,15 +325,15 @@ function AdminArea() {
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            ["Contas", accounts.data?.length ?? 0, "Usuários cadastrados", Users],
-            ["Alunos", studentCount, unassignedStudents ? `${unassignedStudents} sem vínculo completo` : "Com vínculo acadêmico", GraduationCap],
-            ["Professores", teacherCount, `${activeTeacherLinks} com instituição`, ShieldCheck],
-            ["Aprovações", roleRequests.data?.filter(item => item.status === "pending").length ?? 0, "Solicitações aguardando análise", UserRoundCheck],
-            ["Turmas", classroomCount, "Estrutura da instituição ativa", LayoutDashboard],
-            ["Disciplinas", subjectCount, currentTerm, BookOpen],
-          ].map(([label, value, caption, Icon]) => (
-            <div key={String(label)} className="sina-card sina-card-hover p-5">
+          {([
+            { label: "Contas", value: accounts.data?.length ?? 0, caption: "Usuários cadastrados", Icon: Users },
+            { label: "Alunos", value: studentCount, caption: unassignedStudents ? `${unassignedStudents} sem vínculo completo` : "Com vínculo acadêmico", Icon: GraduationCap },
+            { label: "Professores", value: teacherCount, caption: `${activeTeacherLinks} com instituição`, Icon: ShieldCheck },
+            { label: "Aprovações", value: roleRequests.data?.filter(item => item.status === "pending").length ?? 0, caption: "Solicitações aguardando análise", Icon: UserRoundCheck },
+            { label: "Turmas", value: classroomCount, caption: "Estrutura da instituição ativa", Icon: LayoutDashboard },
+            { label: "Disciplinas", value: subjectCount, caption: currentTerm, Icon: BookOpen },
+          ] as Array<{ label: string; value: number; caption: string; Icon: LucideIcon }>).map(({ label, value, caption, Icon }) => (
+            <div key={label} className="sina-card sina-card-hover p-5">
               <Icon className="size-5 text-primary" />
               <p className="mt-3 text-xs font-bold uppercase text-muted-foreground">{label}</p>
               <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p>
