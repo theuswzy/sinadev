@@ -136,3 +136,34 @@ $$;
 
 revoke all on function public.admin_list_linkable_institutions() from public,anon;
 grant execute on function public.admin_list_linkable_institutions() to authenticated;
+
+
+create or replace function public.admin_list_linkable_institutions()
+returns table(
+  id uuid,
+  name text,
+  slug text,
+  status text,
+  school_directory_id uuid
+)
+language sql
+stable
+security definer
+set search_path=''
+as $$
+  select i.id,i.name,i.slug,i.status,i.school_directory_id
+  from public.institutions i
+  where i.status='active'
+    and exists (
+      select 1
+      from public.institution_memberships im
+      where im.user_id=auth.uid()
+        and im.institution_id=i.id
+        and im.role='admin'::public.app_role
+        and im.status='active'
+    )
+  order by i.name;
+$$;
+
+revoke all on function public.admin_list_linkable_institutions() from public,anon;
+grant execute on function public.admin_list_linkable_institutions() to authenticated;
