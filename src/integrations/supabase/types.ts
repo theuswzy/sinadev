@@ -1713,6 +1713,76 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      teacher_create_academic_material: {
+        Args: {
+          _classroom_id: string
+          _description: string
+          _file_name: string
+          _file_path: string
+          _file_size: number
+          _file_type: string
+          _subject_id: string
+          _term_id: string
+          _title: string
+        }
+        Returns: {
+          id: string
+          institution_id: string
+          classroom_id: string
+          subject_id: string | null
+          term_id: string | null
+          created_by: string
+          title: string
+          description: string
+          file_path: string
+          file_name: string
+          file_size: number
+          file_type: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+      }
+      teacher_delete_academic_material: { Args: { _id: string }; Returns: boolean }
+      teacher_list_academic_materials: {
+        Args: never
+        Returns: {
+          id: string
+          classroom_id: string
+          classroom_name: string
+          subject_id: string | null
+          subject_name: string | null
+          term_id: string | null
+          term_name: string | null
+          title: string
+          description: string
+          file_path: string
+          file_name: string
+          file_size: number
+          file_type: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      student_list_academic_materials: {
+        Args: never
+        Returns: {
+          id: string
+          classroom_id: string
+          classroom_name: string
+          subject_id: string | null
+          subject_name: string | null
+          term_id: string | null
+          term_name: string | null
+          title: string
+          description: string
+          file_path: string
+          file_name: string
+          file_size: number
+          file_type: string
+          created_at: string
+        }[]
+      }
       teacher_create_assessment: {
         Args: {
           _classroom_id: string
