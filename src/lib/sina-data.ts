@@ -826,6 +826,50 @@ export type TeacherClassReport = {
   assessment_count: number;
 };
 
+export async function createTeacherTask(args: {
+  classroom: string;
+  subject: string;
+  title: string;
+  description: string;
+  dueAt?: string | null;
+}) {
+  const { data, error } = await supabase.rpc("teacher_create_task", {
+    _classroom: args.classroom,
+    _subject: args.subject,
+    _title: args.title,
+    _description: args.description,
+    ...(args.dueAt ? { _due_at: args.dueAt } : {}),
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function createTeacherAnnouncement(args: {
+  classroom: string;
+  title: string;
+  content: string;
+}) {
+  const { data, error } = await supabase.rpc("teacher_create_announcement", {
+    _classroom: args.classroom,
+    _title: args.title,
+    _content: args.content,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function loadTeacherTasks(): Promise<TeacherTask[]> {
+  const { data, error } = await supabase.rpc("teacher_list_tasks");
+  if (error) throw error;
+  return (data ?? []) as TeacherTask[];
+}
+
+export async function loadTeacherAnnouncements(): Promise<TeacherAnnouncement[]> {
+  const { data, error } = await supabase.rpc("teacher_list_announcements");
+  if (error) throw error;
+  return (data ?? []) as TeacherAnnouncement[];
+}
+
 export async function loadTeacherClassReport(classroomId: string): Promise<TeacherClassReport[]> {
   const { data, error } = await supabase.rpc("teacher_get_class_report", { _classroom_id: classroomId });
   if (error) throw error;
