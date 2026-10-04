@@ -14,3 +14,4 @@
 - Keep academic records in Lovable Cloud with separate user_roles and row-level access; students must only see their own record and teachers only their assigned records.
 - New accounts default to student; teacher access is granted administratively, never by selecting a role in the browser, to prevent self-promotion.
 - Academic roles are mutually exclusive and assigned by an administrator through a checked database function; admin roles are never editable from the role selector, preventing self-promotion.
+- Include the connected Cloud project's public URL and publishable key as build-time fallbacks in Vite; deployment builds may omit VITE_* variables, and browser auth must still initialize.
