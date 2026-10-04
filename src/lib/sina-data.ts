@@ -457,6 +457,32 @@ export async function adminLinkStudentToInstitution(studentId: string, instituti
   return data ?? false;
 }
 
+export type TeacherUnassignedStudent = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  enrollment: string | null;
+  institution_id: string | null;
+  institution_name: string | null;
+  classroom_id: string | null;
+  classroom_name: string | null;
+  status: "sem_escola";
+};
+
+export async function loadTeacherUnassignedStudents(): Promise<TeacherUnassignedStudent[]> {
+  const { data, error } = await supabase.rpc("teacher_list_unassigned_students");
+  if (error) throw error;
+  return (data ?? []) as TeacherUnassignedStudent[];
+}
+
+export async function teacherLinkStudentToSchool(studentId: string) {
+  const { data, error } = await supabase.rpc("teacher_link_student_to_school", {
+    _student_id: studentId,
+  });
+  if (error) throw error;
+  return data ?? false;
+}
+
 export type AdminLinkableInstitution = {
   id: string;
   name: string;
