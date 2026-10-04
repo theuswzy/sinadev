@@ -73,7 +73,7 @@ function StudentDashboard() {
         <div className="sina-card p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Agora</p><h2 className="mt-1 text-lg font-semibold">O que precisa da sua atenção</h2></div><Link to="/aluno/tarefas" className="text-sm font-semibold text-primary">Ver tudo</Link></div>
           <div className="mt-4 space-y-2">
-            {pending.slice(0,5).map(task => <Link key={task.id} to="/aluno/tarefas" className="flex items-center justify-between gap-4 rounded-xl border border-border p-4 hover:bg-muted/50"><div><p className="font-medium">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject} · {task.due_at ? new Date(task.due_at).toLocaleDateString("pt-BR") : "Sem prazo"}</p></div><ArrowRight className="size-4 text-muted-foreground"/></Link>)}
+            {pending.slice(0,5).map(task => <Link key={task.id} to="/aluno/tarefas" className="flex items-center justify-between gap-4 rounded-xl border border-border p-4 hover:bg-muted/50"><div><p className="font-medium">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject} · {task.due_at ? new Date(task.due_at).toLocaleDateString("pt-BR") : "Sem prazo"}{task.attachment_name ? " · 📎 material anexado" : ""}</p></div><ArrowRight className="size-4 text-muted-foreground"/></Link>)}
             {!pending.length && <div className="rounded-xl bg-secondary/50 p-5 text-sm text-muted-foreground">Você não tem tarefas pendentes. 🎉</div>}
           </div>
         </div>
