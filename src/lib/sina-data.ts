@@ -197,6 +197,28 @@ export async function loadTeacherInstitutionStudents(): Promise<TeacherInstituti
   return (data ?? []) as TeacherInstitutionStudent[];
 }
 
+export async function loadTeacherInstitutionStudentsPage(
+  search = "",
+  classStatus = "",
+  page = 1,
+  pageSize = 25,
+): Promise<PaginatedResult<TeacherInstitutionStudent>> {
+  const { data, error } = await supabase.rpc("teacher_list_institution_students_page", {
+    _search: search,
+    _class_status: classStatus,
+    _page: page,
+    _page_size: pageSize,
+  });
+  if (error) throw error;
+  const result = (data ?? {}) as Partial<PaginatedResult<TeacherInstitutionStudent>>;
+  return {
+    items: Array.isArray(result.items) ? result.items as TeacherInstitutionStudent[] : [],
+    total: Number(result.total ?? 0),
+    page: Number(result.page ?? page),
+    page_size: Number(result.page_size ?? pageSize),
+  };
+}
+
 export async function teacherRemoveStudentFromClassroom(studentId: string) {
   const { data, error } = await supabase.rpc("teacher_remove_student_from_classroom", {
     _student_id: studentId,
@@ -464,7 +486,29 @@ export type AcademicOptions = {
 };
 
 export type AdminStudentClassroom = { id: string; user_id: string; full_name: string; enrollment: string | null; classroom_id: string | null; classroom_name: string | null; status: string };
-export async function loadAdminStudents(): Promise<AdminStudentClassroom[]> { const {data,error}=await supabase.rpc("admin_list_students"); if(error) throw error; return (data??[]) as AdminStudentClassroom[]; }
+export type PaginatedResult<T> = { items: T[]; total: number; page: number; page_size: number };
+
+export async function loadAdminStudentsPage(
+  search = "",
+  onlyWithoutClass = false,
+  page = 1,
+  pageSize = 25,
+): Promise<PaginatedResult<AdminStudentClassroom>> {
+  const { data, error } = await supabase.rpc("admin_list_students_page", {
+    _search: search,
+    _only_without_class: onlyWithoutClass,
+    _page: page,
+    _page_size: pageSize,
+  });
+  if (error) throw error;
+  const result = (data ?? {}) as Partial<PaginatedResult<AdminStudentClassroom>>;
+  return {
+    items: Array.isArray(result.items) ? result.items as AdminStudentClassroom[] : [],
+    total: Number(result.total ?? 0),
+    page: Number(result.page ?? page),
+    page_size: Number(result.page_size ?? pageSize),
+  };
+}
 export async function adminAssignStudentToClassroom(studentId:string,classroomId:string,enrollment:string) { const {data,error}=await supabase.rpc("admin_assign_student_to_classroom",{_student_id:studentId,_classroom_id:classroomId,...(enrollment ? {_enrollment:enrollment} : {})}); if(error) throw error; return data??false; }
 export async function adminRemoveStudentFromClassroom(studentId:string) { const {data,error}=await supabase.rpc("admin_remove_student_from_classroom",{_student_id:studentId}); if(error) throw error; return data??false; }
 
