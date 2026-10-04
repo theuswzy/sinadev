@@ -36,7 +36,7 @@ function Field({label,children}:{label:string;children:ReactNode}){return <label
 
 function useData(section: Section){
   const qc=useQueryClient();
-  const needsClasses = section !== "inicio" || section === "inicio";
+  const needsClasses = true;
   const needsStudents = section==="inicio" || section==="alunos" || section==="notas" || section==="frequencia";
   const needsSubjects = section==="inicio" || section==="disciplinas" || section==="notas" || section==="atividades";
   const needsAssignments = section==="disciplinas";
