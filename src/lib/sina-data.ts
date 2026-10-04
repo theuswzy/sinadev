@@ -711,6 +711,7 @@ export async function gradeTaskSubmission(submissionId: string, score: number | 
 
 export async function updateTeacherTask(args: {
   id: string; classroom: string; subject: string; title: string; description: string; dueAt: string | null;
+  attachmentPath?: string | null; attachmentName?: string | null; attachmentSize?: number | null; attachmentType?: string | null;
 }) {
   const { data, error } = await supabase.rpc("teacher_update_task", {
     _id: args.id,
@@ -719,6 +720,10 @@ export async function updateTeacherTask(args: {
     _title: args.title,
     _description: args.description,
     _due_at: args.dueAt as string,
+    _attachment_path: args.attachmentPath ?? null,
+    _attachment_name: args.attachmentName ?? null,
+    _attachment_size: args.attachmentSize ?? null,
+    _attachment_type: args.attachmentType ?? null,
   });
   if (error) throw error;
   return data;
@@ -732,12 +737,17 @@ export async function deleteTeacherTask(id: string) {
 
 export async function updateTeacherAnnouncement(args: {
   id: string; classroom: string; title: string; content: string;
+  attachmentPath?: string | null; attachmentName?: string | null; attachmentSize?: number | null; attachmentType?: string | null;
 }) {
   const { data, error } = await supabase.rpc("teacher_update_announcement", {
     _id: args.id,
     _classroom: args.classroom,
     _title: args.title,
     _content: args.content,
+    _attachment_path: args.attachmentPath ?? null,
+    _attachment_name: args.attachmentName ?? null,
+    _attachment_size: args.attachmentSize ?? null,
+    _attachment_type: args.attachmentType ?? null,
   });
   if (error) throw error;
   return data;
