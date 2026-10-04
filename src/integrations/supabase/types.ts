@@ -1220,6 +1220,14 @@ export type Database = {
         Args: { _name: string; _school_directory_id?: string; _slug: string }
         Returns: string
       }
+      admin_link_student_to_institution: {
+        Args: { _institution_id: string; _student_id: string }
+        Returns: boolean
+      }
+      admin_link_teacher_to_institution: {
+        Args: { _institution_id: string; _teacher_id: string }
+        Returns: boolean
+      }
       admin_list_academic_setup: { Args: never; Returns: Json }
       admin_list_accounts: {
         Args: never
@@ -1251,22 +1259,22 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      admin_list_linkable_institutions: {
-        Args: never
-        Returns: {
-          id: string
-          name: string
-          school_directory_id: string | null
-          slug: string
-          status: string
-        }[]
-      }
       admin_list_institution_teachers: {
         Args: never
         Returns: {
           display_name: string
           email: string
           user_id: string
+        }[]
+      }
+      admin_list_linkable_institutions: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+          school_directory_id: string
+          slug: string
+          status: string
         }[]
       }
       admin_list_role_requests: {
@@ -1303,15 +1311,15 @@ export type Database = {
       admin_list_student_school_links: {
         Args: never
         Returns: {
-          classroom_id: string | null
-          classroom_name: string | null
-          enrollment: string | null
+          classroom_id: string
+          classroom_name: string
+          enrollment: string
           full_name: string
           id: string
-          institution_id: string | null
-          institution_name: string | null
+          institution_id: string
+          institution_name: string
           status: string
-          user_id: string | null
+          user_id: string
         }[]
       }
       admin_list_students: {
@@ -1336,17 +1344,13 @@ export type Database = {
           teacher_name: string
         }[]
       }
-      admin_link_teacher_to_institution: {
-        Args: { _institution_id: string; _teacher_id: string }
-        Returns: boolean
-      }
       admin_list_teacher_school_links: {
         Args: never
         Returns: {
           display_name: string
           email: string
-          institution_id: string | null
-          institution_name: string | null
+          institution_id: string
+          institution_name: string
           school_count: number
           user_id: string
         }[]
@@ -1362,10 +1366,6 @@ export type Database = {
       }
       admin_remove_student_from_classroom: {
         Args: { _student_id: string }
-        Returns: boolean
-      }
-      admin_link_student_to_institution: {
-        Args: { _institution_id: string; _student_id: string }
         Returns: boolean
       }
       admin_review_role_request: {
@@ -1823,7 +1823,11 @@ export type Database = {
         }
       }
       teacher_enroll_student_in_classroom: {
-        Args: { _classroom_id: string; _enrollment: string; _student_id: string }
+        Args: {
+          _classroom_id: string
+          _enrollment: string
+          _student_id: string
+        }
         Returns: boolean
       }
       teacher_get_attendance: {
@@ -1854,14 +1858,26 @@ export type Database = {
       teacher_link_roster_student: {
         Args: { _classroom: string; _enrollment: string; _student_id: string }
         Returns: {
-          attendance: number
+          attendance: number | null
+          avatar_url: string | null
+          claim_code: string
           classroom: string
-          classroom_id: string
+          classroom_id: string | null
+          created_at: string
           enrollment: string
           full_name: string
           id: string
-          teacher_id: string
+          institution_id: string | null
+          teacher_id: string | null
+          updated_at: string
+          user_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "students"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       teacher_link_student: {
         Args: { _classroom: string; _enrollment: string; _student_id: string }
@@ -1981,14 +1997,14 @@ export type Database = {
       teacher_list_institution_students: {
         Args: never
         Returns: {
-          attendance: number | null
+          attendance: number
           class_status: string
           classroom: string
-          classroom_id: string | null
+          classroom_id: string
           enrollment: string
           full_name: string
           id: string
-          teacher_id: string | null
+          teacher_id: string
         }[]
       }
       teacher_list_roster: {
@@ -2026,20 +2042,6 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
-      }
-      teacher_list_unassigned_students: {
-        Args: never
-        Returns: {
-          classroom_id: string | null
-          classroom_name: string | null
-          enrollment: string
-          full_name: string
-          id: string
-          institution_id: string | null
-          institution_name: string | null
-          status: string
-          user_id: string | null
-        }[]
       }
       teacher_list_subject_assignments: {
         Args: never
@@ -2104,6 +2106,20 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      teacher_list_unassigned_students: {
+        Args: never
+        Returns: {
+          classroom_id: string
+          classroom_name: string
+          enrollment: string
+          full_name: string
+          id: string
+          institution_id: string
+          institution_name: string
+          status: string
+          user_id: string
+        }[]
       }
       teacher_remove_student_from_classroom: {
         Args: { _student_id: string }

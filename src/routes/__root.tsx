@@ -86,6 +86,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Sistema Digital para Acompanhamento de Dados Acadêmicos." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "theme-color", content: "#8fbe63" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -100,7 +101,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/sina-favicon.svg", type: "image/svg+xml" },
       { rel: "apple-touch-icon", href: "/sina-favicon.svg" },
-      { name: "theme-color", content: "#8fbe63" },
     ],
 
   }),
