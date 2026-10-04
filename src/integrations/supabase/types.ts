@@ -1326,6 +1326,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_students_page: {
+        Args: {
+          _only_without_class?: boolean
+          _page?: number
+          _page_size?: number
+          _search?: string
+        }
+        Returns: Json
+      }
       admin_list_students: {
         Args: never
         Returns: {
@@ -2006,6 +2015,15 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      teacher_list_institution_students_page: {
+        Args: {
+          _class_status?: string
+          _page?: number
+          _page_size?: number
+          _search?: string
+        }
+        Returns: Json
       }
       teacher_list_institution_students: {
         Args: never
