@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, GraduationCap, Megaphone, Plus, School, Users, BarChart3, Paperclip, Pencil, Trash2, X } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, GraduationCap, Megaphone, Plus, School, Users, BarChart3, Paperclip, Pencil, Trash2, X, FileText, Download } from "lucide-react";
 import { toast } from "sonner";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
@@ -9,22 +9,22 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import {
   assignTeacherSubjectToClass, createAssessment, createTeacherAnnouncement,
-  createTeacherCalendarEvent, createTeacherClassroom, createTeacherSubject, createTeacherTask,
+  createTeacherCalendarEvent, createTeacherClassroom, createTeacherSubject, createTeacherTask, createTeacherAcademicMaterial, deleteTeacherAcademicMaterial,
   errorText, gradeTaskSubmission, uploadAcademicAttachment, updateTeacherTask, deleteTeacherTask, updateTeacherAnnouncement, deleteTeacherAnnouncement, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
   loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
-  loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherGrades,
+  loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherGrades, loadTeacherAcademicMaterials,
   saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
   teacherRemoveStudentFromClassroom, type AttendanceRow
 } from "@/lib/sina-data";
 
-type Section = "inicio"|"turmas"|"alunos"|"disciplinas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"agenda"|"comunicacao";
+type Section = "inicio"|"turmas"|"alunos"|"disciplinas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"materiais"|"agenda"|"comunicacao";
 const menu: {id:Section;label:string;Icon:LucideIcon}[]=[
   {id:"inicio",label:"Visão geral",Icon:BarChart3},{id:"turmas",label:"Turmas",Icon:Users},
   {id:"alunos",label:"Alunos",Icon:GraduationCap},{id:"disciplinas",label:"Disciplinas",Icon:BookOpen},
   {id:"notas",label:"Notas",Icon:BarChart3},{id:"frequencia",label:"Frequência",Icon:CheckCircle2},
   {id:"avaliacoes",label:"Avaliações",Icon:ClipboardCheck},{id:"atividades",label:"Atividades",Icon:ClipboardList},
-  {id:"agenda",label:"Agenda",Icon:CalendarDays},{id:"comunicacao",label:"Comunicação",Icon:Megaphone}
+  {id:"materiais",label:"Materiais",Icon:FileText},{id:"agenda",label:"Agenda",Icon:CalendarDays},{id:"comunicacao",label:"Comunicação",Icon:Megaphone}
 ];
 
 function Card({title,description,children}:{title:string;description?:string;children:ReactNode}){
@@ -390,6 +390,46 @@ function Agenda({d}:{d:ReturnType<typeof useData>}){
   return <Card title="Agenda" description="Organize aulas, provas, trabalhos, reuniões e outros eventos acadêmicos.">{events.isLoading&&<p className="mb-4 text-sm text-muted-foreground">Carregando agenda…</p>}{events.error&&<div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm"><b>Não foi possível carregar a agenda.</b><Button className="ml-3" size="sm" variant="outline" onClick={()=>void events.refetch()}>Tentar novamente</Button></div>}<div className="grid gap-3 md:grid-cols-2"><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Todas as turmas</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select><Select label="Tipo" value={type} onChange={setType}><option value="aula">Aula</option><option value="prova">Prova</option><option value="trabalho">Trabalho</option><option value="evento">Evento</option><option value="recesso">Recesso</option><option value="outro">Outro</option></Select><Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Ex.: Aula de revisão"/></Field><Field label="Quando"><Input type="datetime-local" value={start} onChange={e=>setStart(e.target.value)}/></Field><Field label="Descrição"><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Detalhes opcionais" className="min-h-20 rounded-md border border-input bg-background p-3 text-sm"/></Field><div className="self-end"><Button disabled={busy||!title.trim()||!start} onClick={()=>void create()}>{busy?"Salvando…":"Adicionar evento"}</Button></div></div><div className="mt-5 space-y-2">{!events.isLoading&&!events.data?.length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum evento encontrado nos últimos 30 dias ou próximos 180 dias.</p>}{(events.data??[]).map(e=><div key={e.id} className="rounded-xl border border-border p-3"><b>{e.title}</b><p className="text-xs text-muted-foreground">{new Date(e.start_at).toLocaleString("pt-BR")} · {e.classroom_name||"Todas as turmas"} · {e.event_type}</p>{e.description&&<p className="mt-1 text-sm text-muted-foreground">{e.description}</p>}</div>)}</div></Card>;
 }
 
+function Materials({d}:{d:ReturnType<typeof useData>}) {
+  const [classroom,setClassroom]=useState(""); const [subject,setSubject]=useState(""); const [term,setTerm]=useState("");
+  const [title,setTitle]=useState(""); const [description,setDescription]=useState(""); const [file,setFile]=useState<File|null>(null); const [busy,setBusy]=useState("");
+  const materials=useQuery({queryKey:["teacher-academic-materials"],queryFn:loadTeacherAcademicMaterials,staleTime:10000});
+  const options=useQuery({queryKey:["teacher-academic-options"],queryFn:loadTeacherAcademicOptions,staleTime:30000});
+  function reset(){setClassroom("");setSubject("");setTerm("");setTitle("");setDescription("");setFile(null);}
+  async function publish(){
+    if(!classroom||!title.trim()||!file){toast.error("Selecione a turma, informe o título e escolha um arquivo.");return;}
+    setBusy("publish"); let uploadedPath:string|null=null;
+    try { const uploaded=await uploadAcademicAttachment(file,"materials"); uploadedPath=uploaded.path;
+      await createTeacherAcademicMaterial({classroomId:classroom,subjectId:subject||null,termId:term||null,title:title.trim(),description:description.trim(),attachment:uploaded});
+      reset(); await materials.refetch(); toast.success("Material publicado para a turma.");
+    } catch(e) { if(uploadedPath) void supabase.storage.from("academic-attachments").remove([uploadedPath]); toast.error(errorText(e)); } finally { setBusy(""); }
+  }
+  async function remove(id:string){ if(!window.confirm("Arquivar este material?"))return; setBusy("delete:"+id); try { await deleteTeacherAcademicMaterial(id); await materials.refetch(); toast.success("Material arquivado."); } catch(e){toast.error(errorText(e));} finally{setBusy("");} }
+  return <div className="space-y-5">
+    <Card title="Central de materiais" description="Publique PDFs, documentos, apresentações, planilhas e imagens diretamente para suas turmas.">
+      <div className="grid gap-3 md:grid-cols-2">
+        <Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select>
+        <Select label="Disciplina" value={subject} onChange={setSubject}><option value="">Todas / não especificada</option>{(options.data?.subjects??[]).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</Select>
+        <Select label="Período" value={term} onChange={setTerm}><option value="">Sem período</option>{(options.data?.terms??[]).map(t=><option key={t.id} value={t.id}>{t.name}{t.is_current?" · atual":""}</option>)}</Select>
+        <Field label="Arquivo"><Input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx" onChange={e=>setFile(e.target.files?.[0]??null)}/><p className="text-[11px] text-muted-foreground">PDF, Word, PowerPoint, Excel, imagens ou TXT · até 20 MB.</p></Field>
+        <div className="md:col-span-2"><Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Ex.: Material de revisão — Unidade 2"/></Field></div>
+        <div className="md:col-span-2"><Field label="Descrição"><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Explique rapidamente o que o aluno encontrará neste material." className="min-h-24 w-full rounded-md border border-input bg-background p-3 text-sm"/></Field></div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2"><Button disabled={busy!==""||!classroom||!title.trim()||!file} onClick={()=>void publish()}>{busy==="publish"?"Publicando…":"Publicar material"}</Button><Button variant="outline" disabled={busy!==""} onClick={reset}>Limpar</Button></div>
+    </Card>
+    <Card title="Materiais publicados" description="Os alunos da turma recebem acesso automaticamente pelo painel deles.">
+      {materials.error&&<div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os materiais. <Button size="sm" variant="outline" className="ml-2" onClick={()=>void materials.refetch()}>Tentar novamente</Button></div>}
+      {materials.isPending&&<p className="text-sm text-muted-foreground">Carregando materiais…</p>}
+      <div className="grid gap-3 md:grid-cols-2">{(materials.data??[]).map(m=><article key={m.id} className="rounded-2xl border border-border p-4">
+        <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex items-center gap-2"><FileText className="size-4 shrink-0 text-primary"/><b className="truncate">{m.title}</b></div>
+        <p className="mt-1 text-xs text-muted-foreground">{m.classroom_name}{m.subject_name?" · "+m.subject_name:""}{m.term_name?" · "+m.term_name:""}</p>{m.description&&<p className="mt-2 text-sm text-muted-foreground">{m.description}</p>}
+        <p className="mt-2 text-xs text-muted-foreground">{m.file_name} · {(m.file_size/1024/1024).toFixed(1)} MB</p></div><Button size="sm" variant="ghost" className="text-destructive" disabled={busy!==""} onClick={()=>void remove(m.id)}><Trash2 className="size-4"/></Button></div>
+        <div className="mt-3">{m.file_url?<a href={m.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><Download className="size-4"/>Abrir material</a>:<span className="text-xs text-muted-foreground">Link indisponível no momento.</span>}</div>
+      </article>)}</div>
+      {!materials.isPending&&!materials.error&&(materials.data??[]).length===0&&<p className="mt-2 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Você ainda não publicou nenhum material.</p>}
+    </Card>
+  </div>;
+}
 function Communication({d}:{d:ReturnType<typeof useData>}){
   const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [content,setContent]=useState("");const [busy,setBusy]=useState("");const [attachment,setAttachment]=useState<File|null>(null);const [editing,setEditing]=useState<string|null>(null);
   const notices=useQuery({queryKey:["teacher-new-notices"],queryFn:loadTeacherAnnouncements,staleTime:15000});
