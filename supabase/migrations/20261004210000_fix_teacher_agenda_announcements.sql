@@ -169,7 +169,7 @@ begin
   )
   values(
     inst,auth.uid(),_classroom_id,trim(_title),coalesce(trim(_description),''),
-    _start_at,_end_at,coalesce(nullif(trim(_event_type),''),'aula'),'active'
+    _start_at,_end_at,coalesce(nullif(trim(_event_type),''),'aula'),'scheduled'
   )
   returning id into event_id;
 
