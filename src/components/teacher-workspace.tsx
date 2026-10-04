@@ -76,15 +76,31 @@ function DataError({d}:{d:ReturnType<typeof useData>}) {
 }
 
 function Overview({d}:{d:ReturnType<typeof useData>}){
-  const classes=(d.classes.data??[]).filter(x=>x.status==="active").length;
-  const students=(d.students.data??[]).filter(x=>x.class_status==="minha_turma").length;
-  const subjects=(d.subjects.data??[]).filter(x=>x.status==="active").length;
-  const pending=(d.students.data??[]).filter(x=>x.class_status==="sem_turma").length;
-  const metrics: [LucideIcon, string, number][] = [[Users,"Turmas",classes],[GraduationCap,"Alunos",students],[BookOpen,"Disciplinas",subjects],[School,"Sem turma",pending]];
-  return <div className="space-y-5">
-    <section className="rounded-3xl bg-brand p-6 text-brand-foreground sm:p-8"><p className="text-xs font-bold uppercase tracking-wide text-brand-muted">Área docente</p><h1 className="mt-1 font-display text-2xl font-bold">Meu espaço acadêmico</h1><p className="mt-2 max-w-2xl text-sm text-brand-muted">Gestão de turmas, alunos, disciplinas, notas, frequência e comunicação. Tudo limitado à instituição e às turmas autorizadas.</p></section>
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{metrics.map(([I,l,v])=><div key={String(l)} className="sina-card p-5"><I className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">{String(l)}</p><p className="mt-1 text-3xl font-semibold">{String(v)}</p></div>)}</div>
-    <Card title="Fluxo docente" description="A mesma organização do administrador, mas com permissões acadêmicas restritas."><div className="grid gap-3 md:grid-cols-4">{["Turmas e alunos","Disciplinas","Notas e frequência","Avaliações, atividades e avisos"].map(x=><div key={x} className="rounded-xl border border-border bg-muted/30 p-4 text-sm font-medium">{x}</div>)}</div></Card>
+  const classes=(d.classes.data??[]).filter(x=>x.status==="active");
+  const students=(d.students.data??[]).filter(x=>x.class_status==="minha_turma");
+  const subjects=(d.subjects.data??[]).filter(x=>x.status==="active");
+  const pending=(d.students.data??[]).filter(x=>x.class_status==="sem_turma");
+  const actions=[
+    {label:"Turmas",value:classes.length,desc:"Acesse alunos e desempenho",icon:Users,go:"turmas" as Section},
+    {label:"Alunos",value:students.length,desc:"Consulte sua turma",icon:GraduationCap,go:"alunos" as Section},
+    {label:"Disciplinas",value:subjects.length,desc:"Gerencie vínculos",icon:BookOpen,go:"disciplinas" as Section},
+    {label:"Sem turma",value:pending.length,desc:"Alunos aguardando vínculo",icon:School,go:"alunos" as Section},
+  ];
+  return <div className="space-y-6">
+    <section className="overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div><p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Painel do professor</p><h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Tudo que precisa para acompanhar suas turmas.</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Acompanhe alunos, notas, frequência, avaliações e atividades em um único fluxo.</p></div>
+        <div className="rounded-2xl bg-primary/10 px-4 py-3 text-sm"><b>Atalho rápido</b><p className="mt-1 text-muted-foreground">Comece por Turmas para ver o desempenho.</p></div>
+      </div>
+    </section>
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {actions.map(({label,value,desc,icon:Icon,go})=><button key={label} type="button" onClick={()=>d.setSection?.(go)} className="sina-card group p-5 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><span className="text-xs font-semibold text-primary opacity-0 transition group-hover:opacity-100">Abrir →</span></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></button>)}
+    </div>
+    <Card title="Próximas ações" description="Use o menu para executar cada etapa. O SINA mantém o vínculo entre a ação e a turma.">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[["Notas","Lance e confira notas por aluno.","notas"],["Frequência","Registre o diário por data.","frequencia"],["Avaliações","Crie instrumentos e acompanhe resultados.","avaliacoes"],["Atividades","Publique e corrija entregas.","atividades"]].map(([title,desc,go])=><button key={title} type="button" onClick={()=>d.setSection?.(go as Section)} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5"><b>{title}</b><p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p></button>)}
+      </div>
+    </Card>
   </div>;
 }
 
