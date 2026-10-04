@@ -40,7 +40,7 @@ class ShellErrorBoundary extends Component<ShellErrorBoundaryProps, ShellErrorBo
     };
   }
 
-  componentDidCatch(error: unknown, info: ErrorInfo) {
+  override componentDidCatch(error: unknown, info: ErrorInfo) {
     console.error("[SINA] Erro ao renderizar área acadêmica:", error, info);
   }
 
@@ -48,7 +48,7 @@ class ShellErrorBoundary extends Component<ShellErrorBoundaryProps, ShellErrorBo
     this.setState({ hasError: false, message: "" });
   };
 
-  render() {
+  override render() {
     if (!this.state.hasError) return this.props.children;
 
     return (
