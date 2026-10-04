@@ -104,6 +104,7 @@ language plpgsql security definer set search_path=''
 as $$
 declare
   inst uuid;
+  student_inst uuid;
   student_user uuid;
   current_classroom uuid;
 begin
@@ -125,22 +126,16 @@ begin
   end if;
 
   select s.user_id,s.institution_id,s.classroom_id
-  into student_user,inst,current_classroom
+  into student_user,student_inst,current_classroom
   from public.students s
   where s.id=_student_id
   for update;
 
   if student_user is null then raise exception 'Aluno não encontrado.'; end if;
 
-  -- Re-read the teacher's institution because the SELECT above intentionally
-  -- exposes the student's current institution separately below.
-  declare student_inst uuid;
-  begin
-    select institution_id into student_inst from public.students where id=_student_id;
-    if student_inst is not null and student_inst<>inst then
-      raise exception 'Este aluno pertence a outra instituição.';
-    end if;
-  end;
+  if student_inst is not null and student_inst<>inst then
+    raise exception 'Este aluno pertence a outra instituição.';
+  end if;
 
   if current_classroom is not null
      and current_classroom<>_classroom_id
