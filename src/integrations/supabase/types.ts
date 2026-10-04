@@ -1336,6 +1336,10 @@ export type Database = {
           teacher_name: string
         }[]
       }
+      admin_link_teacher_to_institution: {
+        Args: { _institution_id: string; _teacher_id: string }
+        Returns: boolean
+      }
       admin_list_teacher_school_links: {
         Args: never
         Returns: {
