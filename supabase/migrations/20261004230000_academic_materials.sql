@@ -124,6 +124,19 @@ $$;
 revoke all on function public.teacher_create_academic_material(uuid,uuid,uuid,text,text,text,text,bigint,text) from public,anon;
 revoke all on function public.teacher_list_academic_materials() from public,anon;
 revoke all on function public.teacher_delete_academic_material(uuid) from public,anon;
+create or replace function public.student_can_read_academic_material(_path text)
+returns boolean language sql security definer stable set search_path=''
+as $
+  select public.has_role(auth.uid(),'student'::public.app_role)
+    and exists (
+      select 1 from public.academic_materials m
+      join public.students st on st.classroom_id=m.classroom_id and st.user_id=auth.uid()
+      where m.file_path=_path and m.status='active' and st.institution_id=m.institution_id
+    );
+$;
+revoke all on function public.student_can_read_academic_material(text) from public,anon;
+grant execute on function public.student_can_read_academic_material(text) to authenticated;
+
 revoke all on function public.student_list_academic_materials() from public,anon;
 grant execute on function public.teacher_create_academic_material(uuid,uuid,uuid,text,text,text,text,bigint,text) to authenticated;
 grant execute on function public.teacher_list_academic_materials() to authenticated;
@@ -132,11 +145,4 @@ grant execute on function public.student_list_academic_materials() to authentica
 
 drop policy if exists "Students read academic materials" on storage.objects;
 create policy "Students read academic materials" on storage.objects for select to authenticated
-using (
-  bucket_id='academic-attachments'
-  and exists (
-    select 1 from public.academic_materials m
-    join public.students st on st.classroom_id=m.classroom_id and st.user_id=auth.uid()
-    where m.file_path=objects.name and m.status='active'
-  )
-);
+using (bucket_id='academic-attachments' and public.student_can_read_academic_material(name));
