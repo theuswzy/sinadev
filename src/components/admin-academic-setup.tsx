@@ -14,7 +14,8 @@ import {
   loadAdminInstitutionTeachers,
   loadAdminTeacherAssignments,
   adminAssignTeacherToClassroom,
-  adminUnassignTeacherFromClassroom,\n  adminImportAcademicCsv,
+  adminUnassignTeacherFromClassroom,
+  adminImportAcademicCsv,
 } from "@/lib/sina-data";
 
 
@@ -40,7 +41,8 @@ function parseCsvLine(line: string) {
 }
 
 function parseAcademicCsv(text: string) {
-  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter(line => line.trim());
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?
+/).filter(line => line.trim());
   if (lines.length < 2) throw new Error("CSV vazio ou sem linhas de dados.");
   const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
   const rows = lines.slice(1).map(line => {
@@ -49,7 +51,8 @@ function parseAcademicCsv(text: string) {
   });
   return rows;
 }
-\nexport function AdminAcademicSetup() {
+
+export function AdminAcademicSetup() {
   const qc = useQueryClient();
   const setup = useQuery({ queryKey: ["admin-academic-setup"], queryFn: loadAdminAcademicSetup });
   const teachers = useQuery({ queryKey: ["admin-institution-teachers"], queryFn: loadAdminInstitutionTeachers });
@@ -63,7 +66,8 @@ function parseAcademicCsv(text: string) {
   const [termEnd, setTermEnd] = useState("");
   const [termCurrent, setTermCurrent] = useState(true);
   const [teacherId, setTeacherId] = useState("");
-  const [teacherClassroomId, setTeacherClassroomId] = useState("");\n  const [importing, setImporting] = useState(false);
+  const [teacherClassroomId, setTeacherClassroomId] = useState("");
+  const [importing, setImporting] = useState(false);
 
   async function refresh() {
     await Promise.all([
@@ -103,7 +107,8 @@ function parseAcademicCsv(text: string) {
     <section id="academico-setup" className="sina-card sina-card-hover p-6 scroll-mt-28">
       <div className="flex items-start gap-3"><Layers3 className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Estrutura acadêmica</h2><p className="mt-1 text-sm text-muted-foreground">Cadastre turmas, disciplinas e períodos. Esses dados alimentam diário, avaliações, calendário e relatórios.</p></div></div>
       {setup.isPending ? <p className="mt-5 text-sm text-muted-foreground">Carregando estrutura…</p> : setup.error ? <p className="mt-5 text-sm text-destructive">{errorText(setup.error)}</p> : (
-        <div className="mt-6 space-y-6">\n        <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4">
+        <div className="mt-6 space-y-6">
+        <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4">
           <div className="flex items-start gap-3">
             <FileUp className="mt-0.5 size-5 text-primary" />
             <div className="min-w-0">
