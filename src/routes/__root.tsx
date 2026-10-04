@@ -100,7 +100,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/sina-favicon.svg", type: "image/svg+xml" },
       { rel: "apple-touch-icon", href: "/sina-favicon.svg" },
-      { name: "theme-color", content: "#2563eb" },
+      { name: "theme-color", content: "#8fbe63" },
     ],
 
   }),
