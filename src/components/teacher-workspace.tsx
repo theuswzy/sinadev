@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  archiveTeacherSubject, assignTeacherSubjectToClass, createAssessment, createTeacherAnnouncement,
+  assignTeacherSubjectToClass, createAssessment, createTeacherAnnouncement,
   createTeacherCalendarEvent, createTeacherClassroom, createTeacherSubject, createTeacherTask,
   errorText, gradeTaskSubmission, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
   loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherSubjects, loadTeacherTasks,
   loadTeacherUnassignedStudents, saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
-  teacherRemoveStudentFromClassroom, updateTeacherSubject, type AttendanceRow, type TeacherClassroom
+  teacherRemoveStudentFromClassroom, type AttendanceRow
 } from "@/lib/sina-data";
 
 type Section = "inicio"|"turmas"|"alunos"|"disciplinas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"agenda"|"comunicacao";
