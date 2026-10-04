@@ -33,7 +33,21 @@ export async function getRole(): Promise<UserRole> {
   // When legacy data leaves more than one role in the active institution,
   // always resolve the strongest role first. This prevents an admin account
   // with a stale student membership from being sent to the student dashboard.
-  const activeInstitutions = (institutions ?? []).filter((item) => item.is_active);
+  let activeInstitutions = (institutions ?? []).filter((item) => item.is_active);
+
+  // A freshly approved account can have a valid institutional membership but no
+  // persisted active context yet. Establish it automatically when there is only
+  // one possible institution; otherwise the teacher/admin RPCs have no tenant
+  // context and the academic area can appear empty or fail.
+  if (activeInstitutions.length === 0 && (institutions ?? []).length === 1) {
+    const institutionId = institutions![0].id;
+    const { error: contextError } = await supabase.rpc("account_set_institution", {
+      _institution_id: institutionId,
+    });
+    if (contextError) throw contextError;
+    activeInstitutions = (institutions ?? []).map((item) => ({ ...item, is_active: true }));
+  }
+
   const candidates = activeInstitutions.length > 0 ? activeInstitutions : (institutions ?? []);
   const activeRole =
     (candidates.find((item) => item.role === "admin")?.role ??
