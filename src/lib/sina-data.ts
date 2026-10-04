@@ -262,7 +262,6 @@ export async function loadTeacherGrades(studentId: string): Promise<Grade[]> {
   if (error) throw error;
   return (data ?? []) as Grade[];
 }
-
 export const formatScore = (n: number) => n.toFixed(1).replace(".", ",");
 export const errorText = (err: unknown) => err instanceof Error ? err.message : "Não foi possível concluir. Tente novamente.";
 
