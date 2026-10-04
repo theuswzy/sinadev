@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarDays, CheckCircle2, ClipboardCheck, Clock3, FileText } from "lucide-react";
+import { CalendarDays, CheckCircle2, ClipboardCheck, Clock3, FileText, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ export function StudentAcademicCenter() {
   const attendance = useQuery({ queryKey: ["student-attendance-history"], queryFn: loadStudentAttendance });
   const calendar = useQuery({ queryKey: ["student-calendar-center"], queryFn: () => loadStudentCalendar(monthStart(), monthEnd()) });
   const submissions = useQuery({ queryKey: ["student-task-submissions"], queryFn: loadStudentTaskSubmissions });
+  const materials = useQuery({ queryKey: ["student-academic-materials"], queryFn: loadStudentAcademicMaterials, staleTime: 15000 });
   const weightedAverage = useMemo(() => {
     const graded = (assessments.data ?? []).filter(item => item.score != null && item.max_score > 0 && item.weight > 0);
     const totalWeight = graded.reduce((sum, item) => sum + Number(item.weight), 0);
@@ -82,6 +83,29 @@ export function StudentAcademicCenter() {
             );
           }) : <p className="text-sm text-muted-foreground">Nenhuma atividade disponível no momento.</p>}
         </div>
+      </div>
+
+      <div className="sina-card p-6">
+        <div className="flex items-center justify-between gap-3">
+          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Materiais de estudo</p><h3 className="font-semibold">Arquivos das suas turmas</h3></div>
+          <FileText className="size-5 text-primary" />
+        </div>
+        {materials.error && <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os materiais. <Button size="sm" variant="outline" className="ml-2" onClick={() => void materials.refetch()}>Tentar novamente</Button></div>}
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {(materials.data ?? []).slice(0, 12).map(item => (
+            <article key={item.id} className="rounded-2xl border border-border p-4">
+              <div className="flex items-start gap-3"><FileText className="mt-0.5 size-4 shrink-0 text-primary" /><div className="min-w-0">
+                <p className="font-semibold">{item.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{item.classroom_name}{item.subject_name ? " · " + item.subject_name : ""}{item.term_name ? " · " + item.term_name : ""}</p>
+                {item.description && <p className="mt-2 text-sm text-muted-foreground">{item.description}</p>}
+                <p className="mt-2 text-xs text-muted-foreground">{item.file_name} · {(item.file_size / 1024 / 1024).toFixed(1)} MB</p>
+                {item.file_url && <a href={item.file_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><Download className="size-4" />Abrir material</a>}
+              </div></div>
+            </article>
+          ))}
+        </div>
+        {materials.isPending && <p className="mt-3 text-sm text-muted-foreground">Carregando materiais…</p>}
+        {!materials.isPending && !materials.error && !(materials.data ?? []).length && <p className="mt-3 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum material foi publicado para suas turmas ainda.</p>}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
