@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -11,8 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type TeacherModule = "turmas"|"disciplinas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"agenda"|"comunicacao";
 const meta: Record<TeacherModule,{title:string;subtitle:string}> = { turmas:{title:"Turmas e alunos",subtitle:"Organize suas turmas e acompanhe os alunos"}, disciplinas:{title:"Disciplinas",subtitle:"Crie e organize as disciplinas que você leciona"}, notas:{title:"Notas",subtitle:"Lançamento e consulta de resultados"}, frequencia:{title:"Frequência",subtitle:"Diário de presença das suas turmas"}, avaliacoes:{title:"Avaliações",subtitle:"Crie avaliações e registre resultados"}, atividades:{title:"Atividades",subtitle:"Atividades, prazos e entregas"}, agenda:{title:"Agenda",subtitle:"Calendário acadêmico das suas turmas"}, comunicacao:{title:"Comunicação",subtitle:"Avisos para alunos e turmas"} };
-function Guard({children}:{children:ReactNode}) { const role=useQuery({queryKey:["my-role"],queryFn:async()=>{const m=await import("@/lib/sina-data");return m.getRole()}}); if(role.isPending)return <AcademicShell title="Professor" subtitle="Área acadêmica"><div className="sina-card mt-8 p-6">Verificando acesso…</div></AcademicShell>; if(role.error||role.data!=="teacher")return <AcademicShell title="Professor" subtitle="Área acadêmica"><div className="sina-card mt-8 p-6 text-sm">{role.error?errorText(role.error):"Esta área é exclusiva para professores autorizados."}</div></AcademicShell>; return <>{children}</>; }
-export function TeacherDashboard(){return <Guard><AcademicShell title="Dashboard" subtitle="Visão geral da atividade docente"><DashboardContent/></AcademicShell></Guard>}
+export function TeacherDashboard(){return <AcademicShell title="Dashboard" subtitle="Visão geral da atividade docente" requiredRole="teacher"><DashboardContent/></AcademicShell>}
 function DashboardContent(){
   const c=useQuery({queryKey:["teacher-dashboard-classes"],queryFn:loadTeacherClassrooms});
   const s=useQuery({queryKey:["teacher-dashboard-students"],queryFn:loadStudents});
@@ -30,7 +29,7 @@ function DashboardContent(){
   </div>
 }
 function Metric({label,value,icon:Icon}:{label:string;value:number;icon:typeof Users}){return <div className="sina-card p-5"><Icon className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-semibold">{value}</p></div>}
-export function TeacherModulePage({module}:{module:TeacherModule}){return <Guard><AcademicShell title={meta[module].title} subtitle={meta[module].subtitle}><ModuleContent module={module}/></AcademicShell></Guard>}
+export function TeacherModulePage({module}:{module:TeacherModule}){return <AcademicShell title={meta[module].title} subtitle={meta[module].subtitle} requiredRole="teacher"><ModuleContent module={module}/></AcademicShell>}
 function ModuleContent({module}:{module:TeacherModule}){const qc=useQueryClient();const classes=useQuery({queryKey:["teacher-module-classes"],queryFn:loadTeacherClassrooms});const [classId,setClassId]=useState("");const active=classId||(classes.data?.[0]?.id||"");const students=useQuery({queryKey:["teacher-module-students"],queryFn:loadStudents,enabled:["turmas","notas"].includes(module)});
 const registeredStudents=useQuery({queryKey:["teacher-registered-students"],queryFn:loadTeacherInstitutionStudents,enabled:module==="turmas"});const [studentId,setStudentId]=useState("");const student=(students.data||[]).find(x=>x.id===studentId)||(students.data||[]).find(x=>!!x.teacher_id);const grades=useQuery({queryKey:["teacher-module-grades",student?.id],queryFn:()=>loadGrades(student?.id||""),enabled:module==="notas"&&!!student?.id});const day=new Date().toISOString().slice(0,10);const report=useQuery({queryKey:["teacher-class-report",active],queryFn:()=>loadTeacherClassReport(active),enabled:module==="turmas"&&!!active});const attendance=useQuery({queryKey:["teacher-module-attendance",active,day],queryFn:()=>loadAttendance(active,day),enabled:module==="frequencia"&&!!active});
 if(classes.isPending)return <div className="sina-card mt-6 p-6">Carregando dados…</div>;
@@ -187,12 +186,19 @@ function BulkGradeForm({students,qc}:{students:TeacherStudent[];qc:QueryClient})
   async function save(){
     setSaving(true);
     try{
-      for(const s of students){
-        const raw=scores[s.id];if(raw==null||raw==="")continue;
-        const score=Number(raw);if(score<0||score>10)throw new Error("As notas devem estar entre 0 e 10.");
-        const {error}=await supabase.rpc("teacher_upsert_grade",{_student_id:s.id,_subject:subject,_period:Number(period),_score:score,_absences:0});
-        if(error)throw error;
-      }
+      const entries=students
+        .map((s)=>({student:s,raw:scores[s.id]}))
+        .filter((item): item is {student:TeacherStudent;raw:string} => item.raw!=null&&item.raw!=="");
+      const payload=entries.map(({student,raw})=>{
+        const score=Number(raw);
+        if(score<0||score>10)throw new Error("As notas devem estar entre 0 e 10.");
+        return {studentId:student.id,score};
+      });
+      const results=await Promise.all(payload.map(({studentId,score})=>
+        supabase.rpc("teacher_upsert_grade",{_student_id:studentId,_subject:subject,_period:Number(period),_score:score,_absences:0})
+      ));
+      const failed=results.find(({error})=>error);
+      if(failed?.error)throw failed.error;
       await qc.invalidateQueries({queryKey:["teacher-module-grades"]});setScores({});toast.success("Notas salvas com sucesso.");
     }catch(error){toast.error(errorText(error));}
     finally{setSaving(false);}
