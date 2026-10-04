@@ -19,6 +19,7 @@ import {
   saveAttendance,
   type AttendanceRow,
   type TeacherAssessment,
+  type TeacherTask,
 } from "@/lib/sina-data";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -245,7 +246,7 @@ export function TeacherAcademicCenter() {
 
       <div className="sina-card p-6">
         <div className="flex items-center gap-3"><ClipboardCheck className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Entregas</p><h3 className="font-semibold">Corrigir atividades enviadas</h3></div></div>
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row"><select value={taskId} onChange={e => setTaskId(e.target.value)} className="h-10 flex-1 rounded-md border border-input bg-background px-3 text-sm"><option value="">Selecione uma atividade</option>{(tasks.data ?? []).map((t: any) => <option key={t.id} value={t.id}>{t.subject} · {t.title} · {t.classroom}</option>)}</select></div>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row"><select value={taskId} onChange={e => setTaskId(e.target.value)} className="h-10 flex-1 rounded-md border border-input bg-background px-3 text-sm"><option value="">Selecione uma atividade</option>{(tasks.data ?? []).map((t: TeacherTask) => <option key={t.id} value={t.id}>{t.subject} · {t.title} · {t.classroom}</option>)}</select></div>
         <div className="mt-4 space-y-3">{(submissions.data ?? []).length ? (submissions.data ?? []).map(item => { const value=grading[item.id] ?? {score:item.score == null ? "" : String(item.score), feedback:item.feedback ?? ""}; return <article key={item.id} className="rounded-2xl border border-border p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div><p className="font-semibold">{item.student_name}</p><p className="text-xs text-muted-foreground">{item.enrollment} · {new Date(item.submitted_at).toLocaleString("pt-BR")}</p><p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{item.content || "Sem texto. Verifique o anexo da entrega."}</p></div><div className="grid min-w-[280px] gap-2 sm:grid-cols-[120px_1fr]"><Input type="number" min="0" max="10" step="0.01" placeholder="Nota" value={value.score} onChange={e => setGrading(v => ({ ...v, [item.id]: { ...value, score: e.target.value } }))} /><Input placeholder="Feedback" value={value.feedback} onChange={e => setGrading(v => ({ ...v, [item.id]: { ...value, feedback: e.target.value } }))} /><Button className="sm:col-span-2" onClick={() => void gradeSubmission(item.id)}><Save className="mr-2 size-4" />Salvar correção</Button></div></div></article> }) : taskId ? <p className="text-sm text-muted-foreground">Nenhuma entrega registrada para esta atividade.</p> : <p className="text-sm text-muted-foreground">Selecione uma atividade para ver as entregas.</p>}</div>
       </div>
 
