@@ -9,7 +9,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import {
   ensureAccountOnboarding,
   getAccountOnboardingState,
-  getRole,
   resubmitRoleRequest,
   searchSchoolDirectory,
   ensureAccountOnboardingForSchool,
@@ -103,7 +102,8 @@ function AuthPage() {
       return;
     }
 
-    const role = await getRole();
+    const role = state.role;
+    if (!role) throw new Error("Sua conta ainda não possui uma função acadêmica ativa.");
     await navigate({
       to: role === "admin" ? "/admin" : role === "teacher" ? "/professor" : "/aluno",
       replace: true,
