@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Component, type ErrorInfo, type ReactNode, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
@@ -212,12 +213,17 @@ export function AcademicShell({
 
   const accessBlocked = requiredRole && !role.isPending && !role.error && role.data !== requiredRole;
   const accessMessage = requiredRole
-    ? role.error
-      ? role.error instanceof Error ? role.error.message : "Não foi possível validar seu acesso."
-      : accessBlocked
-        ? "Esta área é exclusiva para professores autorizados."
-        : null
+    ? accessBlocked
+      ? "Esta área é exclusiva para professores autorizados."
+      : null
     : null;
+
+  async function retryAcademicAccess() {
+    await Promise.all([
+      role.refetch(),
+      institutions.refetch(),
+    ]);
+  }
 
   const renderNavItem = (item: ShellLink) => {
     const active = isActive(item);
@@ -394,6 +400,16 @@ export function AcademicShell({
           </div>
           {role.isPending && requiredRole ? (
             <div className="sina-card mt-6 p-6">Verificando acesso…</div>
+          ) : role.error && requiredRole ? (
+            <div className="sina-card mt-6 p-6">
+              <h2 className="font-display text-base font-bold">Não foi possível validar seu acesso</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Houve uma falha momentânea na comunicação com o SINA. Você pode tentar novamente sem sair da conta.
+              </p>
+              <Button type="button" variant="outline" className="mt-4" onClick={() => void retryAcademicAccess()}>
+                Tentar novamente
+              </Button>
+            </div>
           ) : accessMessage ? (
             <div className="sina-card mt-6 p-6 text-sm">{accessMessage}</div>
           ) : (
