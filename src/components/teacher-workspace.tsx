@@ -11,7 +11,8 @@ import {
   createTeacherCalendarEvent, createTeacherClassroom, createTeacherSubject, createTeacherTask,
   errorText, gradeTaskSubmission, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
-  loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherSubjects, loadTeacherTasks,
+  loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
+  loadTeacherUnassignedClassrooms, teacherClaimClassroom,
   loadTeacherUnassignedStudents, saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
   teacherRemoveStudentFromClassroom, type AttendanceRow
 } from "@/lib/sina-data";
@@ -39,7 +40,8 @@ function useData(){
   const students=useQuery({queryKey:["teacher-new-students"],queryFn:loadTeacherInstitutionStudents,staleTime:30000});
   const subjects=useQuery({queryKey:["teacher-new-subjects"],queryFn:loadTeacherSubjects,staleTime:30000});
   const assignments=useQuery({queryKey:["teacher-new-assignments"],queryFn:async()=>{const {data,error}=await supabase.rpc("teacher_list_subject_assignments");if(error)throw error;return data??[]},staleTime:30000});
-  async function refresh(){await Promise.all([qc.invalidateQueries({queryKey:["teacher-new-classes"]}),qc.invalidateQueries({queryKey:["teacher-new-students"]}),qc.invalidateQueries({queryKey:["teacher-new-subjects"]}),qc.invalidateQueries({queryKey:["teacher-new-assignments"]})])}
+  const unassignedClasses=useQuery({queryKey:["teacher-new-unassigned-classes"],queryFn:loadTeacherUnassignedClassrooms,staleTime:15000});
+  async function refresh(){await Promise.all([qc.invalidateQueries({queryKey:["teacher-new-classes"]}),qc.invalidateQueries({queryKey:["teacher-new-unassigned-classes"]}),qc.invalidateQueries({queryKey:["teacher-new-students"]}),qc.invalidateQueries({queryKey:["teacher-new-subjects"]}),qc.invalidateQueries({queryKey:["teacher-new-assignments"]})])}
   return {classes,students,subjects,assignments,refresh};
 }
 
@@ -56,21 +58,69 @@ function Overview({d}:{d:ReturnType<typeof useData>}){
 }
 
 function Classes({d}:{d:ReturnType<typeof useData>}){
-  const [name,setName]=useState("");const [code,setCode]=useState("");const [selected,setSelected]=useState("");
+  const [name,setName]=useState("");const [code,setCode]=useState("");const [selected,setSelected]=useState("");const [busy,setBusy]=useState("");
   const report=useQuery({queryKey:["teacher-new-report",selected],queryFn:()=>loadTeacherClassReport(selected),enabled:!!selected});
-  async function create(){try{await createTeacherClassroom(name.trim(),code.trim());setName("");setCode("");await d.refresh();toast.success("Turma criada.");}catch(e){toast.error(errorText(e))}}
-  return <div className="space-y-5"><Card title="Turmas" description="Crie e acompanhe as turmas da sua atuação docente."><div className="grid gap-3 md:grid-cols-[1fr_180px_auto]"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome da turma"/><Input value={code} onChange={e=>setCode(e.target.value)} placeholder="Código"/><Button disabled={!name.trim()} onClick={()=>void create()}><Plus className="mr-2 size-4"/>Criar turma</Button></div><div className="mt-5 grid gap-3 md:grid-cols-2">{(d.classes.data??[]).map(c=><button key={c.id} type="button" onClick={()=>setSelected(c.id)} className={"rounded-xl border p-4 text-left "+(selected===c.id?"border-primary bg-primary/5":"border-border")}><b>{c.name}</b><p className="text-xs text-muted-foreground">{c.code||"Sem código"} · {c.student_count} aluno(s) · {c.status==="active"?"Ativa":"Arquivada"}</p></button>)}</div></Card>{selected&&<Card title="Relatório da turma"><div className="grid gap-2 md:grid-cols-2">{(report.data??[]).map(s=><div key={s.student_id} className="rounded-xl border border-border p-3"><b>{s.student_name}</b><p className="text-xs text-muted-foreground">{s.enrollment} · Média {s.grade_average.toFixed(1)} · Frequência {s.attendance_percent==null?"—":s.attendance_percent+"%"}</p></div>)}</div></Card>}</div>;
+  async function create(){if(!name.trim())return;setBusy("create");try{await createTeacherClassroom(name.trim(),code.trim());setName("");setCode("");await d.refresh();toast.success("Turma criada e atribuída a você.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
+  async function claim(id:string){setBusy(id);try{await teacherClaimClassroom(id);await d.refresh();toast.success("Turma atribuída a você.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
+  return <div className="space-y-5">
+    <Card title="Turmas" description="Crie turmas ou assuma turmas da escola que ainda não tenham professor responsável.">
+      <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
+        <Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome da turma"/>
+        <Input value={code} onChange={e=>setCode(e.target.value)} placeholder="Código (opcional)"/>
+        <Button disabled={busy!==""||!name.trim()} onClick={()=>void create()}><Plus className="mr-2 size-4"/>{busy==="create"?"Criando…":"Criar turma"}</Button>
+      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        {(d.classes.data??[]).map(c=><button key={c.id} type="button" onClick={()=>setSelected(c.id)} className={"rounded-xl border p-4 text-left "+(selected===c.id?"border-primary bg-primary/5":"border-border")}>
+          <b>{c.name}</b><p className="text-xs text-muted-foreground">{c.code||"Sem código"} · {c.student_count} aluno(s) · {c.status==="active"?"Ativa":"Arquivada"}</p>
+        </button>)}
+      </div>
+      {(d.classes.data??[]).length===0&&<p className="mt-4 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Você ainda não tem turmas atribuídas. Veja abaixo as turmas da escola que estão disponíveis.</p>}
+    </Card>
+    <Card title="Turmas disponíveis na escola" description="Somente turmas ativas sem nenhum professor responsável podem ser assumidas. Turmas de outro professor continuam protegidas.">
+      <div className="space-y-2">
+        {(d.unassignedClasses.data??[]).map(c=><div key={c.id} className="flex flex-col gap-3 rounded-xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div><b>{c.name}</b><p className="text-xs text-muted-foreground">{c.code||"Sem código"} · {c.student_count} aluno(s)</p></div>
+          <Button disabled={busy!==""} onClick={()=>void claim(c.id)}>{busy===c.id?"Atribuindo…":"Assumir turma"}</Button>
+        </div>)}
+        {(d.unassignedClasses.data??[]).length===0&&<p className="text-sm text-muted-foreground">Não há turmas sem professor responsável nesta escola.</p>}
+      </div>
+    </Card>
+    {selected&&<Card title="Relatório da turma"><div className="grid gap-2 md:grid-cols-2">{(report.data??[]).map(s=><div key={s.student_id} className="rounded-xl border border-border p-3"><b>{s.student_name}</b><p className="text-xs text-muted-foreground">{s.enrollment} · Média {s.grade_average.toFixed(1)} · Frequência {s.attendance_percent==null?"—":s.attendance_percent+"%"}</p></div>)}</div></Card>}
+  </div>;
 }
 
 function Students({d}:{d:ReturnType<typeof useData>}){
-  const [search,setSearch]=useState("");const [classroom,setClassroom]=useState("");const [enrollment,setEnrollment]=useState("");const [busy,setBusy]=useState("");
+  const [search,setSearch]=useState("");const [busy,setBusy]=useState("");const [targetClass,setTargetClass]=useState<Record<string,string>>({});const [enrollments,setEnrollments]=useState<Record<string,string>>({});
   const waiting=useQuery({queryKey:["teacher-new-unassigned"],queryFn:loadTeacherUnassignedStudents,staleTime:15000});
   const list=(d.students.data??[]).filter(s=>(s.full_name+" "+s.enrollment+" "+s.classroom).toLowerCase().includes(search.toLowerCase()));
+  function classFor(id:string){return targetClass[id]??""}
+  function enrollmentFor(s:{id:string;enrollment:string|null}){return enrollments[s.id]??s.enrollment??""}
   async function school(id:string){setBusy(id);try{await teacherLinkStudentToSchool(id);await Promise.all([waiting.refetch(),d.refresh()]);toast.success("Aluno vinculado à escola.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
-  async function enroll(id:string){if(!classroom||!enrollment.trim())return;setBusy(id);try{await teacherEnrollStudentInClassroom(id,classroom,enrollment.trim());setEnrollment("");await d.refresh();toast.success("Aluno vinculado à turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
+  async function enroll(id:string){const classroom=classFor(id);const enrollment=enrollmentFor({id,enrollment:((d.students.data??[]).find(s=>s.id===id)?.enrollment??"")});if(!classroom||!enrollment.trim())return;setBusy(id);try{await teacherEnrollStudentInClassroom(id,classroom,enrollment.trim());await d.refresh();toast.success("Aluno vinculado à turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   async function remove(id:string){setBusy(id);try{await teacherRemoveStudentFromClassroom(id);await d.refresh();toast.success("Aluno removido da turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
-  return <div className="space-y-5"><Card title="Alunos da instituição" description="O professor pode vincular alunos sem escola à escola ativa e matriculá-los em suas turmas."><Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar nome, matrícula ou turma"/><div className="mt-4 space-y-2">{list.map(s=><div key={s.id} className="rounded-xl border border-border p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><b>{s.full_name}</b><p className="text-xs text-muted-foreground">{s.enrollment||"Sem matrícula"} · {s.classroom||"Sem turma"} · {s.class_status}</p></div>{s.class_status!=="outra_turma"&&<div className="flex flex-col gap-2 sm:flex-row"><select value={classroom} onChange={e=>setClassroom(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Turma</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><Input value={enrollment} onChange={e=>setEnrollment(e.target.value)} placeholder="Matrícula"/><Button disabled={!!busy||!classroom||!enrollment.trim()} onClick={()=>void enroll(s.id)}>{busy===s.id?"Salvando…":s.class_status==="minha_turma"?"Mover":"Vincular"}</Button>{s.class_status==="minha_turma"&&<Button variant="outline" disabled={!!busy} onClick={()=>void remove(s.id)}>Remover</Button>}</div>}</div></div>)}</div></Card>
-  <Card title="Alunos sem escola" description="Vincule o aluno à escola ativa do professor."><div className="space-y-2">{(waiting.data??[]).map(s=><div key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3"><div><b>{s.full_name}</b><p className="text-xs text-muted-foreground">{s.enrollment||"Sem matrícula"}</p></div><Button disabled={!!busy} onClick={()=>void school(s.id)}>{busy===s.id?"Vinculando…":"Vincular à minha escola"}</Button></div>)}</div></Card></div>;
+  return <div className="space-y-5">
+    <Card title="Alunos da instituição" description="Escolha a turma diretamente em cada aluno. Alunos em uma turma sem professor também podem ser reatribuídos.">
+      <Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar nome, matrícula ou turma"/>
+      <div className="mt-4 space-y-2">
+        {list.map(s=><div key={s.id} className="rounded-xl border border-border p-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div><b>{s.full_name}</b><p className="text-xs text-muted-foreground">{s.enrollment||"Sem matrícula"} · {s.classroom||"Sem turma"} · {s.class_status}</p></div>
+            {s.class_status!=="outra_turma"&&<div className="grid gap-2 sm:grid-cols-[minmax(160px,1fr)_160px_auto_auto]">
+              <select value={classFor(s.id)} onChange={e=>setTargetClass(v=>({...v,[s.id]:e.target.value}))} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Escolha a turma</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
+              <Input value={enrollmentFor(s)} onChange={e=>setEnrollments(v=>({...v,[s.id]:e.target.value}))} placeholder="Matrícula"/>
+              <Button disabled={!!busy||!classFor(s.id)||!enrollmentFor(s).trim()} onClick={()=>void enroll(s.id)}>{busy===s.id?"Salvando…":s.class_status==="minha_turma"?"Mover":"Vincular"}</Button>
+              {s.class_status==="minha_turma"&&<Button variant="outline" disabled={!!busy} onClick={()=>void remove(s.id)}>Remover</Button>}
+            </div>}
+          </div>
+        </div>)}
+        {list.length===0&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum aluno encontrado nesta escola.</p>}
+      </div>
+    </Card>
+    <Card title="Alunos sem escola" description="Vincule o aluno à escola ativa do professor antes de colocá-lo em uma turma.">
+      <div className="space-y-2">{(waiting.data??[]).map(s=><div key={s.id} className="flex flex-col gap-3 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between"><div><b>{s.full_name}</b><p className="text-xs text-muted-foreground">{s.enrollment||"Sem matrícula"}</p></div><Button disabled={!!busy} onClick={()=>void school(s.id)}>{busy===s.id?"Vinculando…":"Vincular à minha escola"}</Button></div>)}</div>
+      {(waiting.data??[]).length===0&&<p className="text-sm text-muted-foreground">Não há alunos aguardando vínculo com uma escola.</p>}
+    </Card>
+  </div>;
 }
 
 function Subjects({d}:{d:ReturnType<typeof useData>}){
