@@ -115,7 +115,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                 </div>
               </article>
             );
-          }) : <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhuma atividade disponível.</div>}
+          }) : <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhuma atividade cadastrada ainda. Quando um professor publicar uma atividade para sua turma, ela aparecerá aqui.</div>}
         </section>
       )}
 
@@ -134,7 +134,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
               </article>;
             })}
           </div>
-          {!studentSubjects.isPending && !studentSubjects.data?.length && <div className="sina-card p-8 text-sm text-muted-foreground">Nenhuma disciplina foi associada à sua turma ainda.</div>}
+          {!studentSubjects.isPending && !studentSubjects.data?.length && <div className="sina-card p-8 text-sm text-muted-foreground">Nenhuma disciplina vinculada ainda. Assim que a escola ou o professor fizer o vínculo, ela aparecerá aqui.</div>}
         </section>
       )}
       {module === "notas" && (
@@ -154,20 +154,21 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
             <span className="hidden rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold sm:inline-flex">{attendance.data?.length ?? 0} registro{attendance.data?.length === 1 ? "" : "s"}</span>
           </div>
           <div className="sina-card divide-y divide-border">{(attendance.data ?? []).map((item, index) => <div key={item.attendance_date + index} className="flex items-center justify-between gap-4 p-4"><div><p className="font-medium">{new Date(item.attendance_date + "T12:00:00").toLocaleDateString("pt-BR")}</p><p className="text-xs text-muted-foreground">{item.classroom}{item.note ? ` · ${item.note}` : ""}</p></div><span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold">{item.status === "absent" ? "Falta" : item.status === "late" ? "Atrasado" : item.status === "excused" ? "Justificada" : "Presente"}</span></div>)}</div>
+          {!attendance.isPending && !attendance.data?.length && <div className="sina-card p-8 text-center text-sm text-muted-foreground">Ainda não há registros de frequência para exibir.</div>}
         </section>
       )}
 
       {module === "agenda" && (
         <section className="mt-6 space-y-3">
           {(calendar.data ?? []).map((event) => <article key={event.id} className="sina-card p-5"><div className="flex items-start gap-4"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><CalendarDays className="size-5"/></div><div><p className="font-semibold">{event.title}</p><p className="mt-1 text-xs text-muted-foreground">{new Date(event.start_at).toLocaleString("pt-BR")} · {event.classroom_name ?? "Institucional"}</p>{event.description && <p className="mt-2 text-sm text-muted-foreground">{event.description}</p>}</div></div></article>)}
-          {!calendar.data?.length && <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhum evento próximo.</div>}
+          {!calendar.data?.length && <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhum evento próximo. Quando houver aulas, provas ou compromissos, eles aparecerão aqui.</div>}
         </section>
       )}
 
       {module === "avisos" && (
         <section className="mt-6 space-y-3">
           {(announcements.data ?? []).map((item) => <article key={item.id} className="sina-card p-5"><div className="flex items-start gap-4"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Megaphone className="size-5"/></div><div><p className="font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{new Date(item.created_at).toLocaleString("pt-BR")}</p><p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{item.content}</p></div></div></article>)}
-          {!announcements.data?.length && <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhum aviso disponível.</div>}
+          {!announcements.data?.length && <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhum aviso novo. Os comunicados da escola e dos professores aparecerão aqui.</div>}
         </section>
       )}
     </AcademicShell>
