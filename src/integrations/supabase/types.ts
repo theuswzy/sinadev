@@ -2107,7 +2107,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
-            teacher_list_unassigned_classrooms: {
+      teacher_list_unassigned_classrooms: {
         Args: Record<string, never>
         Returns: {
           id: string
