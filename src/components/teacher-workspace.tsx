@@ -41,7 +41,7 @@ function useData(section: Section){
   const needsStudents = section==="inicio" || section==="notas" || section==="frequencia" || section==="avaliacoes";
   const needsSubjects = section==="inicio" || section==="disciplinas" || section==="notas" || section==="atividades";
   const needsAssignments = section==="disciplinas";
-  const needsUnassignedClasses = section==="turmas" || section==="agenda" || section==="comunicacao";
+  const needsUnassignedClasses = section==="turmas" || section==="alunos" || section==="agenda" || section==="comunicacao";
   const classes=useQuery({queryKey:["teacher-new-classes"],queryFn:loadTeacherClassrooms,staleTime:30000,enabled:needsClasses});
   const students=useQuery({queryKey:["teacher-new-students"],queryFn:loadTeacherInstitutionStudents,staleTime:30000,enabled:needsStudents});
   const subjects=useQuery({queryKey:["teacher-new-subjects"],queryFn:loadTeacherSubjects,staleTime:30000,enabled:needsSubjects});
@@ -159,10 +159,11 @@ function Students({d}:{d:ReturnType<typeof useData>}){
   const list=roster.data?.items??[];
   const total=roster.data?.total??0;
   const totalPages=Math.max(1,Math.ceil(total/pageSize));
+  const availableClasses=[...(d.classes.data??[]),...(d.unassignedClasses.data??[]).filter(u=>!(d.classes.data??[]).some(c=>c.id===u.id))];
   function classFor(id:string){return targetClass[id]??""}
   function enrollmentFor(s:{id:string;enrollment:string|null}){return enrollments[s.id]??s.enrollment??""}
   async function school(id:string){setBusy(id);try{await teacherLinkStudentToSchool(id);await Promise.all([waiting.refetch(),d.refresh()]);toast.success("Aluno vinculado à escola.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
-  async function enroll(id:string){const classroom=classFor(id);const enrollment=enrollmentFor({id,enrollment:(list.find(s=>s.id===id)?.enrollment??"")});if(!classroom||!enrollment.trim())return;setBusy(id);try{await teacherEnrollStudentInClassroom(id,classroom,enrollment.trim());await d.refresh();toast.success("Aluno vinculado à turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
+  async function enroll(id:string){const classroom=classFor(id);const enrollment=enrollmentFor({id,enrollment:(list.find(s=>s.id===id)?.enrollment??"")});if(!classroom){toast.error("Selecione uma turma.");return;}if(!enrollment.trim()){toast.error("Informe a matrícula do aluno.");return;}setBusy(id);try{await teacherEnrollStudentInClassroom(id,classroom,enrollment.trim());await d.refresh();toast.success("Aluno vinculado à turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   async function remove(id:string){setBusy(id);try{await teacherRemoveStudentFromClassroom(id);await d.refresh();toast.success("Aluno removido da turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   return <div className="space-y-5">
     <Card title="Alunos da instituição" description="Escolha a turma diretamente em cada aluno. Alunos em uma turma sem professor também podem ser reatribuídos.">
