@@ -912,6 +912,12 @@ export async function loadAdminAcademicSetup(): Promise<AdminAcademicSetup> {
   return (data ?? { classrooms: [], subjects: [], terms: [] }) as AdminAcademicSetup;
 }
 
+export async function adminImportAcademicCsv(rows: Record<string, string>[]) {
+  const { data, error } = await supabase.rpc("admin_import_academic_csv", { _rows: rows });
+  if (error) throw error;
+  return (data ?? { classes: 0, students: 0, skipped: 0 }) as { classes: number; students: number; skipped: number };
+}
+
 export async function adminUpsertClassroom(id: string | null, name: string, code: string) {
   const { data, error } = await supabase.rpc("admin_upsert_classroom", { _id: id as string, _name: name, _code: code });
   if (error) throw error;
