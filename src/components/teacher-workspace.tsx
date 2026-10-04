@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, GraduationCap, Megaphone, Plus, School, Users, BarChart3 } from "lucide-react";
@@ -12,7 +12,7 @@ import {
   createTeacherCalendarEvent, createTeacherClassroom, createTeacherSubject, createTeacherTask,
   errorText, gradeTaskSubmission, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
-  loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
+  loadTeacherClassrooms, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
   loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherGrades,
   saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
   teacherRemoveStudentFromClassroom, type AttendanceRow
@@ -38,7 +38,7 @@ function Field({label,children}:{label:string;children:ReactNode}){return <label
 function useData(section: Section){
   const qc=useQueryClient();
   const needsClasses = true;
-  const needsStudents = section==="inicio" || section==="alunos" || section==="notas" || section==="frequencia" || section==="avaliacoes";
+  const needsStudents = section==="inicio" || section==="notas" || section==="frequencia" || section==="avaliacoes";
   const needsSubjects = section==="inicio" || section==="disciplinas" || section==="notas" || section==="atividades";
   const needsAssignments = section==="disciplinas";
   const needsUnassignedClasses = section==="turmas" || section==="agenda" || section==="comunicacao";
@@ -137,18 +137,43 @@ function Classes({d}:{d:ReturnType<typeof useData>}){
 }
 
 function Students({d}:{d:ReturnType<typeof useData>}){
-  const [search,setSearch]=useState("");const [busy,setBusy]=useState("");const [targetClass,setTargetClass]=useState<Record<string,string>>({});const [enrollments,setEnrollments]=useState<Record<string,string>>({});const [selectedStudent,setSelectedStudent]=useState<string|null>(null);
+  const [search,setSearch]=useState("");
+  const [debouncedSearch,setDebouncedSearch]=useState("");
+  const [classStatus,setClassStatus]=useState("");
+  const [page,setPage]=useState(1);
+  const pageSize=25;
+  const [busy,setBusy]=useState("");
+  const [targetClass,setTargetClass]=useState<Record<string,string>>({});
+  const [enrollments,setEnrollments]=useState<Record<string,string>>({});
+  const [selectedStudent,setSelectedStudent]=useState<string|null>(null);
   const waiting=useQuery({queryKey:["teacher-new-unassigned"],queryFn:loadTeacherUnassignedStudents,staleTime:15000});
+  const roster=useQuery({
+    queryKey:["teacher-new-students-page",debouncedSearch,classStatus,page],
+    queryFn:()=>loadTeacherInstitutionStudentsPage(debouncedSearch,classStatus,page,pageSize),
+    placeholderData:previous=>previous,
+  });
   const academic=useQuery({queryKey:["teacher-student-academic",selectedStudent],queryFn:()=>loadTeacherGrades(selectedStudent!),enabled:!!selectedStudent,staleTime:10000});
-  const list=(d.students.data??[]).filter(s=>(s.full_name+" "+s.enrollment+" "+s.classroom).toLowerCase().includes(search.toLowerCase()));
+  useEffect(()=>{const timer=window.setTimeout(()=>{setDebouncedSearch(search.trim());setPage(1);},300);return()=>window.clearTimeout(timer);},[search]);
+  useEffect(()=>{setPage(1);},[classStatus]);
+  const list=roster.data?.items??[];
+  const total=roster.data?.total??0;
+  const totalPages=Math.max(1,Math.ceil(total/pageSize));
   function classFor(id:string){return targetClass[id]??""}
   function enrollmentFor(s:{id:string;enrollment:string|null}){return enrollments[s.id]??s.enrollment??""}
   async function school(id:string){setBusy(id);try{await teacherLinkStudentToSchool(id);await Promise.all([waiting.refetch(),d.refresh()]);toast.success("Aluno vinculado à escola.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
-  async function enroll(id:string){const classroom=classFor(id);const enrollment=enrollmentFor({id,enrollment:((d.students.data??[]).find(s=>s.id===id)?.enrollment??"")});if(!classroom||!enrollment.trim())return;setBusy(id);try{await teacherEnrollStudentInClassroom(id,classroom,enrollment.trim());await d.refresh();toast.success("Aluno vinculado à turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
+  async function enroll(id:string){const classroom=classFor(id);const enrollment=enrollmentFor({id,enrollment:(list.find(s=>s.id===id)?.enrollment??"")});if(!classroom||!enrollment.trim())return;setBusy(id);try{await teacherEnrollStudentInClassroom(id,classroom,enrollment.trim());await d.refresh();toast.success("Aluno vinculado à turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   async function remove(id:string){setBusy(id);try{await teacherRemoveStudentFromClassroom(id);await d.refresh();toast.success("Aluno removido da turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   return <div className="space-y-5">
     <Card title="Alunos da instituição" description="Escolha a turma diretamente em cada aluno. Alunos em uma turma sem professor também podem ser reatribuídos.">
-      <Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar nome, matrícula ou turma"/>
+      <div className="grid gap-2 md:grid-cols-[1fr_220px]">
+        <Input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar nome, matrícula ou turma"/>
+        <select value={classStatus} onChange={e=>setClassStatus(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+          <option value="">Todos os vínculos</option>
+          <option value="minha_turma">Minhas turmas</option>
+          <option value="sem_turma">Sem turma</option>
+          <option value="outra_turma">Outra turma</option>
+        </select>
+      </div>
       <div className="mt-4 space-y-2">
         {list.map(s=><div key={s.id} className="rounded-xl border border-border p-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -161,8 +186,17 @@ function Students({d}:{d:ReturnType<typeof useData>}){
             </div>}
           </div>
         </div>)}
-        {list.length===0&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum aluno encontrado nesta escola.</p>}
+        {roster.isPending && <p className="text-sm text-muted-foreground">Carregando alunos…</p>}
+        {roster.error && <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os alunos. <Button size="sm" variant="outline" onClick={()=>void roster.refetch()}>Tentar novamente</Button></div>}
+        {!roster.isPending && list.length===0&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum aluno encontrado nesta escola.</p>}
       </div>
+      {total > 0 && <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-muted-foreground">Página {page} de {totalPages} · {total} aluno(s)</p>
+        <div className="flex gap-2">
+          <Button type="button" size="sm" variant="outline" disabled={page<=1||roster.isFetching} onClick={()=>setPage(v=>Math.max(1,v-1))}>Anterior</Button>
+          <Button type="button" size="sm" variant="outline" disabled={page>=totalPages||roster.isFetching} onClick={()=>setPage(v=>Math.min(totalPages,v+1))}>Próxima</Button>
+        </div>
+      </div>}
     </Card>
     <Card title="Alunos sem escola" description="Vincule o aluno à escola ativa do professor antes de colocá-lo em uma turma.">
       <div className="space-y-2">{(waiting.data??[]).map(s=><div key={s.id} className="flex flex-col gap-3 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between"><div><b>{s.full_name}</b><p className="text-xs text-muted-foreground">{s.enrollment||"Sem matrícula"}</p></div><Button disabled={!!busy} onClick={()=>void school(s.id)}>{busy===s.id?"Vinculando…":"Vincular à minha escola"}</Button></div>)}</div>
