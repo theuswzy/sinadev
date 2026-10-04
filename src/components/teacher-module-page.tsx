@@ -321,4 +321,4 @@ function PublishBox({kind,classes}:{kind:"notice"|"task";classes:any[]}){
   </div>;
 }
 // SINA teacher workspace sync marker
-// Teacher roster management and class-scoped academic access batch.
+// Complete teacher workspace: roster, classes, subjects, grades, attendance, assessments, tasks, calendar and communication.
