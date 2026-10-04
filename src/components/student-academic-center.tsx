@@ -9,6 +9,7 @@ import {
   loadStudentAttendance,
   loadStudentCalendar,
   loadStudentTaskSubmissions,
+  loadStudentAcademicMaterials,
   loadTasks,
   submitTask,
 } from "@/lib/sina-data";
