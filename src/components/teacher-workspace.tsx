@@ -34,14 +34,27 @@ function Select({label,value,onChange,children}:{label:string;value:string;onCha
 }
 function Field({label,children}:{label:string;children:ReactNode}){return <label className="grid gap-1.5 text-sm"><span className="font-medium">{label}</span>{children}</label>}
 
-function useData(){
+function useData(section: Section){
   const qc=useQueryClient();
-  const classes=useQuery({queryKey:["teacher-new-classes"],queryFn:loadTeacherClassrooms,staleTime:30000});
-  const students=useQuery({queryKey:["teacher-new-students"],queryFn:loadTeacherInstitutionStudents,staleTime:30000});
-  const subjects=useQuery({queryKey:["teacher-new-subjects"],queryFn:loadTeacherSubjects,staleTime:30000});
-  const assignments=useQuery({queryKey:["teacher-new-assignments"],queryFn:async()=>{const {data,error}=await supabase.rpc("teacher_list_subject_assignments");if(error)throw error;return data??[]},staleTime:30000});
-  const unassignedClasses=useQuery({queryKey:["teacher-new-unassigned-classes"],queryFn:loadTeacherUnassignedClassrooms,staleTime:15000});
-  async function refresh(){await Promise.all([qc.invalidateQueries({queryKey:["teacher-new-classes"]}),qc.invalidateQueries({queryKey:["teacher-new-unassigned-classes"]}),qc.invalidateQueries({queryKey:["teacher-new-students"]}),qc.invalidateQueries({queryKey:["teacher-new-subjects"]}),qc.invalidateQueries({queryKey:["teacher-new-assignments"]})])}
+  const needsClasses = section !== "inicio" || section === "inicio";
+  const needsStudents = section==="inicio" || section==="alunos" || section==="notas" || section==="frequencia";
+  const needsSubjects = section==="inicio" || section==="disciplinas" || section==="notas" || section==="atividades";
+  const needsAssignments = section==="disciplinas";
+  const needsUnassignedClasses = section==="turmas";
+  const classes=useQuery({queryKey:["teacher-new-classes"],queryFn:loadTeacherClassrooms,staleTime:30000,enabled:needsClasses});
+  const students=useQuery({queryKey:["teacher-new-students"],queryFn:loadTeacherInstitutionStudents,staleTime:30000,enabled:needsStudents});
+  const subjects=useQuery({queryKey:["teacher-new-subjects"],queryFn:loadTeacherSubjects,staleTime:30000,enabled:needsSubjects});
+  const assignments=useQuery({queryKey:["teacher-new-assignments"],queryFn:async()=>{const {data,error}=await supabase.rpc("teacher_list_subject_assignments");if(error)throw error;return data??[]},staleTime:30000,enabled:needsAssignments});
+  const unassignedClasses=useQuery({queryKey:["teacher-new-unassigned-classes"],queryFn:loadTeacherUnassignedClassrooms,staleTime:15000,enabled:needsUnassignedClasses});
+  async function refresh(){
+    await Promise.all([
+      qc.invalidateQueries({queryKey:["teacher-new-classes"]}),
+      qc.invalidateQueries({queryKey:["teacher-new-unassigned-classes"]}),
+      qc.invalidateQueries({queryKey:["teacher-new-students"]}),
+      qc.invalidateQueries({queryKey:["teacher-new-subjects"]}),
+      qc.invalidateQueries({queryKey:["teacher-new-assignments"]}),
+    ]);
+  }
   return {classes,students,subjects,assignments,refresh};
 }
 
@@ -174,7 +187,7 @@ function Communication({d}:{d:ReturnType<typeof useData>}){
 }
 
 export function TeacherWorkspace({initialSection="inicio"}:{initialSection?:Section}){
-  const [section,setSection]=useState<Section>(initialSection);const d=useData();const current=menu.find(x=>x.id===section)??menu[0];
+  const [section,setSection]=useState<Section>(initialSection);const d=useData(section);const current=menu.find(x=>x.id===section)??menu[0];
   const body=section==="inicio"?<Overview d={d}/>:section==="turmas"?<Classes d={d}/>:section==="alunos"?<Students d={d}/>:section==="disciplinas"?<Subjects d={d}/>:section==="notas"?<Grades d={d}/>:section==="frequencia"?<Attendance d={d}/>:section==="avaliacoes"?<Assessments d={d}/>:section==="atividades"?<Tasks d={d}/>:section==="agenda"?<Agenda d={d}/>:<Communication d={d}/>;
   return <AcademicShell title={current.label} subtitle="Gestão acadêmica docente" requiredRole="teacher"><div className="space-y-5"><nav className="flex gap-2 overflow-x-auto pb-1">{menu.map(item=>{const Icon=item.Icon;return <button key={item.id} type="button" onClick={()=>setSection(item.id)} className={"inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold "+(item.id===section?"bg-primary text-primary-foreground":"border border-border bg-card text-muted-foreground hover:text-foreground")}><Icon className="size-4"/>{item.label}</button>})}</nav>{body}</div></AcademicShell>;
 }
