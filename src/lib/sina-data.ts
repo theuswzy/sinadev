@@ -167,17 +167,47 @@ export async function loadMyStudent(): Promise<Student | null> {
   const { data, error } = await supabase.rpc("student_get_profile");
   if (error) throw error;
 
-  const existing = data?.[0] ?? null;
-  if (existing) return existing;
+  let student = data?.[0] ?? null;
 
-  // A criação é feita apenas quando o perfil ainda não existe.
-  // Isso evita writes repetidos durante a atualização automática do dashboard.
-  const { error: ensureError } = await supabase.rpc("ensure_student_profile");
-  if (ensureError) throw ensureError;
+  if (!student) {
+    // A criação é feita apenas quando o perfil ainda não existe.
+    // Isso evita writes repetidos durante a atualização automática do dashboard.
+    const { error: ensureError } = await supabase.rpc("ensure_student_profile");
+    if (ensureError) throw ensureError;
 
-  const { data: refreshed, error: refreshError } = await supabase.rpc("student_get_profile");
-  if (refreshError) throw refreshError;
-  return refreshed?.[0] ?? null;
+    const { data: refreshed, error: refreshError } = await supabase.rpc("student_get_profile");
+    if (refreshError) throw refreshError;
+    student = refreshed?.[0] ?? null;
+  }
+
+  if (!student) return null;
+
+  // Quando o aluno entra com Google, o Supabase Auth normalmente recebe a foto
+  // em user_metadata.avatar_url ou user_metadata.picture. Se o aluno ainda não
+  // escolheu uma foto própria no SINA, aproveitamos essa imagem automaticamente.
+  if (!student.avatar_url) {
+    const { data: auth } = await supabase.auth.getUser();
+    const metadata = auth.user?.user_metadata ?? {};
+    const googleAvatar =
+      typeof metadata["avatar_url"] === "string"
+        ? metadata["avatar_url"]
+        : typeof metadata["picture"] === "string"
+          ? metadata["picture"]
+          : null;
+
+    if (googleAvatar) {
+      const { data: updated, error: updateError } = await supabase.rpc("student_update_profile", {
+        _full_name: student.full_name,
+        _avatar_url: googleAvatar,
+      });
+
+      if (!updateError && updated) {
+        student = updated as Student;
+      }
+    }
+  }
+
+  return student;
 }
 export async function loadGrades(studentId: string): Promise<Grade[]> {
   const role = await getRole();
