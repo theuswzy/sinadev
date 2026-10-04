@@ -67,7 +67,6 @@ function StudentDashboard() {
           {to:"/aluno/notas",icon:BarChart3,label:"Notas lançadas",value:grades.isPending ? "—" : grades.data?.length ?? 0,desc:"ver origem e avaliações"},
           {to:"/aluno/frequencia",icon:CheckCircle2,label:"Faltas",value:attendance.isPending ? "—" : absences,desc:"abrir histórico completo"},
           {to:"/aluno/disciplinas",icon:BookOpen,label:"Disciplinas",value:subjects.length,desc:"ver professores e turmas"},
-          {to:"/aluno",icon:FileText,label:"Materiais",value:materials.isPending ? "—" : materials.data?.length ?? 0,desc:"materiais de estudo"},
         ].map(({to,icon:Icon,label,value,desc})=><Link key={label} to={to} className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary"/></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></Link>)}
       </section>
 
