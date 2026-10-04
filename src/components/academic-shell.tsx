@@ -25,8 +25,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
 import { getRole } from "@/lib/sina-data";
 
+type AcademicNavPath = "/admin" | "/aluno" | "/aluno/tarefas" | "/aluno/disciplinas" | "/aluno/notas" | "/aluno/frequencia" | "/aluno/agenda" | "/aluno/avisos" | "/professor" | "/professor/turmas" | "/professor/disciplinas" | "/professor/notas" | "/professor/frequencia" | "/professor/avaliacoes" | "/professor/atividades" | "/professor/agenda" | "/professor/comunicacao";
+
 type ShellLink = {
-  href: string;
+  href: AcademicNavPath;
   label: string;
   Icon: typeof LayoutDashboard;
   route?: boolean;
@@ -170,7 +172,7 @@ export function AcademicShell({
       return (
         <Link
           key={item.href}
-          to={item.href as any}
+          to={item.href as AcademicNavPath}
           className={className}
           aria-current={active ? "page" : undefined}
           onClick={() => setMobileOpen(false)}
