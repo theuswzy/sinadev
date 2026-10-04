@@ -133,15 +133,19 @@ function RootComponent() {
   const router = useRouter();
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-      void router.invalidate();
-      if (session) {
-        void queryClient.invalidateQueries();
-      } else {
+      if (event === "SIGNED_OUT") {
         queryClient.clear();
         if (router.state.location.pathname !== "/auth") {
           void router.navigate({ to: "/auth", replace: true });
         }
+        return;
+      }
+
+      // O fluxo de login/cadastro já faz a navegação e carrega os dados
+      // necessários. Invalidar o app inteiro no SIGNED_IN causava trabalho
+      // extra justamente no momento em que o usuário esperava entrar.
+      if (event === "USER_UPDATED") {
+        void router.invalidate();
       }
     });
     return () => subscription.unsubscribe();
