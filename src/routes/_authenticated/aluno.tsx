@@ -72,11 +72,15 @@ function StudentDashboard() {
 
       <section className="mt-5 sina-card p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Estudo</p><h2 className="mt-1 text-lg font-semibold">Materiais recentes</h2></div><FileText className="size-5 text-primary"/></div>
+        {materials.error && <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os materiais. <Button size="sm" variant="outline" className="ml-2" onClick={() => void materials.refetch()}>Tentar novamente</Button></div>}
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          {(materials.data ?? []).slice(0,4).map(item => <a key={item.id} href={item.file_url ?? "#"} target="_blank" rel="noreferrer" className="rounded-xl border border-border p-4 transition hover:bg-muted/50">
+          {(materials.data ?? []).slice(0,4).map(item => item.file_url ? <a key={item.id} href={item.file_url} target="_blank" rel="noreferrer" className="rounded-xl border border-border p-4 transition hover:bg-muted/50">
             <p className="truncate text-sm font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.classroom_name}{item.subject_name ? " · "+item.subject_name : ""}</p><p className="mt-2 truncate text-xs text-muted-foreground">📎 {item.file_name}</p>
-          </a>)}
-          {!materials.isPending && !(materials.data ?? []).length && <p className="text-sm text-muted-foreground">Nenhum material publicado para sua turma.</p>}
+          </a> : <div key={item.id} className="rounded-xl border border-border bg-muted/30 p-4">
+            <p className="truncate text-sm font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.classroom_name}{item.subject_name ? " · "+item.subject_name : ""}</p><p className="mt-2 text-xs text-muted-foreground">O arquivo está publicado, mas o link seguro precisa ser renovado.</p>
+          </div>)}
+          {materials.isPending && <p className="text-sm text-muted-foreground">Carregando materiais…</p>}
+          {!materials.isPending && !materials.error && !(materials.data ?? []).length && <p className="text-sm text-muted-foreground">Nenhum material publicado para sua turma.</p>}
         </div>
       </section>
 
