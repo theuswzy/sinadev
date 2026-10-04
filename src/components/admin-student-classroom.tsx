@@ -19,6 +19,15 @@ export function AdminStudentClassroom() {
   const students = useQuery({ queryKey: ["admin-students"], queryFn: loadAdminStudents });
   const schoolLinks = useQuery({ queryKey: ["admin-student-school-links"], queryFn: loadAdminStudentSchoolLinks });
   const institutions = useQuery({
+    queryKey: ["admin-managed-institutions"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("account_list_institutions");
+      if (error) throw error;
+      return (data ?? []).filter(item => item.role === "admin" && item.status === "active");
+    },
+  });
+  const schoolLinks = useQuery({ queryKey: ["admin-student-school-links"], queryFn: loadAdminStudentSchoolLinks });
+  const institutions = useQuery({
     queryKey: ["admin-linkable-institutions"],
     queryFn: async () => {
       const { data, error } = await import("@/integrations/supabase/client").then(({ supabase }) =>
@@ -40,6 +49,7 @@ export function AdminStudentClassroom() {
   const [onlyWithoutClass, setOnlyWithoutClass] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<Record<string, string>>({});
+  const [selectedSchool, setSelectedSchool] = useState<Record<string, string>>({});
 
   const classes = (setup.data?.classrooms ?? []).filter(c => c.status === "active");
   const filtered = useMemo(() => {
@@ -58,8 +68,24 @@ export function AdminStudentClassroom() {
   async function refresh() {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["admin-students"] }),
+      qc.invalidateQueries({ queryKey: ["admin-student-school-links"] }),
       qc.invalidateQueries({ queryKey: ["admin-accounts"] }),
     ]);
+  }
+
+  async function linkSchool(studentId: string) {
+    const institutionId = selectedSchool[studentId];
+    if (!institutionId) return;
+    setBusy(studentId);
+    try {
+      await adminLinkStudentToInstitution(studentId, institutionId);
+      await refresh();
+      toast.success("Aluno vinculado à escola.");
+    } catch (e) {
+      toast.error(errorText(e));
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function assign(id: string) {
@@ -183,6 +209,62 @@ export function AdminStudentClassroom() {
           </div>
         )}
       </section>
+
+      <div className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-5">
+        <div className="flex items-start gap-3">
+          <UserCheck className="mt-0.5 size-5 text-primary" />
+          <div>
+            <h3 className="font-semibold">Vincular aluno à escola</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Antes de matricular em uma turma, o administrador pode definir em qual escola/instituição o aluno está matriculado.
+              Só aparecem escolas nas quais esta conta possui acesso administrativo.
+            </p>
+          </div>
+        </div>
+
+        {institutions.isPending || schoolLinks.isPending ? (
+          <p className="mt-4 text-sm text-muted-foreground">Carregando escolas e alunos…</p>
+        ) : institutions.error ? (
+          <p className="mt-4 text-sm text-destructive">{errorText(institutions.error)}</p>
+        ) : (
+          <div className="mt-4 space-y-2">
+            {(schoolLinks.data ?? []).filter(student => !student.institution_id || (institutions.data ?? []).some(i => i.id === student.institution_id)).map(student => (
+              <div key={student.id} className="flex flex-col gap-3 rounded-xl border border-border bg-background p-3 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0">
+                  <p className="font-medium">{student.full_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {student.enrollment || "Sem matrícula"} · {student.institution_name || "Sem escola"}
+                  </p>
+                </div>
+                <div className="flex w-full gap-2 md:max-w-xl">
+                  <select
+                    value={selectedSchool[student.id] ?? student.institution_id ?? ""}
+                    onChange={e => setSelectedSchool(v => ({ ...v, [student.id]: e.target.value }))}
+                    className="h-10 min-w-0 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+                    aria-label={`Escola de ${student.full_name}`}
+                  >
+                    <option value="">Selecione a escola</option>
+                    {(institutions.data ?? []).map(institution => (
+                      <option key={institution.id} value={institution.id}>{institution.name}</option>
+                    ))}
+                  </select>
+                  <Button
+                    onClick={() => void linkSchool(student.id)}
+                    disabled={busy === student.id || !selectedSchool[student.id]}
+                  >
+                    {busy === student.id ? "Salvando…" : student.institution_id ? "Alterar escola" : "Vincular escola"}
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {!schoolLinks.data?.length && (
+              <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                Nenhum aluno disponível para vínculo de escola.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="mt-5 flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
