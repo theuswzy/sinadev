@@ -31,9 +31,9 @@ type ShellErrorBoundaryProps = { children: ReactNode };
 type ShellErrorBoundaryState = { hasError: boolean; message: string };
 
 class ShellErrorBoundary extends Component<ShellErrorBoundaryProps, ShellErrorBoundaryState> {
-  state: ShellErrorBoundaryState = { hasError: false, message: "" };
+  override state: ShellErrorBoundaryState = { hasError: false, message: "" };
 
-  static getDerivedStateFromError(error: unknown): ShellErrorBoundaryState {
+  static override getDerivedStateFromError(error: unknown): ShellErrorBoundaryState {
     return {
       hasError: true,
       message: error instanceof Error ? error.message : "Ocorreu um erro inesperado ao carregar esta área.",
