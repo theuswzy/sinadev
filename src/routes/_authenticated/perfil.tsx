@@ -150,7 +150,7 @@ function StudentProfile() {
 
         const { data, error } = await supabase.rpc("student_update_profile", {
           _full_name: trimmedName,
-          _avatar_url: avatar ?? undefined,
+          ...(avatar !== null ? { _avatar_url: avatar } : {}),
         });
 
         if (error) throw error;

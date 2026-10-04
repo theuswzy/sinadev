@@ -66,7 +66,7 @@ export async function searchSchoolDirectory(
 ): Promise<SchoolDirectoryEntry[]> {
   const { data, error } = await supabase.rpc("school_directory_search", {
     _search: search,
-    _network_type: networkType,
+    ...(networkType ? { _network_type: networkType } : {}),
     _municipality: municipality,
   });
   if (error) throw error;
@@ -78,7 +78,7 @@ export async function ensureAccountOnboardingForSchool(
   schoolDirectoryId: string,
 ): Promise<OnboardingState> {
   const { data, error } = await supabase.rpc("ensure_account_onboarding_v2", {
-    _requested_role: requestedRole,
+    ...(requestedRole ? { _requested_role: requestedRole } : {}),
     _school_directory_id: schoolDirectoryId,
   });
   if (error) throw error;
