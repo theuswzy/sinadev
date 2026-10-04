@@ -23,7 +23,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
-import { getRole } from "@/lib/sina-data";
+import { getRole, type UserRole } from "@/lib/sina-data";
 
 type AcademicNavPath = "/admin" | "/aluno" | "/aluno/tarefas" | "/aluno/disciplinas" | "/aluno/notas" | "/aluno/frequencia" | "/aluno/agenda" | "/aluno/avisos" | "/professor" | "/professor/turmas" | "/professor/disciplinas" | "/professor/notas" | "/professor/frequencia" | "/professor/avaliacoes" | "/professor/atividades" | "/professor/agenda" | "/professor/comunicacao";
 
@@ -38,10 +38,12 @@ export function AcademicShell({
   title,
   subtitle,
   children,
+  requiredRole,
 }: {
   title: string;
   subtitle: string;
   children: ReactNode;
+  requiredRole?: UserRole;
 }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -64,7 +66,6 @@ export function AcademicShell({
           () => {
             void queryClient.invalidateQueries({ queryKey: ["my-role"] });
             void queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
-            void queryClient.invalidateQueries();
           },
         )
         .on(
@@ -73,7 +74,6 @@ export function AcademicShell({
           () => {
             void queryClient.invalidateQueries({ queryKey: ["my-role"] });
             void queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
-            void queryClient.invalidateQueries();
           },
         )
         .subscribe();
@@ -85,7 +85,7 @@ export function AcademicShell({
     };
   }, [queryClient]);
 
-  const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
+  const role = useQuery({ queryKey: ["my-role"], queryFn: getRole, staleTime: 5 * 60_000 });
   const institutions = useQuery({
     queryKey: ["my-institutions"],
     queryFn: async () => {
@@ -93,6 +93,7 @@ export function AcademicShell({
       if (error) throw error;
       return data ?? [];
     },
+    staleTime: 5 * 60_000,
   });
 
   async function logout() {
@@ -161,6 +162,13 @@ export function AcademicShell({
         : role.data === "admin"
           ? "Administrador"
           : "SINA";
+
+  const accessBlocked = requiredRole && !role.isPending && !role.error && role.data !== requiredRole;
+  const accessMessage = role.error
+    ? role.error instanceof Error ? role.error.message : "Não foi possível validar seu acesso."
+    : accessBlocked
+      ? "Esta área é exclusiva para professores autorizados."
+      : null;
 
   const renderNavItem = (item: ShellLink) => {
     const active = isActive(item);
@@ -236,8 +244,16 @@ export function AcademicShell({
                       if (!event.target.value) return;
                       const { error } = await supabase.rpc("account_set_institution", { _institution_id: event.target.value });
                       if (error) return;
-                      await queryClient.invalidateQueries();
-                      window.location.reload();
+                      await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["my-role"] }),
+                        queryClient.invalidateQueries({ queryKey: ["my-institutions"] }),
+                        queryClient.invalidateQueries({
+                          predicate: (query) => {
+                            const key = String(query.queryKey[0] ?? "");
+                            return key.startsWith("teacher-") || key.startsWith("student-") || key.startsWith("admin-");
+                          },
+                        }),
+                      ]);
                     }}
                     className="max-w-48 bg-transparent text-xs font-semibold outline-none"
                   >
@@ -324,7 +340,13 @@ export function AcademicShell({
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">{roleLabel}</p>
             <h1 className="mt-1 font-display text-xl font-bold tracking-tight">{subtitle}</h1>
           </div>
-          {children}
+          {role.isPending && requiredRole ? (
+            <div className="sina-card mt-6 p-6">Verificando acesso…</div>
+          ) : accessMessage ? (
+            <div className="sina-card mt-6 p-6 text-sm">{accessMessage}</div>
+          ) : (
+            children
+          )}
         </div>
       </main>
     </div>
