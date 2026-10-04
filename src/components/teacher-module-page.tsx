@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { BarChart3, BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, Megaphone, Users, School } from "lucide-react";
@@ -72,7 +73,7 @@ function NoClassroomBanner({visible,onCreated}:{visible:boolean;onCreated:()=>vo
     if(!name.trim())return;
     setBusy(true);
     try{await createTeacherClassroom(name,code);setName("");setCode("");onCreated();}
-    catch(error){window.alert(errorText(error));}
+    catch(error){toast.error(errorText(error));}
     finally{setBusy(false);}
   }
   return <section className="sina-card mt-6 border-primary/20 bg-primary/5 p-5 sm:p-6"><p className="text-xs font-bold uppercase tracking-wide text-primary">Primeiro passo</p><h2 className="mt-1 text-lg font-semibold">Você ainda não tem uma turma</h2><p className="mt-1 max-w-2xl text-sm text-muted-foreground">Crie sua primeira turma para liberar alunos, notas, frequência, atividades, avaliações, agenda e comunicação.</p><div className="mt-4 grid gap-2 sm:grid-cols-[1fr_180px_auto]"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome da turma"/><Input value={code} onChange={e=>setCode(e.target.value)} placeholder="Código (opcional)"/><Button disabled={busy||!name.trim()} onClick={()=>void create()}>{busy?"Criando…":"Criar turma"}</Button></div></section>;
@@ -84,7 +85,7 @@ function SubjectBox(){
   const assignments=useQuery({queryKey:["teacher-subject-assignments"],queryFn:loadTeacherSubjectAssignments});
   const [name,setName]=useState(""); const [code,setCode]=useState(""); const [editing,setEditing]=useState<TeacherSubject|null>(null);
   const [assignSubject,setAssignSubject]=useState(""); const [assignClass,setAssignClass]=useState("");
-  const save=async()=>{if(!name.trim())return;try{if(editing) await updateTeacherSubject(editing.id,name,code); else await createTeacherSubject(name,code);setName("");setCode("");setEditing(null);await q.refetch();}catch(error){window.alert(errorText(error));}};
+  const save=async()=>{if(!name.trim())return;try{if(editing) await updateTeacherSubject(editing.id,name,code); else await createTeacherSubject(name,code);setName("");setCode("");setEditing(null);await q.refetch();}catch(error){toast.error(errorText(error));}};
   const assign=async()=>{if(!assignSubject||!assignClass)return;try{await assignTeacherSubjectToClass(assignSubject,assignClass);setAssignSubject("");await assignments.refetch();}catch(error){window.alert(errorText(error));}};
   return <div className="mt-6 space-y-5">
     <section className="rounded-3xl bg-brand p-6 text-brand-foreground md:p-8"><p className="text-xs font-bold uppercase tracking-[.14em] text-brand-muted">Gestão docente</p><h1 className="mt-1 font-display text-2xl font-bold">Minhas disciplinas</h1><p className="mt-2 max-w-2xl text-sm text-brand-muted">Crie suas disciplinas e associe cada uma às turmas em que você leciona.</p></section>
@@ -121,7 +122,7 @@ function TeacherRegisteredStudents({students,classes,onChanged}:{students:Teache
     try{
       await teacherLinkStudentToSchool(studentId);
       await Promise.all([onChanged(),unassigned.refetch()]);
-      window.alert("Aluno vinculado à escola. Agora ele pode ser colocado em uma turma.");
+      toast.success("Aluno vinculado à escola. Agora ele pode ser colocado em uma turma.");
     }catch(error){window.alert(errorText(error));}
     finally{setBusy(null);}
   }
@@ -192,7 +193,7 @@ function BulkGradeForm({students,qc}:{students:TeacherStudent[];qc:any}){
         const {error}=await supabase.rpc("teacher_upsert_grade",{_student_id:s.id,_subject:subject,_period:Number(period),_score:score,_absences:0});
         if(error)throw error;
       }
-      await qc.invalidateQueries({queryKey:["teacher-module-grades"]});setScores({});
+      await qc.invalidateQueries({queryKey:["teacher-module-grades"]});setScores({});toast.success("Notas salvas com sucesso.");
     }catch(error){window.alert(errorText(error));}
     finally{setSaving(false);}
   }
@@ -215,7 +216,7 @@ function GradeForm({student,qc}:{student:TeacherStudent;qc:any}){
   }
   return <section className="sina-card p-6"><h2 className="font-semibold">Lançar nota — {student.full_name}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2"><select value={subject} onChange={e=>setSubject(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Disciplina</option>{(subjects.data||[]).map(x=><option key={x.id} value={x.name}>{x.name}</option>)}</select><select value={period} onChange={e=>setPeriod(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">{[1,2,3,4].map(n=><option key={n} value={n}>{n}º período</option>)}</select><Input value={score} onChange={e=>setScore(e.target.value)} type="number" min="0" max="10" step=".01" placeholder="Nota"/><Input value={absences} onChange={e=>setAbsences(e.target.value)} type="number" min="0" step="1" placeholder="Faltas"/><Button className="sm:col-span-2" disabled={!subject||!score||saving} onClick={()=>void save()}>{saving?"Salvando…":"Salvar nota"}</Button></div></section>;
 }
-function AttendanceBox({classes,active,onChange,data,qc}:{classes:any[];active:string;onChange:(v:string)=>void;data:AttendanceRow[];qc:any}){const [draft,setDraft]=useState<Record<string,{status:AttendanceRow["status"];note:string}>>({});return <div className="mt-6 space-y-5"><ClassSelect classes={classes} value={active} onChange={onChange}/><section className="sina-card p-6"><div className="flex items-center justify-between"><div><h2 className="font-semibold">Diário de frequência</h2><p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("pt-BR")}</p></div><Button onClick={async()=>{await saveAttendance(active,new Date().toISOString().slice(0,10),Object.entries(draft).map(([student_id,v])=>({student_id,...v})));await qc.invalidateQueries({queryKey:["teacher-module-attendance",active]})}}>Salvar frequência</Button></div><div className="mt-4 divide-y divide-border">{data.map(r=>{const v=draft[r.student_id]||{status:r.status,note:r.note||""};return <div key={r.student_id} className="grid gap-2 py-3 sm:grid-cols-[1fr_170px_1fr] sm:items-center"><div><p className="font-medium">{r.full_name}</p><p className="text-xs text-muted-foreground">{r.enrollment}</p></div><select value={v.status} onChange={e=>setDraft(d=>({...d,[r.student_id]:{...v,status:e.target.value as AttendanceRow["status"]}}))} className="h-9 rounded-md border border-input bg-background px-2 text-sm"><option value="present">Presente</option><option value="late">Atrasado</option><option value="absent">Falta</option><option value="excused">Justificada</option></select><Input value={v.note} onChange={e=>setDraft(d=>({...d,[r.student_id]:{...v,note:e.target.value}}))} placeholder="Observação"/></div>})}</div></section></div>}
+function AttendanceBox({classes,active,onChange,data,qc}:{classes:any[];active:string;onChange:(v:string)=>void;data:AttendanceRow[];qc:any}){const [draft,setDraft]=useState<Record<string,{status:AttendanceRow["status"];note:string}>>({});return <div className="mt-6 space-y-5"><ClassSelect classes={classes} value={active} onChange={onChange}/><section className="sina-card p-6"><div className="flex items-center justify-between"><div><h2 className="font-semibold">Diário de frequência</h2><p className="text-sm text-muted-foreground">{new Date().toLocaleDateString("pt-BR")}</p></div><Button onClick={async()=>{await saveAttendance(active,new Date().toISOString().slice(0,10),Object.entries(draft).map(([student_id,v])=>({student_id,...v})));await qc.invalidateQueries({queryKey:["teacher-module-attendance",active]});toast.success("Frequência salva com sucesso.")}catch(error){toast.error(errorText(error));}}}>Salvar frequência</Button></div><div className="mt-4 divide-y divide-border">{data.map(r=>{const v=draft[r.student_id]||{status:r.status,note:r.note||""};return <div key={r.student_id} className="grid gap-2 py-3 sm:grid-cols-[1fr_170px_1fr] sm:items-center"><div><p className="font-medium">{r.full_name}</p><p className="text-xs text-muted-foreground">{r.enrollment}</p></div><select value={v.status} onChange={e=>setDraft(d=>({...d,[r.student_id]:{...v,status:e.target.value as AttendanceRow["status"]}}))} className="h-9 rounded-md border border-input bg-background px-2 text-sm"><option value="present">Presente</option><option value="late">Atrasado</option><option value="absent">Falta</option><option value="excused">Justificada</option></select><Input value={v.note} onChange={e=>setDraft(d=>({...d,[r.student_id]:{...v,note:e.target.value}}))} placeholder="Observação"/></div>})}</div></section></div>}
 function AssessmentsBox({classes,active,onChange}:{classes:any[];active:string;onChange:(v:string)=>void}){
   const o=useQuery({queryKey:["teacher-options"],queryFn:loadTeacherAcademicOptions});
   const subjects=useQuery({queryKey:["teacher-assessment-subjects"],queryFn:loadTeacherSubjects});
