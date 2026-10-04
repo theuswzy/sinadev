@@ -211,7 +211,7 @@ as $function$
   left join public.classrooms c on c.id=e.classroom_id
   where e.institution_id=sina_private.current_institution('teacher'::public.app_role)
     and e.created_by=auth.uid()
-    and e.status='active'
+    and e.status='scheduled'
     and (_from is null or e.start_at >= _from)
     and (_to is null or e.start_at <= _to)
   order by e.start_at asc
