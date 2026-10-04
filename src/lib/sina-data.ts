@@ -734,7 +734,7 @@ export async function updateTeacherTask(args: {
     _subject: args.subject,
     _title: args.title,
     _description: args.description,
-    _due_at: args.dueAt as string,
+    ...(args.dueAt ? { _due_at: args.dueAt } : {}),
     ...(args.attachmentPath ? { _attachment_path: args.attachmentPath } : {}),
     ...(args.attachmentName ? { _attachment_name: args.attachmentName } : {}),
     ...(args.attachmentSize != null ? { _attachment_size: args.attachmentSize } : {}),
