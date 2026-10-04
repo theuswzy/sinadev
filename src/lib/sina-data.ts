@@ -30,8 +30,15 @@ export async function getRole(): Promise<UserRole> {
   const { data: institutions, error: institutionError } = await supabase.rpc("account_list_institutions");
   if (institutionError) throw institutionError;
 
-  const active = (institutions ?? []).find((item) => item.is_active) ?? institutions?.[0];
-  const activeRole = active?.role as UserRole | undefined;
+  // When legacy data leaves more than one role in the active institution,
+  // always resolve the strongest role first. This prevents an admin account
+  // with a stale student membership from being sent to the student dashboard.
+  const activeInstitutions = (institutions ?? []).filter((item) => item.is_active);
+  const candidates = activeInstitutions.length > 0 ? activeInstitutions : (institutions ?? []);
+  const activeRole =
+    (candidates.find((item) => item.role === "admin")?.role ??
+      candidates.find((item) => item.role === "teacher")?.role ??
+      candidates.find((item) => item.role === "student")?.role) as UserRole | undefined;
   if (activeRole === "admin" || activeRole === "teacher" || activeRole === "student") {
     return activeRole;
   }
