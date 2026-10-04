@@ -186,7 +186,7 @@ function Students({d}:{d:ReturnType<typeof useData>}){
       <div className="mt-4 space-y-2">
         {list.map(s=><div key={s.id} className="rounded-xl border border-border p-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div><b>{s.full_name}</b><p className="text-xs text-muted-foreground">{s.enrollment||"Sem matrícula"} · {s.classroom||"Sem turma"} · {s.class_status}</p></div>
+            <div className="min-w-0"><button type="button" className="text-left" onClick={()=>setSelectedStudent(selectedStudent===s.id?null:s.id)}><b className="hover:text-primary">{s.full_name}</b><p className="text-xs text-muted-foreground">{s.enrollment||"Sem matrícula"} · {s.classroom||"Sem turma"} · {s.class_status}</p><p className="mt-1 text-xs font-semibold text-primary">{selectedStudent===s.id?"Ocultar ficha":"Abrir ficha acadêmica →"}</p></button></div>
             {s.class_status!=="outra_turma"&&<div className="grid gap-2 sm:grid-cols-[minmax(160px,1fr)_160px_auto_auto]">
               <select value={classFor(s.id)} onChange={e=>setTargetClass(v=>({...v,[s.id]:e.target.value}))} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Escolha a turma</option>{availableClasses.filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select>
               <Input value={enrollmentFor(s)} onChange={e=>setEnrollments(v=>({...v,[s.id]:e.target.value}))} placeholder="Matrícula"/>
@@ -207,6 +207,14 @@ function Students({d}:{d:ReturnType<typeof useData>}){
         </div>
       </div>}
     </Card>
+    {selectedStudent && <Card title="Ficha acadêmica do aluno" description="Resumo rápido para acompanhamento do aluno selecionado.">
+      {academic.isPending && <p className="text-sm text-muted-foreground">Carregando histórico acadêmico…</p>}
+      {academic.error && <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar a ficha. <Button size="sm" variant="outline" className="ml-2" onClick={()=>void academic.refetch()}>Tentar novamente</Button></div>}
+      {!academic.isPending && !academic.error && (()=>{const grades=academic.data??[];const scored=grades.filter(g=>Number.isFinite(Number(g.score)));const average=scored.length?scored.reduce((sum,g)=>sum+Number(g.score),0)/scored.length:0;const absences=grades.reduce((sum,g)=>sum+Number(g.absences??0),0);return <div className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-3"><div className="rounded-xl bg-primary/5 p-4"><p className="text-xs text-muted-foreground">Média simples</p><b className="text-2xl">{scored.length?average.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2}):"—"}</b></div><div className="rounded-xl bg-secondary p-4"><p className="text-xs text-muted-foreground">Lançamentos</p><b className="text-2xl">{grades.length}</b></div><div className="rounded-xl bg-secondary p-4"><p className="text-xs text-muted-foreground">Faltas lançadas</p><b className="text-2xl">{absences}</b></div></div>
+        <div className="grid gap-2 md:grid-cols-2">{grades.map(g=><div key={g.id} className="rounded-xl border border-border p-3"><div className="flex items-center justify-between gap-3"><b>{g.subject}</b><b>{g.score}</b></div><p className="mt-1 text-xs text-muted-foreground">{g.period}º período · {g.absences??0} falta(s)</p></div>)}{!grades.length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum lançamento acadêmico encontrado para este aluno.</p>}</div>
+      </div>})()}
+    </Card>}
     <Card title="Alunos sem escola" description="Vincule o aluno à escola ativa do professor antes de colocá-lo em uma turma.">
       <div className="space-y-2">{(waiting.data??[]).map(s=><div key={s.id} className="flex flex-col gap-3 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between"><div><b>{s.full_name}</b><p className="text-xs text-muted-foreground">{s.enrollment||"Sem matrícula"}</p></div><Button disabled={!!busy} onClick={()=>void school(s.id)}>{busy===s.id?"Vinculando…":"Vincular à minha escola"}</Button></div>)}</div>
       {(waiting.data??[]).length===0&&<p className="text-sm text-muted-foreground">Não há alunos aguardando vínculo com uma escola.</p>}
