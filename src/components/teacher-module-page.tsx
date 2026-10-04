@@ -323,10 +323,10 @@ function AssessmentsBox({classes,active,onChange}:{classes:any[];active:string;o
         <ClassSelect classes={classes} value={active} onChange={v=>{onChange(v);setSelected("");}}/>
         <Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Título da avaliação"/>
         <select value={subjectId} onChange={e=>setSubjectId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-          <option value="">Disciplina (opcional)</option>{(subjects.data||o.data?.subjects||[]).map((x: TeacherSubject)=><option key={x.id} value={x.id}>{x.name}{x.code?" · "+x.code:""}</option>)}
+          <option value="">Disciplina (opcional)</option>{(subjects.data||o.data?.subjects||[]).map(x=><option key={x.id} value={x.id}>{x.name}{x.code?" · "+x.code:""}</option>)}
         </select>
         <select value={termId} onChange={e=>setTermId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-          <option value="">Período letivo (opcional)</option>{(o.data?.terms||[]).map((x: AcademicOptions["terms"][number])=><option key={x.id} value={x.id}>{x.name}</option>)}
+          <option value="">Período letivo (opcional)</option>{(o.data?.terms||[]).map(x=><option key={x.id} value={x.id}>{x.name}</option>)}
         </select>
         <select value={type} onChange={e=>setType(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
           <option value="prova">Prova</option><option value="trabalho">Trabalho</option><option value="atividade">Atividade</option><option value="seminario">Seminário</option>
@@ -358,11 +358,11 @@ function AgendaBox({classes}:{classes:any[]}){
 }
 
 function PublishBox({kind,classes}:{kind:"notice"|"task";classes:any[]}){
-  const q=useQuery({queryKey:["teacher-publish",kind],queryFn:async()=>{const {data,error}=await supabase.rpc(kind==="notice"?"teacher_list_announcements":"teacher_list_tasks");if(error)throw error;return data||[]}});
+  const q=useQuery<PublishedItem[]>({queryKey:["teacher-publish",kind],queryFn:async():Promise<PublishedItem[]>=>{const {data,error}=await supabase.rpc(kind==="notice"?"teacher_list_announcements":"teacher_list_tasks");if(error)throw error;return (data||[]) as PublishedItem[];}});
   const subjects=useQuery({queryKey:["teacher-subjects"],queryFn:loadTeacherSubjects,enabled:kind==="task"});
-  const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [subject,setSubject]=useState("");const [content,setContent]=useState("");const [due,setDue]=useState("");const [selectedTask,setSelectedTask]=useState("");const [editing,setEditing]=useState<TeacherTask | TeacherAnnouncement | null>(null);const [saving,setSaving]=useState(false);
+  const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [subject,setSubject]=useState("");const [content,setContent]=useState("");const [due,setDue]=useState("");const [selectedTask,setSelectedTask]=useState("");const [editing,setEditing]=useState<PublishedItem | null>(null);const [saving,setSaving]=useState(false);
   const submissions=useQuery({queryKey:["task-submissions",selectedTask],queryFn:()=>loadTaskSubmissions(selectedTask),enabled:kind==="task"&&!!selectedTask});
-  function startEdit(item:TeacherTask | TeacherAnnouncement){setEditing(item);setClassroom(item.classroom||"");setTitle(item.title||"");setContent(item.content||item.description||"");setSubject(item.subject||"");setDue(item.due_at?new Date(item.due_at).toISOString().slice(0,16):"");}
+  function startEdit(item:PublishedItem){setEditing(item);setClassroom(item.classroom||"");setTitle(item.title||"");setContent(item.content||item.description||"");setSubject(item.subject||"");setDue(item.due_at?new Date(item.due_at).toISOString().slice(0,16):"");}
   function clearForm(){setEditing(null);setTitle("");setContent("");setSubject("");setDue("");setClassroom("");}
   async function publish(){
     if(!classroom||!title.trim()||(kind==="task"&&!subject))return;
@@ -379,7 +379,7 @@ function PublishBox({kind,classes}:{kind:"notice"|"task";classes:any[]}){
     }catch(error){toast.error(errorText(error));}
     finally{setSaving(false);}
   }
-  async function remove(item:TeacherTask | TeacherAnnouncement){
+  async function remove(item:PublishedItem){
     if(!window.confirm("Excluir este "+(kind==="notice"?"aviso":"atividade")+"? Essa ação não pode ser desfeita."))return;
     try{if(kind==="notice")await deleteTeacherAnnouncement(item.id);else await deleteTeacherTask(item.id);if(editing?.id===item.id)clearForm();await q.refetch();}catch(error){toast.error(errorText(error));}
   }
@@ -394,7 +394,7 @@ function PublishBox({kind,classes}:{kind:"notice"|"task";classes:any[]}){
         <Button disabled={!classroom||!title.trim()||(kind==="task"&&!subject)||saving} onClick={()=>void publish()}>{saving?"Salvando…":editing?"Salvar alterações":kind==="notice"?"Publicar aviso":"Publicar atividade"}</Button>
       </div>
     </section>
-    <section className="sina-card p-6"><h2 className="font-semibold">{kind==="notice"?"Meus avisos":"Minhas atividades"}</h2><div className="mt-4 space-y-2">{(q.data||[]).slice(0,10).map((x:TeacherTask | TeacherAnnouncement)=><article key={x.id} className="rounded-xl border border-border p-4"><div className="flex items-start justify-between gap-3"><button type="button" className="min-w-0 flex-1 text-left" onClick={()=>kind==="task"&&setSelectedTask(x.id)}><div className="flex items-center justify-between gap-3"><p className="font-medium">{x.title}</p>{kind==="task"&&<span className="text-xs text-muted-foreground">{x.due_at?new Date(x.due_at).toLocaleDateString("pt-BR"):"Sem prazo"}</span>}</div><p className="mt-1 text-xs text-muted-foreground">{x.classroom}{x.subject?" · "+x.subject:""}</p><p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{x.content||x.description}</p></button><div className="flex shrink-0 gap-1"><Button size="sm" variant="ghost" onClick={()=>startEdit(x)}>Editar</Button><Button size="sm" variant="ghost" onClick={()=>void remove(x)}>Excluir</Button></div></div></article>)}</div>
+    <section className="sina-card p-6"><h2 className="font-semibold">{kind==="notice"?"Meus avisos":"Minhas atividades"}</h2><div className="mt-4 space-y-2">{(q.data||[]).slice(0,10).map(x=><article key={x.id} className="rounded-xl border border-border p-4"><div className="flex items-start justify-between gap-3"><button type="button" className="min-w-0 flex-1 text-left" onClick={()=>kind==="task"&&setSelectedTask(x.id)}><div className="flex items-center justify-between gap-3"><p className="font-medium">{x.title}</p>{kind==="task"&&<span className="text-xs text-muted-foreground">{x.due_at?new Date(x.due_at).toLocaleDateString("pt-BR"):"Sem prazo"}</span>}</div><p className="mt-1 text-xs text-muted-foreground">{x.classroom}{x.subject?" · "+x.subject:""}</p><p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{x.content||x.description}</p></button><div className="flex shrink-0 gap-1"><Button size="sm" variant="ghost" onClick={()=>startEdit(x)}>Editar</Button><Button size="sm" variant="ghost" onClick={()=>void remove(x)}>Excluir</Button></div></div></article>)}</div>
       {kind==="task"&&selectedTask&&<div className="mt-5 border-t border-border pt-5"><h3 className="font-semibold">Entregas da atividade</h3><div className="mt-3 space-y-3">{(submissions.data||[]).map((s:TaskSubmission)=><div key={s.id} className="rounded-xl border border-border p-4"><div className="flex items-center justify-between gap-3"><div><p className="font-medium">{s.student_name}</p><p className="text-xs text-muted-foreground">{s.enrollment} · {s.status}</p></div><span className="text-sm font-semibold">{s.score==null?"Sem nota":s.score}</span></div><p className="mt-2 whitespace-pre-wrap text-sm">{s.content||"Sem texto"}</p><div className="mt-3 flex gap-2"><Input id={"score-"+s.id} type="number" min="0" max="10" step=".01" placeholder="Nota"/><Button onClick={async()=>{const el=document.getElementById("score-"+s.id) as HTMLInputElement;await gradeTaskSubmission(s.id,Number(el.value),"" );await submissions.refetch()}}>Corrigir</Button></div>{s.feedback&&<p className="mt-2 text-sm text-muted-foreground">Feedback: {s.feedback}</p>}</div>)}</div></div>}
     </section>
   </div>;
