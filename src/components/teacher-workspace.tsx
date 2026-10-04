@@ -80,9 +80,10 @@ function Overview({d}:{d:ReturnType<typeof useData>}){
   const students=(d.students.data??[]).filter(x=>x.class_status==="minha_turma").length;
   const subjects=(d.subjects.data??[]).filter(x=>x.status==="active").length;
   const pending=(d.students.data??[]).filter(x=>x.class_status==="sem_turma").length;
+  const metrics: [LucideIcon, string, number][] = [[Users,"Turmas",classes],[GraduationCap,"Alunos",students],[BookOpen,"Disciplinas",subjects],[School,"Sem turma",pending]];
   return <div className="space-y-5">
     <section className="rounded-3xl bg-brand p-6 text-brand-foreground sm:p-8"><p className="text-xs font-bold uppercase tracking-wide text-brand-muted">Área docente</p><h1 className="mt-1 font-display text-2xl font-bold">Meu espaço acadêmico</h1><p className="mt-2 max-w-2xl text-sm text-brand-muted">Gestão de turmas, alunos, disciplinas, notas, frequência e comunicação. Tudo limitado à instituição e às turmas autorizadas.</p></section>
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[[Users,"Turmas",classes],[GraduationCap,"Alunos",students],[BookOpen,"Disciplinas",subjects],[School,"Sem turma",pending]].map(([I,l,v])=><div key={String(l)} className="sina-card p-5"><I className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">{String(l)}</p><p className="mt-1 text-3xl font-semibold">{String(v)}</p></div>)}</div>
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{metrics.map(([I,l,v])=><div key={String(l)} className="sina-card p-5"><I className="size-5 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">{String(l)}</p><p className="mt-1 text-3xl font-semibold">{String(v)}</p></div>)}</div>
     <Card title="Fluxo docente" description="A mesma organização do administrador, mas com permissões acadêmicas restritas."><div className="grid gap-3 md:grid-cols-4">{["Turmas e alunos","Disciplinas","Notas e frequência","Avaliações, atividades e avisos"].map(x=><div key={x} className="rounded-xl border border-border bg-muted/30 p-4 text-sm font-medium">{x}</div>)}</div></Card>
   </div>;
 }
