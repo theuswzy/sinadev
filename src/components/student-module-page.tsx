@@ -81,6 +81,12 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
   const pendingTasks = (tasks.data ?? []).filter((task) => !task.completed);
   const title = meta[module];
+  const activeQuery = module === "tarefas" ? tasks
+    : module === "disciplinas" ? studentSubjects
+    : module === "notas" ? grades
+    : module === "frequencia" ? attendance
+    : module === "agenda" ? calendar
+    : announcements;
 
   if (student.isPending) {
     return <AcademicShell title={title.title} subtitle={title.subtitle}><div className="sina-card mt-8 p-6">Carregando...</div></AcademicShell>;
@@ -88,6 +94,14 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
   if (student.error || !student.data) {
     return <AcademicShell title={title.title} subtitle={title.subtitle}><div className="sina-card mt-8 p-6 text-sm text-destructive">{errorText(student.error ?? new Error("Perfil acadêmico não encontrado."))}</div></AcademicShell>;
+  }
+
+  if (activeQuery.isPending) {
+    return <AcademicShell title={title.title} subtitle={title.subtitle}><div className="sina-card mt-8 p-6">Carregando dados...</div></AcademicShell>;
+  }
+
+  if (activeQuery.error) {
+    return <AcademicShell title={title.title} subtitle={title.subtitle}><div className="sina-card mt-8 p-6"><p className="text-sm text-destructive">{errorText(activeQuery.error)}</p><Button className="mt-4" variant="outline" onClick={() => void activeQuery.refetch()}>Tentar novamente</Button></div></AcademicShell>;
   }
 
   return (
