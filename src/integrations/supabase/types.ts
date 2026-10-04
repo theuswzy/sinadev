@@ -2107,21 +2107,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      teacher_get_student_academic_profile: {
-        Args: { _student_id: string }
-        Returns: {
-          student_id: string
-          full_name: string
-          enrollment: string | null
-          classroom_id: string
-          classroom_name: string | null
-          grades: Json
-          assessments: Json
-          attendance: Json
-          tasks: Json
-        }[]
-      }
-      teacher_list_unassigned_classrooms: {
+            teacher_list_unassigned_classrooms: {
         Args: Record<string, never>
         Returns: {
           id: string
