@@ -26,7 +26,7 @@ export function AdminStudentClassroom() {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (students.data ?? []).filter(student => {
-      const matchesSearch = !term || `${student.full_name} ${student.email ?? ""} ${student.enrollment ?? ""} ${student.classroom_name ?? ""}`.toLowerCase().includes(term);
+      const matchesSearch = !term || `${student.full_name} ${student.enrollment ?? ""} ${student.classroom_name ?? ""}`.toLowerCase().includes(term);
       const matchesClass = !onlyWithoutClass || !student.classroom_id;
       return matchesSearch && matchesClass;
     });
