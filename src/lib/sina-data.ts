@@ -263,23 +263,6 @@ export async function loadTeacherGrades(studentId: string): Promise<Grade[]> {
   return (data ?? []) as Grade[];
 }
 
-export type TeacherStudentAcademicProfile = {
-  student_id: string;
-  full_name: string;
-  enrollment: string | null;
-  classroom_id: string;
-  classroom_name: string | null;
-  grades: Array<{ id: string; subject: string; period: number; score: number; absences: number; subject_id: string | null; term_id: string | null; created_at: string }>;
-  assessments: Array<{ id: string; title: string; assessment_type: string | null; weight: number; max_score: number; due_at: string | null; status: string; subject_name: string; term_name: string; score: number | null; feedback: string | null; graded_at: string | null }>;
-  attendance: Array<{ id: string; date: string; status: string; note: string | null }>;
-  tasks: Array<{ id: string; title: string; subject: string; due_at: string | null; submission_status: string | null; score: number | null; feedback: string | null; submitted_at: string | null }>;
-};
-
-export async function loadTeacherStudentAcademicProfile(studentId: string): Promise<TeacherStudentAcademicProfile | null> {
-  const { data, error } = await supabase.rpc("teacher_get_student_academic_profile", { _student_id: studentId });
-  if (error) throw error;
-  return (data?.[0] ?? null) as TeacherStudentAcademicProfile | null;
-}
 export const formatScore = (n: number) => n.toFixed(1).replace(".", ",");
 export const errorText = (err: unknown) => err instanceof Error ? err.message : "Não foi possível concluir. Tente novamente.";
 
