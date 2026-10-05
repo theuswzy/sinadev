@@ -347,6 +347,14 @@ function AdminArea() {
     return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Verificando permissões…</div>;
   }
 
+  const adminTabs: { id: AdminTab; label: string; Icon: LucideIcon }[] = [
+    { id: "visao-geral", label: "Visão geral", Icon: LayoutDashboard },
+    { id: "escolas", label: "Escolas", Icon: Building2 },
+    { id: "pessoas", label: "Pessoas e acessos", Icon: Users },
+    { id: "academico", label: "Acadêmico", Icon: BookOpen },
+    { id: "historico", label: "Histórico", Icon: ShieldCheck },
+  ];
+
   if (role.error || !role.data) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
@@ -441,14 +449,8 @@ function AdminArea() {
       <main id="inicio" className="mx-auto max-w-6xl space-y-6 px-3 py-5 sm:px-5 sm:py-7 lg:px-8 lg:py-9">
         <nav aria-label="Seções administrativas" className="sina-card sticky top-[68px] z-30 -mx-1 overflow-x-auto p-2 sm:mx-0">
           <div className="flex min-w-max gap-1">
-            {[
-              ["visao-geral","Visão geral",LayoutDashboard],
-              ["escolas","Escolas",Building2],
-              ["pessoas","Pessoas e acessos",Users],
-              ["academico","Acadêmico",BookOpen],
-              ["historico","Histórico",ShieldCheck],
-            ].map(([id,label,Icon]) => (
-              <button key={id as string} type="button" onClick={() => setAdminTab(id as AdminTab)} className={adminTab === id ? "inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm" : "inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"}>
+            {adminTabs.map(({ id, label, Icon }) => (
+              <button key={id} type="button" onClick={() => setAdminTab(id)} className={adminTab === id ? "inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm" : "inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"}>
                 <Icon className="size-4" />{label}
               </button>
             ))}
