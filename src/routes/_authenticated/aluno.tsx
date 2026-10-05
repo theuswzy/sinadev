@@ -56,6 +56,8 @@ function StudentDashboard() {
       .values(),
   ).sort((a, b) => a.subject.localeCompare(b.subject, "pt-BR") || a.teacher.localeCompare(b.teacher, "pt-BR"));
   const subjectTeachers = (subject: string) => Array.from(new Set((studentSubjects.data ?? []).filter(item => item.name === subject).map(item => item.teacher_name).filter(Boolean)));
+  const uniqueSubjectCount = new Set((studentSubjects.data ?? []).map(item => item.id)).size;
+  const uniqueTeacherCount = new Set((studentSubjects.data ?? []).map(item => item.teacher_id)).size;
   const scoredGrades = (grades.data ?? []).filter(g => Number.isFinite(Number(g.score)));
   const gradedAssessments = (assessments.data ?? []).filter(item => item.score != null && Number(item.max_score) > 0 && Number(item.weight) > 0);
   const totalAssessmentWeight = gradedAssessments.reduce((sum, item) => sum + Number(item.weight), 0);
@@ -100,8 +102,28 @@ function StudentDashboard() {
           {to:"/aluno/notas",icon:BarChart3,label:"Média geral",value:grades.isPending ? "—" : overallAverage == null ? "—" : overallAverage.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2}),desc:weightedAverage != null ? "Média ponderada das avaliações" : "Notas registradas"},
           {to:"/aluno/frequencia",icon:CheckCircle2,label:"Frequência",value:attendance.isPending ? "—" : attendancePercent == null ? "—" : attendancePercent.toLocaleString("pt-BR",{maximumFractionDigits:0})+"%",desc:attendanceTotal ? (presentCount+" presença(s) em "+attendanceTotal+".") : "Sem registros ainda"},
           {to:"/aluno/tarefas",icon:ClipboardList,label:"Pendências",value:tasks.isPending ? "—" : pending.length,desc:pending.length?"Atividade(s) aguardando você":"Tudo em dia"},
-          {to:"/aluno/disciplinas",icon:BookOpen,label:"Disciplinas",value:studentSubjects.isPending ? "—" : (studentSubjects.data?.length ?? 0),desc:"Disciplinas vinculadas à sua turma"},
+          {to:"/aluno/disciplinas",icon:BookOpen,label:"Disciplinas",value:studentSubjects.isPending ? "—" : uniqueSubjectCount,desc:studentSubjects.isPending ? "Carregando vínculos" : uniqueTeacherCount + (uniqueTeacherCount === 1 ? " professor vinculado" : " professores vinculados")},
         ].map(({to,icon:Icon,label,value,desc})=><Link key={label} to={to} className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary"/></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></Link>)}
+      </section>
+
+      <section className="mt-5 sina-card p-5 sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Minha turma</p><h2 className="mt-1 text-lg font-semibold">Matérias e professores</h2><p className="mt-1 text-sm text-muted-foreground">Cada vínculo aparece separado para evitar misturar atividades, notas e avisos de professores diferentes.</p></div>
+          <Link to="/aluno/disciplinas" className="text-sm font-semibold text-primary">Ver disciplinas</Link>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {(studentSubjects.data ?? []).map(item => {
+            const pendingCount = pending.filter(task => (task.subject_id && task.subject_id === item.id) || (!task.subject_id && (task.subject_name || task.subject) === item.name)).length;
+            return <Link key={item.id + item.teacher_id} to="/aluno/disciplinas" className="rounded-2xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5">
+              <div className="flex items-start justify-between gap-3"><span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary"><BookOpen className="size-4"/></span>{pendingCount > 0 && <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">{pendingCount} pend.</span>}</div>
+              <p className="mt-3 font-semibold">{item.name}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Prof. {item.teacher_name || "não informado"}</p>
+              <p className="mt-2 text-[11px] text-muted-foreground">{item.classroom_name}</p>
+            </Link>;
+          })}
+          {studentSubjects.isPending && <p className="text-sm text-muted-foreground">Carregando matérias e professores…</p>}
+          {!studentSubjects.isPending && !(studentSubjects.data ?? []).length && <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Nenhuma disciplina foi vinculada à sua turma ainda.</p>}
+        </div>
       </section>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
