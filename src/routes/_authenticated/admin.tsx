@@ -439,6 +439,37 @@ ${institutionNameValue}`);
             ))}
           </div>
         </nav>
+        {institutions.data && institutions.data.length > 0 && (
+          <div className="sina-card flex items-center gap-3 p-3 sm:hidden">
+            <Building2 className="size-4 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Instituição ativa</p>
+              <select
+                aria-label="Instituição ativa"
+                value={institutions.data.find(i => i.is_active)?.id ?? institutions.data[0]?.id ?? ""}
+                onChange={async e => {
+                  const { error } = await supabase.rpc("account_set_institution", { _institution_id: e.target.value });
+                  if (error) { toast.error(errorText(error)); return; }
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["my-institutions"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-accounts"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-students"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-teachers"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-academic-setup"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-role-requests"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-academic-overview"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-audit"] }),
+                  ]);
+                }}
+                className="mt-0.5 w-full truncate bg-transparent text-sm font-semibold outline-none"
+              >
+                {institutions.data.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+              </select>
+            </div>
+          </div>
+        )}
+
+
         <div className="flex items-center justify-between gap-3">
           <div><p className="text-xs font-bold uppercase tracking-wide text-primary">{adminTab === "visao-geral" ? "Visão geral" : adminTab === "escolas" ? "Escolas" : adminTab === "pessoas" ? "Pessoas e acessos" : adminTab === "academico" ? "Gestão acadêmica" : "Histórico"}</p><h1 className="mt-1 font-display text-2xl font-bold">{adminTab === "visao-geral" ? "Central administrativa" : adminTab === "escolas" ? "Escolas e instituições" : adminTab === "pessoas" ? "Pessoas, funções e acessos" : adminTab === "academico" ? "Estrutura e vínculos acadêmicos" : "Histórico de alterações"}</h1></div>
           <span className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground sm:inline-flex">Instituição ativa</span>
