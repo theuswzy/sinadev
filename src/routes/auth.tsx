@@ -88,6 +88,8 @@ function AuthPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [signupConfirmationOpen, setSignupConfirmationOpen] = useState(false);
   const [signupConfirmationEmail, setSignupConfirmationEmail] = useState("");
+  const [resendBusy, setResendBusy] = useState(false);
+  const [needsConfirmationResend, setNeedsConfirmationResend] = useState(false);
 
   async function finishAuth(explicitRole?: RequestedRole, explicitSchoolId?: string) {
     const inviteToken = window.localStorage.getItem("sina-institution-invite-token");
@@ -235,6 +237,7 @@ function AuthPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setMessage("");
+    setNeedsConfirmationResend(false);
     setBusy(true);
     try {
       if (mode === "forgot") {
@@ -287,6 +290,12 @@ function AuthPage() {
         });
         if (error) throw error;
 
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          setMessage("Este e-mail já possui uma conta. Entre com sua senha ou use a opção de recuperação de senha.");
+          setMode("login");
+          return;
+        }
+
         if (data.session) {
           await finishAuth(requestedRole, selectedSchool.id);
         } else {
@@ -298,7 +307,12 @@ function AuthPage() {
       }
 
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      if (error) {
+        if (error.message.toLowerCase().includes("email not confirmed")) {
+          setNeedsConfirmationResend(true);
+        }
+        throw error;
+      }
       await finishAuth();
     } catch (error) {
       setMessage(authErrorMessage(error));
@@ -307,6 +321,34 @@ function AuthPage() {
     }
   }
 
+  async function resendSignupConfirmation(targetEmail = email) {
+    const normalizedEmail = targetEmail.trim();
+    if (!normalizedEmail) {
+      setMessage("Informe seu e-mail para reenviar a confirmação.");
+      return;
+    }
+
+    setResendBusy(true);
+    setMessage("");
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: normalizedEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`,
+        },
+      });
+      if (error) throw error;
+      setSignupConfirmationEmail(normalizedEmail);
+      setSignupConfirmationOpen(true);
+      setMessage("Novo e-mail de confirmação enviado. Verifique também o spam.");
+      setNeedsConfirmationResend(false);
+    } catch (error) {
+      setMessage(authErrorMessage(error));
+    } finally {
+      setResendBusy(false);
+    }
+  }
   async function google() {
     setMessage("");
     setBusy(true);
@@ -461,19 +503,31 @@ function AuthPage() {
                 Não encontrou a mensagem? Verifique também a pasta de spam ou lixo eletrônico.
               </p>
 
-              <Button
-                type="button"
-                className="h-11 w-full font-semibold"
-                onClick={() => {
-                  setSignupConfirmationOpen(false);
-                  setMode("login");
-                  setPassword("");
-                  setPasswordConfirm("");
-                  setMessage("Confirme seu e-mail antes de entrar no SINA.");
-                }}
-              >
-                Ir para entrar <ArrowRight />
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  className="h-11 w-full font-semibold"
+                  disabled={resendBusy}
+                  onClick={() => void resendSignupConfirmation(signupConfirmationEmail)}
+                >
+                  {resendBusy ? "Enviando..." : "Reenviar e-mail de confirmação"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 w-full font-semibold"
+                  onClick={() => {
+                    setSignupConfirmationOpen(false);
+                    setMode("login");
+                    setPassword("");
+                    setPasswordConfirm("");
+                    setEmail(signupConfirmationEmail);
+                    setMessage("Confirme seu e-mail antes de entrar no SINA.");
+                  }}
+                >
+                  Ir para entrar <ArrowRight />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
