@@ -1270,12 +1270,14 @@ export async function createAdminInstitutionInvitation(
   classroomId: string | null,
   expiresHours = 72,
 ) {
-  const { data, error } = await supabase.rpc("admin_create_institution_invitation", {
+  const rpcArgs: { _email: string; _role: string; _expires_hours: number; _classroom_id?: string } = {
     _email: email,
     _role: role,
-    _classroom_id: classroomId ?? undefined,
     _expires_hours: expiresHours,
-  });
+  };
+  if (classroomId) rpcArgs._classroom_id = classroomId;
+
+  const { data, error } = await supabase.rpc("admin_create_institution_invitation", rpcArgs);
   if (error) throw error;
   return (data?.[0] ?? null) as { invitation_id: string; token: string; expires_at: string } | null;
 }
