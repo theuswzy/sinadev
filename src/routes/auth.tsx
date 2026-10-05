@@ -632,7 +632,7 @@ function AuthPage() {
                     {signupStep === 1 && (
                       <div>
                         <p className="text-sm font-semibold">Como você participa da instituição?</p>
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Escolha o perfil que será analisado pelo administrador.</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Aluno entra imediatamente após confirmar o e-mail. Professor passa por aprovação administrativa.</p>
                         <div className="mt-3 grid gap-3 sm:grid-cols-2">
                           {(["student", "teacher"] as const).map(role => (
                             <button key={role} type="button" onClick={() => { setRequestedRole(role); setMessage(""); }}
@@ -655,7 +655,7 @@ function AuthPage() {
                     {signupStep === 2 && (
                       <div>
                         <p className="text-sm font-semibold">Qual é a sua instituição?</p>
-                        <p className="mt-1 text-xs leading-5 text-muted-foreground">Pesquise e selecione a escola onde você estuda ou trabalha.</p>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">{requestedRole === "student" ? "Você pode selecionar sua escola agora ou deixar o vínculo para depois." : "Selecione a escola onde você trabalha."}</p>
                         {selectedSchool ? (
                           <div className="mt-3 rounded-2xl border border-primary/30 bg-primary/5 p-4">
                             <div className="flex items-start justify-between gap-3">
