@@ -1516,6 +1516,24 @@ export type Database = {
           updated_at: string
         }[]
       }
+      student_list_announcements_detailed: {
+        Args: never
+        Returns: {
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          classroom_id: string
+          classroom_name: string
+          content: string
+          created_at: string
+          id: string
+          teacher_id: string
+          teacher_name: string
+          title: string
+          updated_at: string
+        }[]
+      }
       student_list_assessments: {
         Args: never
         Returns: {
@@ -1527,6 +1545,27 @@ export type Database = {
           score: number
           status: string
           subject_name: string
+          term_name: string
+          title: string
+          weight: number
+        }[]
+      }
+      student_list_assessments_detailed: {
+        Args: never
+        Returns: {
+          assessment_type: string
+          classroom_id: string
+          classroom_name: string
+          due_at: string | null
+          feedback: string | null
+          id: string
+          max_score: number
+          score: number | null
+          status: string
+          subject_id: string | null
+          subject_name: string
+          teacher_id: string
+          teacher_name: string
           term_name: string
           title: string
           weight: number
@@ -1637,6 +1676,27 @@ export type Database = {
           due_at: string
           id: string
           subject: string
+          title: string
+        }[]
+      }
+      student_list_tasks_detailed: {
+        Args: never
+        Returns: {
+          attachment_name: string | null
+          attachment_path: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          classroom_id: string
+          classroom_name: string
+          completed: boolean
+          created_at: string
+          description: string
+          due_at: string | null
+          id: string
+          subject_id: string | null
+          subject_name: string | null
+          teacher_id: string
+          teacher_name: string
           title: string
         }[]
       }
@@ -1791,6 +1851,27 @@ export type Database = {
           file_size: number
           file_type: string
           created_at: string
+        }[]
+      }
+      student_list_academic_materials_detailed: {
+        Args: never
+        Returns: {
+          classroom_id: string
+          classroom_name: string
+          created_at: string
+          description: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          subject_id: string | null
+          subject_name: string | null
+          teacher_id: string
+          teacher_name: string
+          term_id: string | null
+          term_name: string | null
+          title: string
         }[]
       }
       teacher_create_assessment: {
