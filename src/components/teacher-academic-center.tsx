@@ -98,7 +98,7 @@ export function TeacherAcademicCenter() {
 
   useEffect(() => {
     if (classroomId && !attendanceSubjectId && classSubjects.length) {
-      setAttendanceSubjectId(classSubjects[0].subject_id);
+      setAttendanceSubjectId(classSubjects[0]?.subject_id ?? "");
     }
     if (classroomId && subjectId && !classSubjects.some(item => item.subject_id === subjectId)) {
       setSubjectId("");
