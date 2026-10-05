@@ -1414,6 +1414,7 @@ export type Database = {
       }
       admin_delete_subject: { Args: { _id: string }; Returns: boolean }
       admin_get_academic_overview: { Args: never; Returns: Json }
+      admin_get_classroom_hub: { Args: { _classroom_id: string }; Returns: Json }
       admin_import_academic_csv: { Args: { _rows: Json }; Returns: Json }
       admin_link_student_to_institution: {
         Args: { _institution_id: string; _student_id: string }
