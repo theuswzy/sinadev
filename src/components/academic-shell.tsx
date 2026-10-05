@@ -363,7 +363,9 @@ export function AcademicShell({
 
           <nav
             aria-label="Navegação principal"
-            className="scrollbar-none -mx-3 hidden gap-1 overflow-x-auto px-3 pb-3 md:mx-0 md:flex md:px-0"
+            className={role.data === "teacher"
+              ? "relative -mx-3 hidden gap-1 px-3 pb-3 md:mx-0 md:flex md:px-0"
+              : "scrollbar-none -mx-3 hidden gap-1 overflow-x-auto px-3 pb-3 md:mx-0 md:flex md:px-0"}
           >
             {role.data === "teacher" ? (
               <>
