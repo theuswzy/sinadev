@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText } from "lucide-react";
+import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
-import { errorText, getRole, loadDashboardAnnouncements, loadDashboardTasks, loadGrades, loadMyStudent, loadStudentAttendance, loadStudentAcademicMaterials } from "@/lib/sina-data";
+import { errorText, getRole, loadDashboardAnnouncements, loadDashboardTasks, loadGrades, loadMyStudent, loadStudentAttendance, loadStudentAcademicMaterials, loadStudentCalendar, loadNotifications } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({ meta: [{ title: "Dashboard do aluno — SINA" }, { name: "description", content: "Visão geral da vida acadêmica do aluno." }] }),
@@ -19,6 +19,22 @@ function StudentDashboard() {
   const announcements = useQuery({ queryKey: ["dashboard-announcements"], queryFn: loadDashboardAnnouncements, enabled: !!student.data, ...liveOptions });
   const attendance = useQuery({ queryKey: ["dashboard-attendance"], queryFn: loadStudentAttendance, enabled: !!student.data, ...liveOptions });
   const materials = useQuery({ queryKey: ["dashboard-materials"], queryFn: loadStudentAcademicMaterials, enabled: !!student.data, ...liveOptions });
+  const calendarRange = {
+    from: new Date().toISOString(),
+    to: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+  };
+  const calendar = useQuery({
+    queryKey: ["dashboard-calendar", calendarRange.from.slice(0,10), calendarRange.to.slice(0,10)],
+    queryFn: () => loadStudentCalendar(calendarRange.from, calendarRange.to),
+    enabled: !!student.data,
+    ...liveOptions,
+  });
+  const notifications = useQuery({
+    queryKey: ["dashboard-notifications"],
+    queryFn: () => loadNotifications(true),
+    enabled: !!student.data,
+    ...liveOptions,
+  });
 
   if (role.isPending || student.isPending) {
     return <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico"><div className="sina-card mt-8 p-6">Carregando seu dashboard...</div></AcademicShell>;
@@ -48,6 +64,8 @@ function StudentDashboard() {
   const absentCount = attendance.data?.filter(item => item.status === "absent").length ?? 0;
   const attendanceTotal = presentCount + absentCount;
   const attendancePercent = attendanceTotal ? (presentCount / attendanceTotal) * 100 : null;
+  const upcomingEvents = (calendar.data ?? []).filter(item => new Date(item.start_at).getTime() >= Date.now()).slice(0, 4);
+  const unreadCount = notifications.data?.length ?? 0;
 
   return (
     <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico">
@@ -60,6 +78,32 @@ function StudentDashboard() {
             <div className="min-w-0"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-muted">Visão geral</p><h2 className="mt-1 truncate font-display text-2xl font-bold md:text-3xl">Olá, {student.data.full_name.split(" ")[0]}! 👋</h2><p className="mt-1 text-sm text-brand-muted">Acompanhe rapidamente o que precisa da sua atenção.</p></div>
           </div>
           <Link to="/perfil" className="inline-flex items-center justify-center rounded-xl border border-brand-border px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-brand-panel">Meu perfil</Link>
+        </div>
+      </section>
+
+      <section className="mt-5 grid gap-3 lg:grid-cols-[1.4fr_1fr]">
+        <div className="sina-card p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3"><CalendarDays className="size-5 text-primary"/><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Agenda</p><h2 className="mt-1 text-lg font-semibold">Próximos compromissos</h2></div></div>
+            <Link to="/aluno/agenda" className="text-sm font-semibold text-primary">Ver agenda</Link>
+          </div>
+          <div className="mt-4 space-y-2">
+            {upcomingEvents.map(item => <Link key={item.id} to="/aluno/agenda" className="flex items-center gap-3 rounded-xl border border-border p-3 transition hover:bg-muted/50">
+              <span className="flex size-10 shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 text-primary"><span className="text-[10px] font-bold uppercase">{new Date(item.start_at).toLocaleDateString("pt-BR",{weekday:"short"}).replace(".","")}</span><span className="text-sm font-bold">{new Date(item.start_at).getDate()}</span></span>
+              <span className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{item.title}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{new Date(item.start_at).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})} · {item.classroom_name || "Todas as turmas"}</p></span>
+              <ChevronRight className="size-4 text-muted-foreground"/>
+            </Link>)}
+            {calendar.isPending && <p className="text-sm text-muted-foreground">Carregando agenda…</p>}
+            {!calendar.isPending && !upcomingEvents.length && <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum compromisso próximo cadastrado.</p>}
+          </div>
+        </div>
+        <div className="sina-card p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3"><Bell className="size-5 text-primary"/><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Notificações</p><h2 className="mt-1 text-lg font-semibold">Não lidas</h2></div></div><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">{unreadCount}</span></div>
+          <div className="mt-4 space-y-2">
+            {(notifications.data ?? []).slice(0,4).map(item => <Link key={item.id} to={item.link || "/aluno"} className="block rounded-xl border border-border p-3 transition hover:bg-muted/50"><p className="truncate text-sm font-semibold">{item.title}</p><p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.body}</p></Link>)}
+            {notifications.isPending && <p className="text-sm text-muted-foreground">Carregando notificações…</p>}
+            {!notifications.isPending && !unreadCount && <p className="rounded-xl bg-secondary/50 p-4 text-sm text-muted-foreground">Tudo em dia. Nenhuma notificação não lida.</p>}
+          </div>
         </div>
       </section>
 
