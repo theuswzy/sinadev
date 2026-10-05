@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Megaphone, BookOpen, Clock3, CheckCircle2, AlertTriangle, UserRound, ClipboardCheck } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
@@ -37,7 +37,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
   const studentSubjects = useQuery({ queryKey: ["student-module-subjects"], queryFn: loadStudentSubjects, enabled: module === "disciplinas" || module === "tarefas" || module === "notas" });
   const grades = useQuery({ queryKey: ["student-module-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id && (module === "disciplinas" || module === "notas") });
   const assessments = useQuery({ queryKey: ["student-module-assessments"], queryFn: loadStudentAssessmentsDetailed, enabled: module === "notas" || module === "disciplinas" });
-  const attendance = useQuery({ queryKey: ["student-module-attendance"], queryFn: loadStudentAttendance, enabled: module === "frequencia" });
+  const attendance = useQuery({ queryKey: ["student-module-attendance"], queryFn: loadStudentAttendanceDetailed, enabled: module === "frequencia" || module === "disciplinas" });
   const announcements = useQuery({ queryKey: ["student-module-announcements"], queryFn: loadStudentAnnouncementsDetailed, enabled: module === "avisos" });
   const submissions = useQuery({ queryKey: ["student-module-submissions"], queryFn: loadStudentTaskSubmissions, enabled: module === "tarefas" });
   const calendar = useQuery({
@@ -53,6 +53,13 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
   const [subjectFilter, setSubjectFilter] = useState("all");
+  const [selectedSubjectKey, setSelectedSubjectKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (module !== "disciplinas") return;
+    const hash = decodeURIComponent(window.location.hash.slice(1));
+    if (hash) setSelectedSubjectKey(hash);
+  }, [module]);
 
   const subjects = useMemo(() => {
     const rows = grades.data ?? [];
