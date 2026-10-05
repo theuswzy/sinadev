@@ -131,7 +131,7 @@ export async function searchSchoolDirectory(
 
 export async function ensureAccountOnboardingForSchool(
   requestedRole: "student" | "teacher",
-  schoolDirectoryId: string,
+  schoolDirectoryId: string | null,
 ): Promise<OnboardingState> {
   const { data, error } = await supabase.rpc("ensure_account_onboarding_v2", {
     _requested_role: requestedRole,
