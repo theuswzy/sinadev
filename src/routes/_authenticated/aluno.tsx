@@ -55,6 +55,7 @@ function StudentDashboard() {
     }, new Map<string, { subject: string; teacher: string; count: number }>())
       .values(),
   ).sort((a, b) => a.subject.localeCompare(b.subject, "pt-BR") || a.teacher.localeCompare(b.teacher, "pt-BR"));
+  const scoredGrades = (grades.data ?? []).filter(g => Number.isFinite(Number(g.score)));
   const subjectTeachers = (subject: string) => Array.from(new Set((studentSubjects.data ?? []).filter(item => item.name === subject).map(item => item.teacher_name).filter(Boolean)));
   const teacherNamesById = new Map((studentSubjects.data ?? []).map(item => [item.teacher_id, item.teacher_name] as const));
   const gradeTeacherNames = (subject: string) => {
@@ -65,7 +66,6 @@ function StudentDashboard() {
   };
   const uniqueSubjectCount = new Set((studentSubjects.data ?? []).map(item => item.id)).size;
   const uniqueTeacherCount = new Set((studentSubjects.data ?? []).map(item => item.teacher_id)).size;
-  const scoredGrades = (grades.data ?? []).filter(g => Number.isFinite(Number(g.score)));
   const gradedAssessments = (assessments.data ?? []).filter(item => item.score != null && Number(item.max_score) > 0 && Number(item.weight) > 0);
   const totalAssessmentWeight = gradedAssessments.reduce((sum, item) => sum + Number(item.weight), 0);
   const weightedAverage = totalAssessmentWeight > 0 ? gradedAssessments.reduce((sum, item) => sum + ((Number(item.score) / Number(item.max_score)) * 10 * Number(item.weight)), 0) / totalAssessmentWeight : null;
