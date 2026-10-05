@@ -30,38 +30,22 @@ begin
   for update;
 
   if req.id is null then return false; end if;
-  if req.status <> 'pending' then
-    raise exception 'Esta solicitação já foi processada.';
-  end if;
+  if req.status <> 'pending' then raise exception 'Esta solicitação já foi processada.'; end if;
 
   if _decision='rejected' then
     update public.account_role_requests
-    set status='rejected',
-        reviewed_by=auth.uid(),
-        reviewed_at=now(),
-        review_note=nullif(trim(_note),''),
-        updated_at=now()
+    set status='rejected',reviewed_by=auth.uid(),reviewed_at=now(),
+        review_note=nullif(trim(_note),''),updated_at=now()
     where id=_request_id;
 
-    update public.profiles
-    set status='pending', updated_at=now()
-    where user_id=req.user_id;
+    update public.profiles set status='pending',updated_at=now() where user_id=req.user_id;
 
     title_text := 'Cadastro aguardando nova análise';
-    body_text := coalesce(
-      nullif(trim(_note),''),
-      'Sua solicitação de acesso não foi aprovada. Você pode enviar uma nova solicitação.'
-    );
+    body_text := coalesce(nullif(trim(_note),''),'Sua solicitação de acesso não foi aprovada. Você pode enviar uma nova solicitação.');
 
     insert into public.notifications(user_id,type,title,body,link,metadata)
-    values(
-      req.user_id,
-      'account_review',
-      title_text,
-      body_text,
-      '/auth',
-      jsonb_build_object('request_id',req.id,'decision','rejected')
-    );
+    values(req.user_id,'account_review',title_text,body_text,'/auth',
+      jsonb_build_object('request_id',req.id,'decision','rejected'));
     return true;
   end if;
 
@@ -69,11 +53,15 @@ begin
     raise exception 'Selecione uma função válida para aprovar.';
   end if;
 
-  select coalesce(req.institution_id,d.institution_id)
-  into inst
-  from public.school_directory d
-  where d.id=req.school_directory_id
-    and d.status='active';
+  inst := req.institution_id;
+
+  if inst is null and req.school_directory_id is not null then
+    select d.institution_id
+      into inst
+    from public.school_directory d
+    where d.id=req.school_directory_id
+      and d.status='active';
+  end if;
 
   if inst is null then
     raise exception 'A solicitação não possui uma instituição válida. Verifique a escola selecionada.';
@@ -81,18 +69,18 @@ begin
 
   delete from public.user_roles
   where user_id=req.user_id
-    and role in ('student','teacher');
+    and role in ('student'::public.app_role,'teacher'::public.app_role);
 
   insert into public.user_roles(user_id,role)
   values(req.user_id,_approved_role::public.app_role);
 
   delete from public.institution_memberships
   where user_id=req.user_id
-    and role in ('student','teacher');
+    and role in ('student'::public.app_role,'teacher'::public.app_role);
 
   insert into public.institution_memberships(institution_id,user_id,role,status)
   values(inst,req.user_id,_approved_role::public.app_role,'active')
-  on conflict (institution_id,user_id,role)
+  on conflict(institution_id,user_id,role)
   do update set status='active',updated_at=now();
 
   insert into public.user_institution_context(user_id,institution_id)
@@ -100,48 +88,28 @@ begin
   on conflict(user_id)
   do update set institution_id=excluded.institution_id,updated_at=now();
 
-  update public.profiles
-  set status='active', updated_at=now()
-  where user_id=req.user_id;
+  update public.profiles set status='active',updated_at=now() where user_id=req.user_id;
 
   if _approved_role='student' then
     perform public.ensure_student_profile_for_user(req.user_id);
-    update public.students
-    set institution_id=inst
-    where user_id=req.user_id;
+    update public.students set institution_id=inst where user_id=req.user_id;
   end if;
 
   update public.account_role_requests
-  set status='approved',
-      reviewed_by=auth.uid(),
-      reviewed_at=now(),
-      review_note=nullif(trim(_note),''),
-      institution_id=inst,
-      updated_at=now()
+  set status='approved',reviewed_by=auth.uid(),reviewed_at=now(),
+      review_note=nullif(trim(_note),''),institution_id=inst,updated_at=now()
   where id=_request_id;
 
   title_text := 'Cadastro aprovado';
-  body_text := case
-    when _approved_role='teacher'
-      then 'Seu acesso de professor foi aprovado. Agora você já pode entrar na área do professor.'
-    else
-      'Seu acesso de aluno foi aprovado. Agora você já pode entrar na área do aluno.'
+  body_text := case when _approved_role='teacher'
+    then 'Seu acesso de professor foi aprovado. Agora você já pode entrar na área do professor.'
+    else 'Seu acesso de aluno foi aprovado. Agora você já pode entrar na área do aluno.'
   end;
 
   insert into public.notifications(user_id,type,title,body,link,metadata)
-  values(
-    req.user_id,
-    'account_review',
-    title_text,
-    body_text,
+  values(req.user_id,'account_review',title_text,body_text,
     case when _approved_role='teacher' then '/professor' else '/aluno' end,
-    jsonb_build_object(
-      'request_id',req.id,
-      'decision','approved',
-      'role',_approved_role,
-      'institution_id',inst
-    )
-  );
+    jsonb_build_object('request_id',req.id,'decision','approved','role',_approved_role,'institution_id',inst));
 
   return true;
 end;
@@ -226,8 +194,7 @@ begin
 
   delete from public.institution_memberships
   where user_id=_user_id
-    and role in ('student'::public.app_role,'teacher'::public.app_role)
-    and institution_id=v_institution;
+    and role in ('student'::public.app_role,'teacher'::public.app_role);
 
   insert into public.institution_memberships(institution_id,user_id,role,status)
   values(
