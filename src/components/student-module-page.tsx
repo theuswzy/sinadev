@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Megaphone, BookOpen, Clock3, CheckCircle2, AlertTriangle, UserRound, ClipboardCheck, BarChart3, ArrowRight } from "lucide-react";
+import { CalendarDays, Megaphone, BookOpen, Clock3, CheckCircle2, AlertTriangle, UserRound, ClipboardCheck, BarChart3, ArrowRight, FileText } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -15,12 +15,13 @@ import {
   loadStudentTaskSubmissions,
   loadStudentTasksDetailed,
   loadStudentAnnouncementsDetailed,
+  loadStudentAcademicMaterialsDetailed,
   loadStudentSubjects,
   type Grade,
   submitTask,
 } from "@/lib/sina-data";
 
-export type StudentModule = "tarefas" | "disciplinas" | "notas" | "frequencia" | "agenda" | "avisos";
+export type StudentModule = "tarefas" | "disciplinas" | "notas" | "frequencia" | "agenda" | "avisos" | "materiais";
 
 const meta: Record<StudentModule, { title: string; subtitle: string }> = {
   tarefas: { title: "Tarefas", subtitle: "Atividades e entregas" },
@@ -29,6 +30,7 @@ const meta: Record<StudentModule, { title: string; subtitle: string }> = {
   frequencia: { title: "Frequência", subtitle: "Seu histórico de presença" },
   agenda: { title: "Agenda", subtitle: "Compromissos e próximos eventos" },
   avisos: { title: "Avisos", subtitle: "Comunicados da instituição e dos professores" },
+  materiais: { title: "Materiais", subtitle: "Arquivos e conteúdos das suas disciplinas" },
 };
 
 export function StudentModulePage({ module }: { module: StudentModule }) {
@@ -39,6 +41,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
   const assessments = useQuery({ queryKey: ["student-module-assessments"], queryFn: loadStudentAssessmentsDetailed, enabled: module === "notas" || module === "disciplinas" });
   const attendance = useQuery({ queryKey: ["student-module-attendance"], queryFn: loadStudentAttendanceDetailed, enabled: module === "frequencia" || module === "disciplinas" });
   const announcements = useQuery({ queryKey: ["student-module-announcements"], queryFn: loadStudentAnnouncementsDetailed, enabled: module === "avisos" });
+  const materials = useQuery({ queryKey: ["student-module-materials"], queryFn: loadStudentAcademicMaterialsDetailed, enabled: module === "materiais" });
   const submissions = useQuery({ queryKey: ["student-module-submissions"], queryFn: loadStudentTaskSubmissions, enabled: module === "tarefas" });
   const calendar = useQuery({
     queryKey: ["student-module-calendar"],
@@ -188,6 +191,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     : module === "notas" ? grades
     : module === "frequencia" ? attendance
     : module === "agenda" ? calendar
+    : module === "materiais" ? materials
     : announcements;
 
   if (student.isPending) {
@@ -510,6 +514,56 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
           <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Planejamento</p><h2 className="mt-1 text-xl font-semibold">Agenda acadêmica</h2><p className="mt-1 text-sm text-muted-foreground">Cada evento informa sua origem, turma, tipo e horário.</p></div>
           {(calendar.data ?? []).map((event) => <article key={event.id} className="sina-card p-5"><div className="flex items-start gap-4"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><CalendarDays className="size-5"/></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">{event.title}</p><span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">{event.event_type}</span></div><div className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2"><span>Quando: {new Date(event.start_at).toLocaleString("pt-BR")}</span><span>Origem: {event.classroom_name ? "Turma " + event.classroom_name : "Institucional"}</span></div>{event.description && <p className="mt-3 text-sm text-muted-foreground">{event.description}</p>}</div></div></article>)}
           {!calendar.data?.length && <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhum evento próximo. Quando houver aulas, provas ou compromissos, eles aparecerão aqui.</div>}
+        </section>
+      )}
+
+      {module === "materiais" && (
+        <section className="mt-6 space-y-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-primary">Biblioteca acadêmica</p>
+              <h2 className="mt-1 text-xl font-semibold">Materiais das suas disciplinas</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Cada arquivo mostra a disciplina, o professor, a turma e o período acadêmico de origem.</p>
+            </div>
+            <span className="rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold">{materials.data?.length ?? 0} material{materials.data?.length === 1 ? "" : "is"}</span>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {(materials.data ?? []).map((item) => (
+              <article key={item.id} className="sina-card p-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <FileText className="size-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{item.title}</p>
+                        <p className="mt-1 text-xs font-semibold text-primary">{item.subject_name || "Disciplina não identificada"}</p>
+                      </div>
+                      <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold">{item.term_name || "Período não informado"}</span>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">Professor {item.teacher_name || "não identificado"} · {item.classroom_name}</p>
+                    {item.description && <p className="mt-3 text-sm text-muted-foreground">{item.description}</p>}
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <span className="text-xs text-muted-foreground">{item.file_name} · {(item.file_size / 1024 / 1024).toFixed(1).replace(".", ",")} MB</span>
+                      {item.file_url ? (
+                        <a href={item.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
+                          Abrir material
+                        </a>
+                      ) : <span className="text-xs font-semibold text-destructive">Arquivo indisponível</span>}
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {!materials.data?.length && (
+            <div className="sina-card p-8 text-center text-sm text-muted-foreground">
+              Nenhum material foi publicado para sua turma ainda.
+            </div>
+          )}
         </section>
       )}
 
