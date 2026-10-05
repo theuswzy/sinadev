@@ -117,6 +117,27 @@ function StudentDashboard() {
         </section>
       </div>
 
+      <section className="mt-5 sina-card p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Acesso rápido</p><h2 className="mt-1 text-lg font-semibold">O que você precisa agora?</h2></div>
+          <ArrowRight className="size-5 text-primary"/>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            {to:"/aluno/tarefas",label:"Tarefas",desc:"Veja prazos e entregas.",Icon:ClipboardList},
+            {to:"/aluno/notas",label:"Notas",desc:"Confira seu desempenho.",Icon:BarChart3},
+            {to:"/aluno/frequencia",label:"Frequência",desc:"Acompanhe sua presença.",Icon:CheckCircle2},
+            {to:"/aluno/agenda",label:"Agenda",desc:"Veja os próximos eventos.",Icon:CalendarDays},
+          ].map(({to,label,desc,Icon})=>(
+            <Link key={to} to={to} className="group rounded-2xl border border-border p-4 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span>
+              <p className="mt-3 font-semibold group-hover:text-primary">{label}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <section className="mt-5 sina-card p-5 sm:p-6"><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-lg font-semibold">Como estão suas disciplinas?</h2></div><Link to="/aluno/notas" className="text-sm font-semibold text-primary">Ver notas completas</Link></div><div className="mt-4 grid gap-3 md:grid-cols-2">{subjects.map(subject=>{const items=scoredGrades.filter(g=>g.subject===subject);const average=items.length?items.reduce((sum,g)=>sum+Number(g.score),0)/items.length:null;const percent=average==null?0:Math.max(0,Math.min(100,average*10));return <div key={subject} className="rounded-2xl border border-border p-4"><div className="flex items-center justify-between gap-3"><p className="truncate font-semibold">{subject}</p><b>{average==null?"—":average.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})}</b></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all duration-500" style={{width:String(percent)+"%"}}/></div><p className="mt-2 text-[11px] text-muted-foreground">{items.length} lançamento(s) · média calculada sobre notas disponíveis</p></div>;})}{grades.isPending&&<p className="text-sm text-muted-foreground">Carregando desempenho…</p>}{!grades.isPending&&!subjects.length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Ainda não há lançamentos de notas suficientes para montar seu desempenho.</p>}</div></section>
 
       <section className="mt-5 sina-card p-5 sm:p-6"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Estudo</p><h2 className="mt-1 text-lg font-semibold">Materiais recentes</h2></div><FileText className="size-5 text-primary"/></div>{materials.error&&<div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os materiais. <Button size="sm" variant="outline" className="ml-2" onClick={() => void materials.refetch()}>Tentar novamente</Button></div>}<div className="mt-4 grid gap-3 md:grid-cols-2">{(materials.data ?? []).slice(0,4).map(item => item.file_url ? <a key={item.id} href={item.file_url} target="_blank" rel="noreferrer" className="group rounded-2xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5"><div className="flex items-start gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileText className="size-4"/></span><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-primary">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.classroom_name}{item.subject_name ? " · "+item.subject_name : ""}</p><p className="mt-2 truncate text-xs text-muted-foreground">📎 {item.file_name}</p></div></div></a> : <div key={item.id} className="rounded-2xl border border-border bg-muted/30 p-4"><p className="truncate text-sm font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">O arquivo está publicado, mas o link seguro precisa ser renovado.</p></div>)}{materials.isPending&&<p className="text-sm text-muted-foreground">Carregando materiais…</p>}{!materials.isPending&&!materials.error&&!(materials.data ?? []).length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum material publicado para sua turma.</p>}</div></section>
