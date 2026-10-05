@@ -40,6 +40,14 @@ function StudentDashboard() {
   const pending = (tasks.data ?? []).filter(t => !t.completed);
   const absences = attendance.data?.filter((item) => item.status === "absent").length ?? 0;
   const subjects = Array.from(new Set((grades.data ?? []).map(g=>g.subject)));
+  const scoredGrades = (grades.data ?? []).filter(g => Number.isFinite(Number(g.score)));
+  const overallAverage = scoredGrades.length
+    ? scoredGrades.reduce((sum, g) => sum + Number(g.score), 0) / scoredGrades.length
+    : null;
+  const presentCount = attendance.data?.filter(item => item.status === "present").length ?? 0;
+  const absentCount = attendance.data?.filter(item => item.status === "absent").length ?? 0;
+  const attendanceTotal = presentCount + absentCount;
+  const attendancePercent = attendanceTotal ? (presentCount / attendanceTotal) * 100 : null;
 
   return (
     <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico">
@@ -66,7 +74,7 @@ function StudentDashboard() {
         <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Precisa da sua atenção</p><h2 className="mt-1 text-lg font-semibold">Próximos passos</h2></div><Bell className="size-5 text-primary"/></div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <Link to="/aluno/tarefas" className="rounded-xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5"><p className="text-xs font-bold uppercase text-muted-foreground">Pendências</p><p className="mt-1 text-2xl font-semibold">{pending.length}</p><p className="mt-1 text-xs text-muted-foreground">{pending.length?"Atividade(s) aguardando você.":"Você está em dia."}</p></Link>
-          <Link to="/aluno/agenda" className="rounded-xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5"><p className="text-xs font-bold uppercase text-muted-foreground">Próximas atividades</p><p className="mt-1 text-2xl font-semibold">{(tasks.data??[]).filter(t=>!t.completed&&t.due_at&&new Date(t.due_at).getTime()>=Date.now()).length}</p><p className="mt-1 text-xs text-muted-foreground">Com prazo futuro.</p></Link>
+          <Link to="/aluno/tarefas" className="rounded-xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5"><p className="text-xs font-bold uppercase text-muted-foreground">Próximas atividades</p><p className="mt-1 text-2xl font-semibold">{(tasks.data??[]).filter(t=>!t.completed&&t.due_at&&new Date(t.due_at).getTime()>=Date.now()).length}</p><p className="mt-1 text-xs text-muted-foreground">Com prazo futuro.</p></Link>
           <Link to="/aluno/avisos" className="rounded-xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5"><p className="text-xs font-bold uppercase text-muted-foreground">Avisos</p><p className="mt-1 text-2xl font-semibold">{announcements.data?.length??0}</p><p className="mt-1 text-xs text-muted-foreground">Comunicados disponíveis.</p></Link>
         </div>
       </section>
@@ -78,6 +86,19 @@ function StudentDashboard() {
           {to:"/aluno/frequencia",icon:CheckCircle2,label:"Faltas",value:attendance.isPending ? "—" : absences,desc:"abrir histórico completo"},
           {to:"/aluno/disciplinas",icon:BookOpen,label:"Disciplinas",value:subjects.length,desc:"ver professores e turmas"},
         ].map(({to,icon:Icon,label,value,desc})=><Link key={label} to={to} className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary"/></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></Link>)}
+      </section>
+
+      <section className="mt-5 grid gap-3 sm:grid-cols-2">
+        <Link to="/aluno/notas" className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Média geral</p>
+          <p className="mt-1 text-3xl font-semibold">{grades.isPending ? "—" : overallAverage == null ? "—" : overallAverage.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2})}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Média simples das notas lançadas.</p>
+        </Link>
+        <Link to="/aluno/frequencia" className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Frequência registrada</p>
+          <p className="mt-1 text-3xl font-semibold">{attendance.isPending ? "—" : attendancePercent == null ? "—" : attendancePercent.toLocaleString("pt-BR",{maximumFractionDigits:0})+"%"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{attendanceTotal ? `${presentCount} presença(s) em ${attendanceTotal} registro(s).` : "Ainda não há registros de presença."}</p>
+        </Link>
       </section>
 
       <section className="mt-5 sina-card p-5 sm:p-6">
