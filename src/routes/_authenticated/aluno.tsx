@@ -81,53 +81,6 @@ function StudentDashboard() {
     );
   }
 
-  if (!hasClassroomLink) {
-    return (
-      <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico">
-        <section className="mt-6 sina-card overflow-hidden">
-          <div className="bg-brand p-6 text-brand-foreground sm:p-8">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-muted">Área do aluno</p>
-            <h2 className="mt-2 font-display text-2xl font-bold md:text-3xl">Olá! 👋</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
-              Sua instituição já está cadastrada. O próximo passo é concluir sua turma.
-            </p>
-          </div>
-          <div className="p-6 sm:p-8">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-border bg-muted/30 p-4">
-                <p className="text-xs font-medium text-muted-foreground">Conta</p>
-                <p className="mt-1 font-semibold">Ativa</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-muted/30 p-4">
-                <p className="text-xs font-medium text-muted-foreground">Instituição</p>
-                <p className="mt-1 font-semibold">Cadastrada</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-muted/30 p-4">
-                <p className="text-xs font-medium text-muted-foreground">Turma</p>
-                <p className="mt-1 font-semibold text-muted-foreground">Pendente</p>
-              </div>
-            </div>
-            <div className="mt-6 rounded-2xl border border-border p-5">
-              <p className="font-semibold">Cadastro acadêmico</p>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Sua turma ainda não foi definida. Quando o cadastro estiver concluído, suas disciplinas, notas,
-                frequência e atividades aparecerão automaticamente neste painel.
-              </p>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link to="/perfil" className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
-                Ver meu perfil
-              </Link>
-              <Button variant="outline" onClick={() => void student.refetch()}>
-                Atualizar
-              </Button>
-            </div>
-          </div>
-        </section>
-      </AcademicShell>
-    );
-  }
-
   const pending = (tasks.data ?? []).filter(t => !t.completed);
   const pendingGroups = Array.from(
     pending.reduce((map, task) => {
@@ -191,7 +144,7 @@ function StudentDashboard() {
         </div>
       </section>
 
-      {!student.data.classroom_id && <section className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">Seu cadastro está pronto, mas o vínculo acadêmico ainda não terminou.</p><p className="mt-1 text-sm text-muted-foreground">A escola precisa vincular você a uma turma. Depois disso, suas disciplinas, notas e frequência passam a aparecer automaticamente.</p></div><Link to="/perfil" className="shrink-0 text-sm font-semibold text-primary hover:underline">Ver meu perfil →</Link></div></section>}
+      {!student.data.classroom_id && <section className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">Seu dashboard já está pronto.</p><p className="mt-1 text-sm text-muted-foreground">A escola ainda precisa concluir seu vínculo com uma turma. Enquanto isso, você já pode acessar seu perfil e acompanhar este painel; notas, frequência, disciplinas e atividades aparecerão conforme forem cadastradas.</p></div><Link to="/perfil" className="shrink-0 text-sm font-semibold text-primary hover:underline">Ver meu perfil →</Link></div></section>}
 
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
