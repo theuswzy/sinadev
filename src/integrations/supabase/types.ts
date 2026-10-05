@@ -1229,6 +1229,7 @@ export type Database = {
         Returns: boolean
       }
       admin_list_academic_setup: { Args: never; Returns: Json }
+      admin_get_academic_overview: { Args: never; Returns: Json }
       admin_list_accounts: {
         Args: never
         Returns: {
