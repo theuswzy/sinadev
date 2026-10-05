@@ -8,13 +8,17 @@ import { RecoveryEmail } from '@/lib/email-templates/recovery'
 import { EmailChangeEmail } from '@/lib/email-templates/email-change'
 import { ReauthenticationEmail } from '@/lib/email-templates/reauthentication'
 
-const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
-  signup: SignupEmail,
-  invite: InviteEmail,
-  magiclink: MagicLinkEmail,
-  recovery: RecoveryEmail,
-  email_change: EmailChangeEmail,
-  reauthentication: ReauthenticationEmail,
+type RenderableEmailTemplate = (props: Record<string, unknown>) => React.ReactElement;
+const adaptEmailTemplate = <P extends object>(Component: React.ComponentType<P>): RenderableEmailTemplate =>
+  (props) => React.createElement(Component, props as P);
+
+const EMAIL_TEMPLATES: Record<string, RenderableEmailTemplate> = {
+  signup: adaptEmailTemplate(SignupEmail),
+  invite: adaptEmailTemplate(InviteEmail),
+  magiclink: adaptEmailTemplate(MagicLinkEmail),
+  recovery: adaptEmailTemplate(RecoveryEmail),
+  email_change: adaptEmailTemplate(EmailChangeEmail),
+  reauthentication: adaptEmailTemplate(ReauthenticationEmail),
 }
 
 // Configuration
