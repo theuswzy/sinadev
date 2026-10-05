@@ -102,6 +102,24 @@ function StudentDashboard() {
       </section>
 
       <section className="mt-5 sina-card p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-lg font-semibold">Notas por disciplina</h2></div><Link to="/aluno/notas" className="text-sm font-semibold text-primary">Ver detalhes</Link></div>
+        <div className="mt-4 space-y-3">
+          {Array.from(new Set((grades.data ?? []).map(g => g.subject))).map(subject => {
+            const items = scoredGrades.filter(g => g.subject === subject);
+            const average = items.length ? items.reduce((sum,g) => sum + Number(g.score),0) / items.length : null;
+            const percent = average == null ? 0 : Math.max(0, Math.min(100, average * 10));
+            return <div key={subject} className="rounded-xl border border-border p-4">
+              <div className="flex items-center justify-between gap-3"><p className="font-semibold">{subject}</p><b>{average == null ? "—" : average.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})}</b></div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all" style={{width: `${percent}%`}} /></div>
+              <p className="mt-1 text-[11px] text-muted-foreground">{items.length} lançamento(s)</p>
+            </div>;
+          })}
+          {!grades.isPending && !subjects.length && <p className="text-sm text-muted-foreground">Ainda não há notas por disciplina.</p>}
+          {grades.isPending && <p className="text-sm text-muted-foreground">Carregando desempenho…</p>}
+        </div>
+      </section>
+
+      <section className="mt-5 sina-card p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Estudo</p><h2 className="mt-1 text-lg font-semibold">Materiais recentes</h2></div><FileText className="size-5 text-primary"/></div>
         {materials.error && <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os materiais. <Button size="sm" variant="outline" className="ml-2" onClick={() => void materials.refetch()}>Tentar novamente</Button></div>}
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
