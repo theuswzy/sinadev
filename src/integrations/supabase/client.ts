@@ -55,9 +55,14 @@ function createSupabaseClient() {
       fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
     },
     auth: {
+      // SINA is a browser SPA. Use the implicit confirmation flow so the
+      // email confirmation link does not depend on a PKCE verifier that may
+      // be missing when the user opens the email on another tab/device.
+      flowType: 'implicit',
       storage: brokeredPreviewStorage(),
       persistSession: true,
       autoRefreshToken: true,
+      detectSessionInUrl: true,
     },
   });
 }
