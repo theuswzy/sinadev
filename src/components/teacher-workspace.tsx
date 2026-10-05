@@ -77,8 +77,8 @@ function DataError({d}:{d:ReturnType<typeof useData>}) {
 }
 
 function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(section:Section)=>void}){
-  const tasks=useQuery({queryKey:["teacher-overview-tasks"],queryFn:loadTeacherTasks,staleTime:15000});
-  const materials=useQuery({queryKey:["teacher-overview-materials"],queryFn:loadTeacherAcademicMaterials,staleTime:15000});
+  const tasks=useQuery({queryKey:["teacher-overview-tasks"],queryFn:loadTeacherTasks,staleTime:15000,refetchOnWindowFocus:true,refetchInterval:30000});
+  const materials=useQuery({queryKey:["teacher-overview-materials"],queryFn:loadTeacherAcademicMaterials,staleTime:15000,refetchOnWindowFocus:true,refetchInterval:30000});
   const classes=(d.classes.data??[]).filter(x=>x.status==="active");
   const students=(d.students.data??[]).filter(x=>x.class_status==="minha_turma");
   const subjects=(d.subjects.data??[]).filter(x=>x.status==="active");
