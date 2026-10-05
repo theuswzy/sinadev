@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import {
   createAssessment,
   createTeacherCalendarEvent,
+  loadTeacherSubjectAssignments,
   errorText,
   gradeTaskSubmission,
   loadAttendance,
@@ -41,10 +42,14 @@ export function TeacherAcademicCenter() {
   const classrooms = useQuery({ queryKey: ["teacher-classrooms"], queryFn: loadTeacherClassrooms });
   const [classroomId, setClassroomId] = useState("");
   const [attendanceDate, setAttendanceDate] = useState(today());
+  const [attendanceSubjectId, setAttendanceSubjectId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const subjectAssignments = useQuery({ queryKey: ["teacher-subject-assignments-center"], queryFn: loadTeacherSubjectAssignments });
+  const classSubjects = (subjectAssignments.data ?? []).filter(item => item.classroom_id === classroomId);
   const attendance = useQuery({
-    queryKey: ["teacher-attendance", classroomId, attendanceDate],
-    queryFn: () => loadAttendance(classroomId, attendanceDate),
-    enabled: !!classroomId,
+    queryKey: ["teacher-attendance", classroomId, attendanceDate, attendanceSubjectId],
+    queryFn: () => loadAttendance(classroomId, attendanceDate, attendanceSubjectId),
+    enabled: !!classroomId && !!attendanceSubjectId,
   });
   const [attendanceDraft, setAttendanceDraft] = useState<Record<string, { status: AttendanceRow["status"]; note: string }>>({});
   const classReport = useQuery({ queryKey: ["teacher-class-report", classroomId], queryFn: () => loadTeacherClassReport(classroomId), enabled: !!classroomId });
@@ -64,9 +69,12 @@ export function TeacherAcademicCenter() {
   const absentCount = Object.values(attendanceDraft).filter(v => v.status === "absent").length;
 
   async function saveDay() {
-    if (!classroomId) return;
+    if (!classroomId || !attendanceSubjectId) {
+      toast.error("Selecione a disciplina para registrar a frequência.");
+      return;
+    }
     try {
-      const total = await saveAttendance(classroomId, attendanceDate, Object.entries(attendanceDraft).map(([student_id, value]) => ({ student_id, ...value })));
+      const total = await saveAttendance(classroomId, attendanceDate, attendanceSubjectId, Object.entries(attendanceDraft).map(([student_id, value]) => ({ student_id, ...value })));
       await qc.invalidateQueries({ queryKey: ["teacher-attendance", classroomId, attendanceDate] });
       toast.success(`${total} registros de frequência salvos.`);
     } catch (error) { toast.error(errorText(error)); }
@@ -80,7 +88,6 @@ export function TeacherAcademicCenter() {
   });
   const [assessmentTitle, setAssessmentTitle] = useState("");
   const [assessmentType, setAssessmentType] = useState("prova");
-  const [subjectId, setSubjectId] = useState("");
   const [termId, setTermId] = useState("");
   const [weight, setWeight] = useState("1");
   const [maxScore, setMaxScore] = useState("10");
@@ -88,6 +95,15 @@ export function TeacherAcademicCenter() {
   const [selectedAssessmentId, setSelectedAssessmentId] = useState("");
   const [scores, setScores] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (classroomId && !attendanceSubjectId && classSubjects.length) {
+      setAttendanceSubjectId(classSubjects[0].subject_id);
+    }
+    if (classroomId && subjectId && !classSubjects.some(item => item.subject_id === subjectId)) {
+      setSubjectId("");
+    }
+  }, [classroomId, classSubjects, attendanceSubjectId, subjectId]);
 
   useEffect(() => {
     if (!selectedAssessmentId && assessments.data?.length) setSelectedAssessmentId(assessments.data[0]?.id ?? "");
@@ -203,7 +219,7 @@ export function TeacherAcademicCenter() {
       </div>
 
       <div className="sina-card p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Diário de classe</p><h3 className="mt-1 font-semibold">{selectedClass?.name}</h3></div><div className="flex flex-wrap gap-2"><Input type="date" value={attendanceDate} onChange={e => setAttendanceDate(e.target.value)} /><Button onClick={() => void saveDay()} disabled={attendance.isFetching}><Save className="mr-2 size-4" />Salvar frequência</Button></div></div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Diário de classe</p><h3 className="mt-1 font-semibold">{selectedClass?.name}</h3></div><div className="flex flex-wrap gap-2"><Input type="date" value={attendanceDate} onChange={e => setAttendanceDate(e.target.value)} /><select value={attendanceSubjectId} onChange={e => setAttendanceSubjectId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Disciplina</option>{classSubjects.map(s => <option key={s.id} value={s.subject_id}>{s.subject_name}</option>)}</select><Button onClick={() => void saveDay()} disabled={attendance.isFetching || !attendanceSubjectId}><Save className="mr-2 size-4" />Salvar frequência</Button></div></div>
         <div className="mt-4 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-primary/10 px-3 py-1.5 text-primary">{presentCount} presentes/atrasados</span><span className="rounded-full bg-destructive/10 px-3 py-1.5 text-destructive">{absentCount} faltas</span><span className="rounded-full bg-secondary px-3 py-1.5">{attendance.data?.length ?? 0} alunos</span></div>
         <div className="mt-5 overflow-x-auto rounded-2xl border border-border"><table className="w-full min-w-[680px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-3 text-left">Aluno</th><th className="p-3 text-left">Matrícula</th><th className="p-3 text-left">Situação</th><th className="p-3 text-left">Observação</th></tr></thead><tbody>{(attendance.data ?? []).map(row => <tr key={row.student_id} className="border-t border-border"><td className="p-3 font-medium">{row.full_name}</td><td className="p-3 text-muted-foreground">{row.enrollment}</td><td className="p-3"><select value={attendanceDraft[row.student_id]?.status ?? row.status} onChange={e => setAttendanceDraft(v => ({ ...v, [row.student_id]: { ...(v[row.student_id] ?? { note: "" }), status: e.target.value as AttendanceRow["status"] } }))} className="h-9 rounded-md border border-input bg-background px-2 text-sm"><option value="present">Presente</option><option value="late">Atrasado</option><option value="absent">Falta</option><option value="excused">Justificada</option></select></td><td className="p-3"><Input value={attendanceDraft[row.student_id]?.note ?? ""} onChange={e => setAttendanceDraft(v => ({ ...v, [row.student_id]: { ...(v[row.student_id] ?? { status: "present" }), note: e.target.value } }))} placeholder="Opcional" /></td></tr>)}</tbody></table></div>
       </div>
@@ -227,7 +243,7 @@ export function TeacherAcademicCenter() {
           <div className="flex items-center gap-3"><ClipboardList className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Avaliações</p><h3 className="font-semibold">Criar avaliação</h3></div></div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Input className="sm:col-span-2" placeholder="Ex.: Prova de Redes" value={assessmentTitle} onChange={e => setAssessmentTitle(e.target.value)} />
-            <select value={subjectId} onChange={e => setSubjectId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Sem disciplina</option>{(options.data?.subjects ?? []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+            <select value={subjectId} onChange={e => setSubjectId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Selecione a disciplina</option>{classSubjects.map(s => <option key={s.id} value={s.subject_id}>{s.subject_name}</option>)}</select>
             <select value={termId} onChange={e => setTermId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Sem período</option>{(options.data?.terms ?? []).map(t => <option key={t.id} value={t.id}>{t.name}{t.is_current ? " · atual" : ""}</option>)}</select>
             <select value={assessmentType} onChange={e => setAssessmentType(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="prova">Prova</option><option value="trabalho">Trabalho</option><option value="atividade">Atividade</option><option value="recuperacao">Recuperação</option></select>
             <Input type="number" min="0.01" step="0.01" value={weight} onChange={e => setWeight(e.target.value)} placeholder="Peso" />
