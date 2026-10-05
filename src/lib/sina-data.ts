@@ -708,6 +708,29 @@ export type AdminAcademicSetup = {
   }[];
   subjects: { id: string; name: string; code: string | null; status: string }[];
   terms: { id: string; name: string; starts_at: string | null; ends_at: string | null; is_current: boolean }[];
+  matrix: {
+    id: string;
+    classroom_id: string;
+    classroom_name: string;
+    classroom_status: string;
+    subject_id: string;
+    subject_name: string;
+    subject_code: string | null;
+    teacher_id: string | null;
+    teacher_name: string;
+    student_count: number;
+    task_count: number;
+    assessment_count: number;
+    attendance_count: number;
+  }[];
+  quality: {
+    students_without_class: number;
+    classrooms_without_teacher: { id: string; name: string }[];
+    classrooms_without_subject: { id: string; name: string }[];
+    subject_links_without_teacher: { id: string; classroom_name: string; subject_name: string }[];
+    tasks_without_subject: number;
+    attendance_without_subject: number;
+  };
 };
 
 export async function createTeacherClassroom(name: string, code: string) {
