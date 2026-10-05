@@ -1273,7 +1273,7 @@ export async function createAdminInstitutionInvitation(
   const { data, error } = await supabase.rpc("admin_create_institution_invitation", {
     _email: email,
     _role: role,
-    _classroom_id: classroomId,
+    _classroom_id: classroomId ?? undefined,
     _expires_hours: expiresHours,
   });
   if (error) throw error;
