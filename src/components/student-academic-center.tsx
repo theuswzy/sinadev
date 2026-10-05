@@ -5,12 +5,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   errorText,
-  loadStudentAssessments,
+  loadStudentAssessmentsDetailed,
   loadStudentAttendance,
   loadStudentCalendar,
   loadStudentTaskSubmissions,
-  loadStudentAcademicMaterials,
-  loadTasks,
+  loadStudentAcademicMaterialsDetailed,
+  loadStudentTasksDetailed,
   submitTask,
 } from "@/lib/sina-data";
 
@@ -28,12 +28,12 @@ function monthEnd() {
 }
 
 export function StudentAcademicCenter() {
-  const tasks = useQuery({ queryKey: ["student-academic-tasks-center"], queryFn: loadTasks });
-  const assessments = useQuery({ queryKey: ["student-assessments"], queryFn: loadStudentAssessments });
+  const tasks = useQuery({ queryKey: ["student-academic-tasks-center"], queryFn: loadStudentTasksDetailed });
+  const assessments = useQuery({ queryKey: ["student-assessments"], queryFn: loadStudentAssessmentsDetailed });
   const attendance = useQuery({ queryKey: ["student-attendance-history"], queryFn: loadStudentAttendance });
   const calendar = useQuery({ queryKey: ["student-calendar-center"], queryFn: () => loadStudentCalendar(monthStart(), monthEnd()) });
   const submissions = useQuery({ queryKey: ["student-task-submissions"], queryFn: loadStudentTaskSubmissions });
-  const materials = useQuery({ queryKey: ["student-academic-materials"], queryFn: loadStudentAcademicMaterials, staleTime: 15000 });
+  const materials = useQuery({ queryKey: ["student-academic-materials"], queryFn: loadStudentAcademicMaterialsDetailed, staleTime: 15000 });
   const weightedAverage = useMemo(() => {
     const graded = (assessments.data ?? []).filter(item => item.score != null && item.max_score > 0 && item.weight > 0);
     const totalWeight = graded.reduce((sum, item) => sum + Number(item.weight), 0);
@@ -73,7 +73,7 @@ export function StudentAcademicCenter() {
             return (
               <article key={task.id} className="rounded-2xl border border-border p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div className="min-w-0"><p className="font-semibold">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject} · {task.due_at ? `Entrega ${new Date(task.due_at).toLocaleString("pt-BR")}` : "Sem prazo"}</p>{task.description && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>}{task.attachment_url && <a href={task.attachment_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><FileText className="size-4"/>{task.attachment_name || "Abrir material anexado"}</a>}</div>
+                  <div className="min-w-0"><p className="font-semibold">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject_name || task.subject} · Prof. {task.teacher_name} · {task.due_at ? `Entrega ${new Date(task.due_at).toLocaleString("pt-BR")}` : "Sem prazo"}</p>{task.description && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>}{task.attachment_url && <a href={task.attachment_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><FileText className="size-4"/>{task.attachment_name || "Abrir material anexado"}</a>}</div>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${submission?.status === "graded" ? "bg-primary/10 text-primary" : task.completed ? "bg-secondary text-foreground" : "bg-amber-500/10 text-amber-700 dark:text-amber-300"}`}>{submission?.status === "graded" ? "Corrigida" : task.completed ? "Concluída" : "Pendente"}</span>
                 </div>
                 <div className="mt-4 space-y-2">
@@ -97,7 +97,7 @@ export function StudentAcademicCenter() {
             <article key={item.id} className="rounded-2xl border border-border p-4">
               <div className="flex items-start gap-3"><FileText className="mt-0.5 size-4 shrink-0 text-primary" /><div className="min-w-0">
                 <p className="font-semibold">{item.title}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{item.classroom_name}{item.subject_name ? " · " + item.subject_name : ""}{item.term_name ? " · " + item.term_name : ""}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{item.classroom_name}{item.subject_name ? " · " + item.subject_name : ""}{item.teacher_name ? " · Prof. " + item.teacher_name : ""}{item.term_name ? " · " + item.term_name : ""}</p>
                 {item.description && <p className="mt-2 text-sm text-muted-foreground">{item.description}</p>}
                 <p className="mt-2 text-xs text-muted-foreground">{item.file_name} · {(item.file_size / 1024 / 1024).toFixed(1)} MB</p>
                 {item.file_url && <a href={item.file_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><Download className="size-4" />Abrir material</a>}
@@ -118,7 +118,7 @@ export function StudentAcademicCenter() {
         </div>
         <div className="sina-card p-6">
           <div className="flex items-center gap-3"><FileText className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Avaliações</p><h3 className="font-semibold">Notas por avaliação</h3></div></div>
-          <div className="mt-4 space-y-2">{(assessments.data ?? []).length ? (assessments.data ?? []).map(item => <div key={item.id} className="rounded-xl border border-border p-4"><div className="flex items-center justify-between gap-3"><p className="font-semibold">{item.title}</p><span className="rounded-full bg-secondary px-2.5 py-1 text-xs">peso {item.weight}</span></div><p className="mt-1 text-xs text-muted-foreground">{item.subject_name} {item.term_name ? `· ${item.term_name}` : ""}</p><div className="mt-3 flex flex-wrap items-center gap-3 text-sm">{item.score == null ? <span className="text-muted-foreground">Ainda sem nota</span> : <span className="font-bold text-primary">{item.score.toLocaleString("pt-BR")} / {item.max_score}</span>}{item.feedback && <span className="text-muted-foreground">{item.feedback}</span>}</div></div>) : <p className="text-sm text-muted-foreground">Nenhuma avaliação publicada.</p>}</div>
+          <div className="mt-4 space-y-2">{(assessments.data ?? []).length ? (assessments.data ?? []).map(item => <div key={item.id} className="rounded-xl border border-border p-4"><div className="flex items-center justify-between gap-3"><p className="font-semibold">{item.title}</p><span className="rounded-full bg-secondary px-2.5 py-1 text-xs">peso {item.weight}</span></div><p className="mt-1 text-xs text-muted-foreground">{item.subject_name} · Prof. {item.teacher_name} {item.term_name ? `· ${item.term_name}` : ""}</p><div className="mt-3 flex flex-wrap items-center gap-3 text-sm">{item.score == null ? <span className="text-muted-foreground">Ainda sem nota</span> : <span className="font-bold text-primary">{item.score.toLocaleString("pt-BR")} / {item.max_score}</span>}{item.feedback && <span className="text-muted-foreground">{item.feedback}</span>}</div></div>) : <p className="text-sm text-muted-foreground">Nenhuma avaliação publicada.</p>}</div>
         </div>
 
         <div className="sina-card p-6">
