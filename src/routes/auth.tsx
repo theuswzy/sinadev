@@ -449,7 +449,9 @@ function AuthPage() {
                   <div className="flex items-start gap-3">
                     <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">3</span>
                     <p className="text-sm leading-6 text-muted-foreground">
-                      Sua solicitação será encaminhada para aprovação do administrador da instituição.
+                      {requestedRole === "teacher"
+                        ? "Seu cadastro ficará aguardando aprovação do administrador da instituição. Depois da aprovação, você poderá entrar na área do professor."
+                        : "Depois da confirmação, sua conta de aluno já poderá entrar no SINA. Se ainda não houver vínculo com escola ou turma, você verá o status “Aguardando vínculo acadêmico”."}
                     </p>
                   </div>
                 </div>
