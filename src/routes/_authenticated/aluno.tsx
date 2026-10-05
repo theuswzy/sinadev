@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
-import { errorText, getRole, loadDashboardAnnouncements, loadDashboardTasks, loadGrades, loadMyStudent, loadStudentAttendance, loadStudentAcademicMaterials, loadStudentCalendar, loadStudentAssessments, loadStudentSubjects, loadNotifications } from "@/lib/sina-data";
+import { errorText, getRole, loadGrades, loadMyStudent, loadStudentAttendance, loadStudentAcademicMaterialsDetailed, loadStudentCalendar, loadStudentAssessmentsDetailed, loadStudentSubjects, loadStudentTasksDetailed, loadStudentAnnouncementsDetailed, loadNotifications } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({ meta: [{ title: "Dashboard do aluno — SINA" }, { name: "description", content: "Visão geral da vida acadêmica do aluno." }] }),
@@ -14,13 +14,13 @@ function StudentDashboard() {
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
   const student = useQuery({ queryKey: ["my-student"], queryFn: loadMyStudent, enabled: role.data === "student" });
   const liveOptions = { refetchOnWindowFocus: true, refetchInterval: 30000 };
-  const tasks = useQuery({ queryKey: ["dashboard-tasks"], queryFn: loadDashboardTasks, enabled: !!student.data, ...liveOptions });
+  const tasks = useQuery({ queryKey: ["dashboard-tasks"], queryFn: loadStudentTasksDetailed, enabled: !!student.data, ...liveOptions });
   const grades = useQuery({ queryKey: ["dashboard-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id, ...liveOptions });
-  const assessments = useQuery({ queryKey: ["dashboard-assessments"], queryFn: loadStudentAssessments, enabled: !!student.data, ...liveOptions });
+  const assessments = useQuery({ queryKey: ["dashboard-assessments"], queryFn: loadStudentAssessmentsDetailed, enabled: !!student.data, ...liveOptions });
   const studentSubjects = useQuery({ queryKey: ["dashboard-student-subjects"], queryFn: loadStudentSubjects, enabled: !!student.data, ...liveOptions });
-  const announcements = useQuery({ queryKey: ["dashboard-announcements"], queryFn: loadDashboardAnnouncements, enabled: !!student.data, ...liveOptions });
+  const announcements = useQuery({ queryKey: ["dashboard-announcements"], queryFn: loadStudentAnnouncementsDetailed, enabled: !!student.data, ...liveOptions });
   const attendance = useQuery({ queryKey: ["dashboard-attendance"], queryFn: loadStudentAttendance, enabled: !!student.data, ...liveOptions });
-  const materials = useQuery({ queryKey: ["dashboard-materials"], queryFn: loadStudentAcademicMaterials, enabled: !!student.data, ...liveOptions });
+  const materials = useQuery({ queryKey: ["dashboard-materials"], queryFn: loadStudentAcademicMaterialsDetailed, enabled: !!student.data, ...liveOptions });
   const calendarRange = { from: new Date().toISOString(), to: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString() };
   const calendar = useQuery({ queryKey: ["dashboard-calendar", calendarRange.from.slice(0,10), calendarRange.to.slice(0,10)], queryFn: () => loadStudentCalendar(calendarRange.from, calendarRange.to), enabled: !!student.data, ...liveOptions });
   const notifications = useQuery({ queryKey: ["dashboard-notifications"], queryFn: () => loadNotifications(true), enabled: !!student.data, ...liveOptions });
@@ -40,6 +40,22 @@ function StudentDashboard() {
   }
 
   const pending = (tasks.data ?? []).filter(t => !t.completed);
+  const pendingGroups = Array.from(
+    pending.reduce((map, task) => {
+      const subject = task.subject_name || task.subject || "Sem disciplina";
+      const key = `${task.subject_id ?? subject}::${task.teacher_id}`;
+      const current = map.get(key);
+      if (current) current.count += 1;
+      else map.set(key, {
+        subject,
+        teacher: task.teacher_name || "Professor não identificado",
+        count: 1,
+      });
+      return map;
+    }, new Map<string, { subject: string; teacher: string; count: number }>())
+      .values(),
+  ).sort((a, b) => a.subject.localeCompare(b.subject, "pt-BR") || a.teacher.localeCompare(b.teacher, "pt-BR"));
+  const subjectTeachers = (subject: string) => Array.from(new Set((studentSubjects.data ?? []).filter(item => item.name === subject).map(item => item.teacher_name).filter(Boolean)));
   const scoredGrades = (grades.data ?? []).filter(g => Number.isFinite(Number(g.score)));
   const gradedAssessments = (assessments.data ?? []).filter(item => item.score != null && Number(item.max_score) > 0 && Number(item.weight) > 0);
   const totalAssessmentWeight = gradedAssessments.reduce((sum, item) => sum + Number(item.weight), 0);
@@ -92,7 +108,7 @@ function StudentDashboard() {
         <section className="sina-card p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Minha rotina</p><h2 className="mt-1 text-lg font-semibold">O que merece sua atenção</h2></div><Link to="/aluno/tarefas" className="text-sm font-semibold text-primary">Ver tarefas</Link></div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-border p-4"><div className="flex items-center justify-between gap-2"><p className="font-semibold">Atividades próximas</p><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">{upcomingTasks.length}</span></div><div className="mt-3 space-y-2">{upcomingTasks.map(task=><Link key={task.id} to="/aluno/tarefas" className="block rounded-xl border border-border p-3 transition hover:bg-muted/50"><p className="truncate text-sm font-semibold">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject} · {new Date(task.due_at!).toLocaleDateString("pt-BR")}</p></Link>)}{!tasks.isPending&&!upcomingTasks.length&&<p className="rounded-xl bg-secondary/50 p-4 text-sm text-muted-foreground">Nenhuma atividade com prazo próximo.</p>}</div></div>
+            <div className="rounded-2xl border border-border p-4"><div className="flex items-center justify-between gap-2"><p className="font-semibold">Atividades próximas</p><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">{upcomingTasks.length}</span></div><div className="mt-3 space-y-2">{upcomingTasks.map(task=><Link key={task.id} to="/aluno/tarefas" className="block rounded-xl border border-border p-3 transition hover:bg-muted/50"><p className="truncate text-sm font-semibold">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject_name || task.subject} · Prof. {task.teacher_name || "não identificado"} · {new Date(task.due_at!).toLocaleDateString("pt-BR")}</p></Link>)}{!tasks.isPending&&!upcomingTasks.length&&<p className="rounded-xl bg-secondary/50 p-4 text-sm text-muted-foreground">Nenhuma atividade com prazo próximo.</p>}</div></div>
             <div className="rounded-2xl border border-border p-4"><div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><CalendarDays className="size-4 text-primary"/><p className="font-semibold">Agenda</p></div><Link to="/aluno/agenda" className="text-xs font-semibold text-primary">Abrir agenda</Link></div><div className="mt-3 space-y-2">{upcomingEvents.slice(0,3).map(item=><Link key={item.id} to="/aluno/agenda" className="flex items-center gap-3 rounded-xl border border-border p-3 transition hover:bg-muted/50"><span className="flex size-9 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-primary"><span className="text-[9px] font-bold uppercase">{new Date(item.start_at).toLocaleDateString("pt-BR",{weekday:"short"}).replace(".","")}</span><span className="text-sm font-bold">{new Date(item.start_at).getDate()}</span></span><span className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{item.title}</p><p className="mt-0.5 truncate text-xs text-muted-foreground">{new Date(item.start_at).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})}</p></span></Link>)}{calendar.isPending&&<p className="text-sm text-muted-foreground">Carregando agenda…</p>}{!calendar.isPending&&!upcomingEvents.length&&<p className="rounded-xl bg-secondary/50 p-4 text-sm text-muted-foreground">Nenhum compromisso próximo.</p>}</div></div>
           </div>
           {(overdueTasks.length>0 || unreadCount>0) && <div className="mt-3 grid gap-2 sm:grid-cols-2">{overdueTasks.length>0&&<Link to="/aluno/tarefas" className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-sm"><b>{overdueTasks.length} atividade(s) vencida(s)</b><p className="mt-1 text-xs text-muted-foreground">Revise os prazos e confira as entregas.</p></Link>}{unreadCount>0&&<Link to="/aluno/avisos" className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm"><b>{unreadCount} notificação(ões) não lida(s)</b><p className="mt-1 text-xs text-muted-foreground">Abra os avisos para verificar o que mudou.</p></Link>}</div>}
@@ -108,7 +124,7 @@ function StudentDashboard() {
           <div className="mt-5 border-t border-border pt-4">
             <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Megaphone className="size-4 text-primary"/><p className="text-sm font-semibold">Últimos avisos</p></div><Link to="/aluno/avisos" className="text-xs font-semibold text-primary">Ver todos</Link></div>
             <div className="mt-3 space-y-2">
-              {(announcements.data ?? []).slice(0,2).map(item=><Link key={item.id} to="/aluno/avisos" className="block rounded-xl border border-border p-3 transition hover:bg-muted/50"><p className="truncate text-sm font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{new Date(item.created_at).toLocaleDateString("pt-BR")}</p></Link>)}
+              {(announcements.data ?? []).slice(0,2).map(item=><Link key={item.id} to="/aluno/avisos" className="block rounded-xl border border-border p-3 transition hover:bg-muted/50"><p className="truncate text-sm font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">Prof. {item.teacher_name} · {new Date(item.created_at).toLocaleDateString("pt-BR")}</p></Link>)}
               {announcements.isPending&&<p className="text-xs text-muted-foreground">Atualizando avisos…</p>}
               {!announcements.isPending&&!(announcements.data ?? []).length&&<p className="text-xs text-muted-foreground">Nenhum aviso publicado para você.</p>}
             </div>
@@ -116,6 +132,25 @@ function StudentDashboard() {
           <Link to="/aluno/avisos" className="mt-4 inline-flex items-center text-sm font-semibold text-primary">Abrir central de avisos <ArrowRight className="ml-1 size-4"/></Link>
         </section>
       </div>
+
+      <section className="mt-5 sina-card p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Pendências por matéria</p><h2 className="mt-1 text-lg font-semibold">Saiba exatamente com quem você precisa acompanhar</h2></div>
+          <Link to="/aluno/tarefas" className="text-sm font-semibold text-primary">Ver todas</Link>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {pendingGroups.slice(0, 6).map(group => (
+            <Link key={group.subject + group.teacher} to="/aluno/tarefas" className="rounded-2xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5">
+              <div className="flex items-start justify-between gap-3">
+                <div><p className="font-semibold">{group.subject}</p><p className="mt-1 text-xs text-muted-foreground">Prof. {group.teacher}</p></div>
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">{group.count}</span>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">Atividade{group.count === 1 ? "" : "s"} aguardando sua atenção.</p>
+            </Link>
+          ))}
+          {!pending.length && <div className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Nenhuma pendência acadêmica no momento. Você está em dia.</div>}
+        </div>
+      </section>
 
       <section className="mt-5 sina-card p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3">
@@ -138,9 +173,9 @@ function StudentDashboard() {
         </div>
       </section>
 
-      <section className="mt-5 sina-card p-5 sm:p-6"><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-lg font-semibold">Como estão suas disciplinas?</h2></div><Link to="/aluno/notas" className="text-sm font-semibold text-primary">Ver notas completas</Link></div><div className="mt-4 grid gap-3 md:grid-cols-2">{subjects.map(subject=>{const items=scoredGrades.filter(g=>g.subject===subject);const average=items.length?items.reduce((sum,g)=>sum+Number(g.score),0)/items.length:null;const percent=average==null?0:Math.max(0,Math.min(100,average*10));return <div key={subject} className="rounded-2xl border border-border p-4"><div className="flex items-center justify-between gap-3"><p className="truncate font-semibold">{subject}</p><b>{average==null?"—":average.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})}</b></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all duration-500" style={{width:String(percent)+"%"}}/></div><p className="mt-2 text-[11px] text-muted-foreground">{items.length} lançamento(s) · média calculada sobre notas disponíveis</p></div>;})}{grades.isPending&&<p className="text-sm text-muted-foreground">Carregando desempenho…</p>}{!grades.isPending&&!subjects.length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Ainda não há lançamentos de notas suficientes para montar seu desempenho.</p>}</div></section>
+      <section className="mt-5 sina-card p-5 sm:p-6"><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-lg font-semibold">Como estão suas disciplinas?</h2></div><Link to="/aluno/notas" className="text-sm font-semibold text-primary">Ver notas completas</Link></div><div className="mt-4 grid gap-3 md:grid-cols-2">{subjects.map(subject=>{const items=scoredGrades.filter(g=>g.subject===subject);const average=items.length?items.reduce((sum,g)=>sum+Number(g.score),0)/items.length:null;const percent=average==null?0:Math.max(0,Math.min(100,average*10));const teachers=subjectTeachers(subject);return <div key={subject} className="rounded-2xl border border-border p-4"><div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="truncate font-semibold">{subject}</p><p className="mt-1 truncate text-xs text-muted-foreground">{teachers.length ? "Prof. "+teachers.join(", ") : "Professor não informado"}</p></div><b>{average==null?"—":average.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})}</b></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all duration-500" style={{width:String(percent)+"%"}}/></div><p className="mt-2 text-[11px] text-muted-foreground">{items.length} lançamento(s) · média calculada sobre notas disponíveis</p></div>;})}{grades.isPending&&<p className="text-sm text-muted-foreground">Carregando desempenho…</p>}{!grades.isPending&&!subjects.length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Ainda não há lançamentos de notas suficientes para montar seu desempenho.</p>}</div></section>
 
-      <section className="mt-5 sina-card p-5 sm:p-6"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Estudo</p><h2 className="mt-1 text-lg font-semibold">Materiais recentes</h2></div><FileText className="size-5 text-primary"/></div>{materials.error&&<div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os materiais. <Button size="sm" variant="outline" className="ml-2" onClick={() => void materials.refetch()}>Tentar novamente</Button></div>}<div className="mt-4 grid gap-3 md:grid-cols-2">{(materials.data ?? []).slice(0,4).map(item => item.file_url ? <a key={item.id} href={item.file_url} target="_blank" rel="noreferrer" className="group rounded-2xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5"><div className="flex items-start gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileText className="size-4"/></span><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-primary">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.classroom_name}{item.subject_name ? " · "+item.subject_name : ""}</p><p className="mt-2 truncate text-xs text-muted-foreground">📎 {item.file_name}</p></div></div></a> : <div key={item.id} className="rounded-2xl border border-border bg-muted/30 p-4"><p className="truncate text-sm font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">O arquivo está publicado, mas o link seguro precisa ser renovado.</p></div>)}{materials.isPending&&<p className="text-sm text-muted-foreground">Carregando materiais…</p>}{!materials.isPending&&!materials.error&&!(materials.data ?? []).length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum material publicado para sua turma.</p>}</div></section>
+      <section className="mt-5 sina-card p-5 sm:p-6"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Estudo</p><h2 className="mt-1 text-lg font-semibold">Materiais recentes</h2></div><FileText className="size-5 text-primary"/></div>{materials.error&&<div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os materiais. <Button size="sm" variant="outline" className="ml-2" onClick={() => void materials.refetch()}>Tentar novamente</Button></div>}<div className="mt-4 grid gap-3 md:grid-cols-2">{(materials.data ?? []).slice(0,4).map(item => item.file_url ? <a key={item.id} href={item.file_url} target="_blank" rel="noreferrer" className="group rounded-2xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5"><div className="flex items-start gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileText className="size-4"/></span><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-primary">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.classroom_name}{item.subject_name ? " · "+item.subject_name : ""}{item.teacher_name ? " · Prof. "+item.teacher_name : ""}</p><p className="mt-2 truncate text-xs text-muted-foreground">📎 {item.file_name}</p></div></div></a> : <div key={item.id} className="rounded-2xl border border-border bg-muted/30 p-4"><p className="truncate text-sm font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">O arquivo está publicado, mas o link seguro precisa ser renovado.</p></div>)}{materials.isPending&&<p className="text-sm text-muted-foreground">Carregando materiais…</p>}{!materials.isPending&&!materials.error&&!(materials.data ?? []).length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum material publicado para sua turma.</p>}</div></section>
     </AcademicShell>
   );
 }
