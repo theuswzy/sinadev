@@ -56,6 +56,8 @@ function AdminArea() {
       return data ?? [];
     },
     enabled: role.data === true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
   });
   const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
