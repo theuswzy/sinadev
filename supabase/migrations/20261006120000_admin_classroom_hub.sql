@@ -52,10 +52,9 @@ BEGIN
       SELECT jsonb_agg(
         jsonb_build_object(
           'user_id', p.user_id,
-          'name', COALESCE(p.display_name, 'Professor'),
-          'email', p.email
+          'name', COALESCE(p.display_name, 'Professor')
         )
-        ORDER BY lower(COALESCE(p.display_name, p.email)), p.user_id
+        ORDER BY lower(COALESCE(p.display_name, 'Professor')), p.user_id
       )
       FROM public.classroom_teachers ct
       JOIN public.profiles p ON p.user_id = ct.user_id
