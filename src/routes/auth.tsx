@@ -165,9 +165,32 @@ function AuthPage() {
   useEffect(() => {
     let cancelled = false;
 
+    async function restoreAuthFromEmailConfirmation() {
+      // Links de confirmação do Supabase podem chegar em dois formatos:
+      // - ?code=... (PKCE)
+      // - #access_token=... (implicit flow)
+      // O cliente Supabase trata o hash automaticamente, mas o fluxo PKCE
+      // precisa trocar explicitamente o código por uma sessão.
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) throw error;
+
+        // Remove o código da barra de endereço para impedir reutilização
+        // acidental do link e deixar a URL limpa.
+        url.searchParams.delete("code");
+        url.searchParams.delete("type");
+        window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+      }
+
+      return supabase.auth.getSession();
+    }
+
     // Usa a sessão persistida localmente para evitar uma chamada de rede
     // extra só para descobrir se o usuário já está autenticado.
-    void supabase.auth.getSession().then(async ({ data, error }) => {
+    void restoreAuthFromEmailConfirmation().then(async ({ data, error }) => {
       if (cancelled) return;
       if (error) {
         setMessage(authErrorMessage(error));
