@@ -32,4 +32,4 @@ export default defineConfig((({ mode }: { mode: string }) => {
     server: { entry: "server" },
   },
   };
-}) as any);
+}) as unknown as Parameters<typeof defineConfig>[0]);
