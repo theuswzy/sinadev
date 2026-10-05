@@ -62,13 +62,23 @@ export async function getRole(): Promise<UserRole> {
     activeInstitutions = (institutions ?? []).map((item) => ({ ...item, is_active: true }));
   }
 
-  const candidates = activeInstitutions.length > 0 ? activeInstitutions : (institutions ?? []);
-  const activeRole =
-    (candidates.find((item) => item.role === "admin")?.role ??
-      candidates.find((item) => item.role === "teacher")?.role ??
-      candidates.find((item) => item.role === "student")?.role) as UserRole | undefined;
-  if (activeRole === "admin" || activeRole === "teacher" || activeRole === "student") {
-    return activeRole;
+  // Never infer a role from an arbitrary institution when a multi-school
+  // account has no active context. Doing so could open the wrong academic
+  // panel or expose data from another institution. A single institution is
+  // safe to select automatically; multiple institutions must have an explicit
+  // active context selected by the account.
+  if (activeInstitutions.length > 0) {
+    const activeRole =
+      (activeInstitutions.find((item) => item.role === "admin")?.role ??
+        activeInstitutions.find((item) => item.role === "teacher")?.role ??
+        activeInstitutions.find((item) => item.role === "student")?.role) as UserRole | undefined;
+    if (activeRole === "admin" || activeRole === "teacher" || activeRole === "student") {
+      return activeRole;
+    }
+  }
+
+  if ((institutions ?? []).length > 1) {
+    throw new Error("Selecione a instituição ativa para continuar.");
   }
 
   // Student registration is intentionally independent from academic linkage.
