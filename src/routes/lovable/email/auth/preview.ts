@@ -10,7 +10,7 @@ import { ReauthenticationEmail } from '@/lib/email-templates/reauthentication'
 
 type RenderableEmailTemplate = (props: Record<string, unknown>) => React.ReactElement;
 const adaptEmailTemplate = <P extends object>(Component: React.ComponentType<P>): RenderableEmailTemplate =>
-  (props) => React.createElement(Component, props as P & Record<string, unknown>);
+  (props) => React.createElement(Component, props as never);
 
 const EMAIL_TEMPLATES: Record<string, RenderableEmailTemplate> = {
   signup: adaptEmailTemplate(SignupEmail),
