@@ -393,7 +393,20 @@ ${institutionNameValue}`);
                 value={institutions.data.find(i => i.is_active)?.id ?? institutions.data[0]?.id ?? ""}
                 onChange={async e => {
                   const { error } = await supabase.rpc("account_set_institution", { _institution_id: e.target.value });
-                  if (!error) window.location.reload();
+                  if (error) {
+                    toast.error(errorText(error));
+                    return;
+                  }
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["my-institutions"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-accounts"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-students"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-teachers"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-academic-setup"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-role-requests"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-academic-overview"] }),
+                    queryClient.invalidateQueries({ queryKey: ["admin-audit"] }),
+                  ]);
                 }}
                 className="hidden max-w-52 rounded-lg border border-brand-border bg-brand-panel px-2.5 py-2 text-xs font-semibold text-brand-foreground lg:block"
               >
