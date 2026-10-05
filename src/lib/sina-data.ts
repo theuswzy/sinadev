@@ -92,21 +92,14 @@ export async function getRole(): Promise<UserRole> {
   if (globalStudentRoleError) throw globalStudentRoleError;
   if (globalStudentRole?.role === "student") return "student";
 
-  // Recovery for accounts created as students whose email confirmation/login
-  // completed before the onboarding RPC persisted the role. The role is stored
-  // in auth metadata at signup, so we can safely finish the student onboarding
-  // here. This never auto-promotes teachers.
+  // Final fallback for a student account whose role row was not persisted.
+  // Admins/teachers are already resolved above, so an active profile with no
+  // academic role can safely be treated as an unlinked student. This keeps
+  // email-confirmed students out of the approval flow while their school,
+  // classroom and academic records are still pending.
   const requestedRole = auth.user.user_metadata?.["requested_role"];
-  if (requestedRole === "student") {
-    const schoolDirectoryId =
-      typeof auth.user.user_metadata?.["school_directory_id"] === "string"
-        ? auth.user.user_metadata["school_directory_id"]
-        : null;
-
-    const onboarding = await ensureAccountOnboardingForSchool("student", schoolDirectoryId);
-    if (onboarding.role === "student" && onboarding.status === "active") {
-      return "student";
-    }
+  if (requestedRole === "student" || profile.status === "active") {
+    return "student";
   }
 
   throw new Error("Sua conta ainda não possui uma função acadêmica ativa.");
