@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, CalendarRange, Layers3, Save, Archive, RotateCcw, Users, FileUp, Mail, Copy, X, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, BookOpen, CalendarRange, Layers3, Save, Archive, RotateCcw, Users, FileUp, Mail, Copy, X, Pencil, Trash2, SlidersHorizontal } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -83,6 +83,9 @@ export function AdminAcademicSetup() {
   const [confirmDeleteSubject, setConfirmDeleteSubject] = useState<{ id: string; name: string } | null>(null);
   const [confirmDeleteClassroom, setConfirmDeleteClassroom] = useState<{ id: string; name: string } | null>(null);
   const [editingClassroom, setEditingClassroom] = useState<{ id: string; name: string; code: string } | null>(null);
+  const [matrixClassroomFilter, setMatrixClassroomFilter] = useState("all");
+  const [matrixSubjectFilter, setMatrixSubjectFilter] = useState("all");
+  const [matrixTeacherFilter, setMatrixTeacherFilter] = useState("all");
 
   async function refresh() {
     await Promise.all([
@@ -188,6 +191,21 @@ export function AdminAcademicSetup() {
     finally { setBusyAction(null); }
   }
 
+  const matrixRows = (setup.data?.matrix ?? []).filter((row) => (
+    (matrixClassroomFilter === "all" || row.classroom_id === matrixClassroomFilter) &&
+    (matrixSubjectFilter === "all" || row.subject_id === matrixSubjectFilter) &&
+    (matrixTeacherFilter === "all" || row.teacher_id === matrixTeacherFilter)
+  ));
+
+  const quality = setup.data?.quality;
+  const qualityIssueCount =
+    (quality?.students_without_class ?? 0) +
+    (quality?.classrooms_without_teacher?.length ?? 0) +
+    (quality?.classrooms_without_subject?.length ?? 0) +
+    (quality?.subject_links_without_teacher?.length ?? 0) +
+    (quality?.tasks_without_subject ?? 0) +
+    (quality?.attendance_without_subject ?? 0);
+
   return (
     <section id="academico-setup" className="sina-card sina-card-hover p-6 scroll-mt-28">
       <div className="flex items-start gap-3"><Layers3 className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Estrutura acadêmica</h2><p className="mt-1 text-sm text-muted-foreground">Cadastre turmas, disciplinas e períodos. Esses dados alimentam diário, avaliações, calendário e relatórios.</p></div></div>
@@ -265,6 +283,129 @@ export function AdminAcademicSetup() {
 
             <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><CalendarRange className="size-4 text-primary" /><p className="font-semibold">Períodos</p></div><div className="mt-4 space-y-2"><Input placeholder="Ex.: 1º Bimestre" value={termName} onChange={e => setTermName(e.target.value)} /><div className="grid grid-cols-2 gap-2"><Input type="date" value={termStart} onChange={e => setTermStart(e.target.value)} /><Input type="date" value={termEnd} onChange={e => setTermEnd(e.target.value)} /></div><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={termCurrent} onChange={e => setTermCurrent(e.target.checked)} /> Marcar como período atual</label><Button onClick={() => void saveTerm()} disabled={busyAction !== null || !termName.trim()}><Save className="mr-2 size-4" />{busyAction === "term" ? "Salvando…" : "Criar período"}</Button></div><div className="mt-4 space-y-2">{setup.data?.terms.map(t => <div key={t.id} className="rounded-xl bg-secondary/50 p-3 text-sm"><div className="flex items-center justify-between gap-2"><p className="font-medium">{t.name}</p>{t.is_current && <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">Atual</span>}</div><p className="text-xs text-muted-foreground">{t.starts_at || "Sem início"} · {t.ends_at || "Sem fim"}</p></div>)}</div></div>
           </div>
+
+          <section className="rounded-2xl border border-primary/15 bg-primary/5 p-5 sm:p-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex items-start gap-3">
+                <SlidersHorizontal className="mt-0.5 size-5 text-primary" />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-primary">Matriz acadêmica</p>
+                  <h3 className="mt-1 text-lg font-semibold">Turma → disciplina → professor</h3>
+                  <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Veja exatamente quem ministra cada disciplina em cada turma e acompanhe rapidamente alunos, atividades, avaliações e frequência.</p>
+                </div>
+              </div>
+              <span className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold">{matrixRows.length} vínculo{matrixRows.length === 1 ? "" : "s"}</span>
+            </div>
+
+            <div className="mt-5 grid gap-2 md:grid-cols-3">
+              <select value={matrixClassroomFilter} onChange={e => setMatrixClassroomFilter(e.target.value)} className="h-10 rounded-xl border border-input bg-background px-3 text-sm">
+                <option value="all">Todas as turmas</option>
+                {(setup.data?.classrooms ?? []).map(c => <option key={c.id} value={c.id}>{c.name}{c.status === "archived" ? " · Arquivada" : ""}</option>)}
+              </select>
+              <select value={matrixSubjectFilter} onChange={e => setMatrixSubjectFilter(e.target.value)} className="h-10 rounded-xl border border-input bg-background px-3 text-sm">
+                <option value="all">Todas as disciplinas</option>
+                {(setup.data?.subjects ?? []).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              <select value={matrixTeacherFilter} onChange={e => setMatrixTeacherFilter(e.target.value)} className="h-10 rounded-xl border border-input bg-background px-3 text-sm">
+                <option value="all">Todos os professores</option>
+                {Array.from(new Map((setup.data?.matrix ?? []).filter(row => row.teacher_id).map(row => [row.teacher_id, row.teacher_name])).entries()).map(([id, name]) => <option key={id ?? "none"} value={id ?? ""}>{name}</option>)}
+              </select>
+            </div>
+
+            <div className="mt-5 overflow-x-auto rounded-2xl border border-border bg-background">
+              <table className="w-full min-w-[880px] text-sm">
+                <thead className="bg-secondary/50 text-left">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Turma</th>
+                    <th className="px-4 py-3 font-semibold">Disciplina</th>
+                    <th className="px-4 py-3 font-semibold">Professor</th>
+                    <th className="px-4 py-3 text-center font-semibold">Alunos</th>
+                    <th className="px-4 py-3 text-center font-semibold">Atividades</th>
+                    <th className="px-4 py-3 text-center font-semibold">Avaliações</th>
+                    <th className="px-4 py-3 text-center font-semibold">Frequência</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {matrixRows.map(row => (
+                    <tr key={row.id} className="hover:bg-muted/30">
+                      <td className="px-4 py-3">
+                        <p className="font-medium">{row.classroom_name}</p>
+                        <p className="text-[11px] text-muted-foreground">{row.classroom_status === "active" ? "Ativa" : "Arquivada"}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium">{row.subject_name}</p>
+                        <p className="text-[11px] text-muted-foreground">{row.subject_code || "Sem código"}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={row.teacher_id ? "font-medium" : "font-medium text-destructive"}>{row.teacher_id ? row.teacher_name : "Professor não vinculado"}</span>
+                      </td>
+                      <td className="px-4 py-3 text-center tabular-nums">{row.student_count}</td>
+                      <td className="px-4 py-3 text-center tabular-nums">{row.task_count}</td>
+                      <td className="px-4 py-3 text-center tabular-nums">{row.assessment_count}</td>
+                      <td className="px-4 py-3 text-center tabular-nums">{row.attendance_count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!matrixRows.length && <div className="p-8 text-center text-sm text-muted-foreground">Nenhum vínculo encontrado com esses filtros. Vincule disciplinas às turmas para começar a preencher a matriz.</div>}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border p-5 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 size-5 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Qualidade dos dados</p>
+                  <h3 className="mt-1 text-lg font-semibold">Pendências acadêmicas detectadas</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Corrigir estes pontos evita diários, notas e relatórios incompletos.</p>
+                </div>
+              </div>
+              <span className={qualityIssueCount ? "rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300" : "rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary"}>
+                {qualityIssueCount ? qualityIssueCount + " ponto" + (qualityIssueCount === 1 ? "" : "s") : "Tudo certo"}
+              </span>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Alunos sem turma</p>
+                <p className="mt-1 text-2xl font-semibold">{quality?.students_without_class ?? 0}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Precisam de vínculo acadêmico.</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Turmas sem professor</p>
+                <p className="mt-1 text-2xl font-semibold">{quality?.classrooms_without_teacher?.length ?? 0}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{(quality?.classrooms_without_teacher ?? []).slice(0,2).map(item => item.name).join(" · ") || "Nenhuma"}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Turmas sem disciplina</p>
+                <p className="mt-1 text-2xl font-semibold">{quality?.classrooms_without_subject?.length ?? 0}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{(quality?.classrooms_without_subject ?? []).slice(0,2).map(item => item.name).join(" · ") || "Nenhuma"}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Disciplinas sem professor</p>
+                <p className="mt-1 text-2xl font-semibold">{quality?.subject_links_without_teacher?.length ?? 0}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{(quality?.subject_links_without_teacher ?? []).slice(0,2).map(item => item.classroom_name + " · " + item.subject_name).join(" · ") || "Nenhuma"}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Atividades sem disciplina</p>
+                <p className="mt-1 text-2xl font-semibold">{quality?.tasks_without_subject ?? 0}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Registros que precisam de classificação.</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Frequência sem disciplina</p>
+                <p className="mt-1 text-2xl font-semibold">{quality?.attendance_without_subject ?? 0}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Histórico antigo ou incompleto.</p>
+              </div>
+            </div>
+
+            {!!quality?.attendance_without_subject && (
+              <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 text-sm">
+                <p className="font-semibold">Há registros antigos de frequência sem disciplina.</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">O SINA não atribui uma matéria automaticamente quando existem múltiplas disciplinas possíveis. Os novos lançamentos já usam o vínculo turma + disciplina + professor.</p>
+              </div>
+            )}
+          </section>
 
           <Dialog open={!!editingClassroom} onOpenChange={open => { if (!open && busyAction === null) setEditingClassroom(null); }}>
             <DialogContent>
