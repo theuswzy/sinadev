@@ -506,6 +506,7 @@ export type TaskSubmission = {
   student_name: string;
   enrollment: string;
   content: string;
+  attachment_name?: string | null;
   status: string;
   submitted_at: string;
   score: number | null;
@@ -628,7 +629,7 @@ export async function teacherEnrollStudentInClassroom(
 ) {
   const { data, error } = await supabase.rpc("teacher_enroll_student_in_classroom", {
     _student_id: studentId,
-    _classroom_id: classroomId,
+    _classroom_id: classroomId as string,
     _enrollment: enrollment,
   });
   if (error) throw error;
@@ -1148,8 +1149,8 @@ export async function createTeacherAcademicMaterial(args: {
 }) {
   const { data, error } = await supabase.rpc("teacher_create_academic_material", {
     _classroom_id: args.classroomId,
-    _subject_id: args.subjectId,
-    _term_id: args.termId,
+    _subject_id: args.subjectId as string,
+    _term_id: args.termId as string,
     _title: args.title,
     _description: args.description,
     _file_path: args.attachment.path,
