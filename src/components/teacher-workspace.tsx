@@ -509,5 +509,15 @@ function Communication({d}:{d:ReturnType<typeof useData>}){
 export function TeacherWorkspace({initialSection="inicio"}:{initialSection?:Section}){
   const [section,setSection]=useState<Section>(initialSection);const d=useData(section);const current=menu.find(x=>x.id===section) ?? menu[0]!;
   const body=section==="inicio"?<Overview d={d} onNavigate={setSection}/>:section==="turmas"?<Classes d={d} onNavigate={setSection}/>:section==="alunos"?<Students d={d}/>:section==="disciplinas"?<Subjects d={d}/>:section==="notas"?<Grades d={d}/>:section==="frequencia"?<Attendance d={d}/>:section==="avaliacoes"?<Assessments d={d}/>:section==="atividades"?<Tasks d={d}/>:section==="materiais"?<Materials d={d}/>:section==="agenda"?<Agenda d={d}/>:<Communication d={d}/>;
-  return <AcademicShell title={current.label} subtitle="Gestão acadêmica docente" requiredRole="teacher"><div className="space-y-5"><DataError d={d}/><nav className="flex gap-2 overflow-x-auto pb-1">{menu.map(item=>{const Icon=item.Icon;return <button key={item.id} type="button" onClick={()=>setSection(item.id)} className={"inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold "+(item.id===section?"bg-primary text-primary-foreground":"border border-border bg-card text-muted-foreground hover:text-foreground")}><Icon className="size-4"/>{item.label}</button>})}</nav>{body}</div></AcademicShell>;
+  return <AcademicShell title={current.label} subtitle="Gestão acadêmica docente" requiredRole="teacher"><div className="space-y-5"><DataError d={d}/><div className="rounded-2xl border border-border bg-card p-2">
+  <div className="hidden gap-1 overflow-x-auto lg:flex">
+    {menu.map(item=>{const Icon=item.Icon;return <button key={item.id} type="button" onClick={()=>setSection(item.id)} className={"inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold "+(item.id===section?"bg-primary text-primary-foreground":"text-muted-foreground hover:bg-muted hover:text-foreground")}><Icon className="size-4"/>{item.label}</button>})}
+  </div>
+  <div className="lg:hidden">
+    <label htmlFor="teacher-section-mobile" className="mb-1 block px-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Seção</label>
+    <select id="teacher-section-mobile" value={section} onChange={e=>setSection(e.target.value as Section)} className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold">
+      {menu.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}
+    </select>
+  </div>
+</div>{body}</div></AcademicShell>;
 }
