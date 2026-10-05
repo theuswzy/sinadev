@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   assignTeacherSubjectToClass, createAssessment, createTeacherAnnouncement,
   createTeacherCalendarEvent, createTeacherClassroom, createTeacherSubject, createTeacherTask, createTeacherAcademicMaterial, deleteTeacherAcademicMaterial,
-  errorText, gradeTaskSubmission, uploadAcademicAttachment, updateTeacherTask, deleteTeacherTask, updateTeacherAnnouncement, deleteTeacherAnnouncement, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
+  errorText, formatScore, gradeTaskSubmission, uploadAcademicAttachment, updateTeacherTask, deleteTeacherTask, updateTeacherAnnouncement, deleteTeacherAnnouncement, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
   loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
   loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherGradebook, loadTeacherAcademicMaterials,
