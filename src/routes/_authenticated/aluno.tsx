@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
-import { errorText, getRole, loadGrades, loadMyStudent, loadStudentAttendance, loadStudentAcademicMaterialsDetailed, loadStudentCalendar, loadStudentAssessmentsDetailed, loadStudentSubjects, loadStudentTasksDetailed, loadStudentAnnouncementsDetailed, loadNotifications } from "@/lib/sina-data";
+import { errorText, getRole, loadGrades, loadMyStudent, loadStudentAttendance, loadStudentAcademicMaterialsDetailed, loadStudentCalendar, loadStudentAssessmentsDetailed, loadStudentSubjects, loadStudentTasksDetailed, loadStudentAnnouncementsDetailed, loadStudentAttendanceDetailed, loadNotifications } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({ meta: [{ title: "Dashboard do aluno — SINA" }, { name: "description", content: "Visão geral da vida acadêmica do aluno." }] }),
@@ -19,7 +19,7 @@ function StudentDashboard() {
   const assessments = useQuery({ queryKey: ["dashboard-assessments"], queryFn: loadStudentAssessmentsDetailed, enabled: !!student.data, ...liveOptions });
   const studentSubjects = useQuery({ queryKey: ["dashboard-student-subjects"], queryFn: loadStudentSubjects, enabled: !!student.data, ...liveOptions });
   const announcements = useQuery({ queryKey: ["dashboard-announcements"], queryFn: loadStudentAnnouncementsDetailed, enabled: !!student.data, ...liveOptions });
-  const attendance = useQuery({ queryKey: ["dashboard-attendance"], queryFn: loadStudentAttendance, enabled: !!student.data, ...liveOptions });
+  const attendance = useQuery({ queryKey: ["dashboard-attendance"], queryFn: loadStudentAttendanceDetailed, enabled: !!student.data, ...liveOptions });
   const materials = useQuery({ queryKey: ["dashboard-materials"], queryFn: loadStudentAcademicMaterialsDetailed, enabled: !!student.data, ...liveOptions });
   const calendarRange = { from: new Date().toISOString(), to: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString() };
   const calendar = useQuery({ queryKey: ["dashboard-calendar", calendarRange.from.slice(0,10), calendarRange.to.slice(0,10)], queryFn: () => loadStudentCalendar(calendarRange.from, calendarRange.to), enabled: !!student.data, ...liveOptions });
@@ -114,7 +114,9 @@ function StudentDashboard() {
   const overallAverage = weightedAverage ?? (scoredGrades.length ? scoredGrades.reduce((sum, g) => sum + Number(g.score), 0) / scoredGrades.length : null);
   const presentCount = attendance.data?.filter(item => item.status === "present").length ?? 0;
   const absentCount = attendance.data?.filter(item => item.status === "absent").length ?? 0;
-  const attendanceTotal = presentCount + absentCount;
+  const lateCount = attendance.data?.filter(item => item.status === "late").length ?? 0;
+  const excusedCount = attendance.data?.filter(item => item.status === "excused").length ?? 0;
+  const attendanceTotal = attendance.data?.length ?? 0;
   const attendancePercent = attendanceTotal ? (presentCount / attendanceTotal) * 100 : null;
   const subjects = Array.from(new Set((grades.data ?? []).map(g => g.subject))).filter(Boolean);
   const upcomingTasks = pending.filter(t => t.due_at && new Date(t.due_at).getTime() >= Date.now()).sort((a,b) => new Date(a.due_at!).getTime() - new Date(b.due_at!).getTime()).slice(0,5);
@@ -149,7 +151,7 @@ function StudentDashboard() {
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           {to:"/aluno/notas",icon:BarChart3,label:"Média geral",value:grades.isPending ? "—" : overallAverage == null ? "—" : overallAverage.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2}),desc:weightedAverage != null ? "Média ponderada das avaliações" : "Notas registradas"},
-          {to:"/aluno/frequencia",icon:CheckCircle2,label:"Frequência",value:attendance.isPending ? "—" : attendancePercent == null ? "—" : attendancePercent.toLocaleString("pt-BR",{maximumFractionDigits:0})+"%",desc:attendanceTotal ? (presentCount+" presença(s) em "+attendanceTotal+".") : "Sem registros ainda"},
+          {to:"/aluno/frequencia",icon:CheckCircle2,label:"Frequência",value:attendance.isPending ? "—" : attendancePercent == null ? "—" : attendancePercent.toLocaleString("pt-BR",{maximumFractionDigits:0})+"%",desc:attendanceTotal ? (presentCount+" presença(s), "+absentCount+" falta(s).") : "Sem registros ainda"},
           {to:"/aluno/tarefas",icon:ClipboardList,label:"Pendências",value:tasks.isPending ? "—" : pending.length,desc:pending.length?"Atividade(s) aguardando você":"Tudo em dia"},
           {to:"/aluno/disciplinas",icon:BookOpen,label:"Disciplinas",value:studentSubjects.isPending ? "—" : uniqueSubjectCount,desc:studentSubjects.isPending ? "Carregando vínculos" : uniqueTeacherCount + (uniqueTeacherCount === 1 ? " professor vinculado" : " professores vinculados")},
         ].map(({to,icon:Icon,label,value,desc})=><Link key={label} to={to} className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary"/></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></Link>)}
@@ -173,6 +175,22 @@ function StudentDashboard() {
           })}
           {studentSubjects.isPending && <p className="text-sm text-muted-foreground">Carregando matérias e professores…</p>}
           {!studentSubjects.isPending && !(studentSubjects.data ?? []).length && <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Nenhuma disciplina foi vinculada à sua turma ainda.</p>}
+        </div>
+      </section>
+
+      <section className="mt-5 sina-card p-5 sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">Frequência</p>
+            <h2 className="mt-1 text-lg font-semibold">Como está sua presença</h2>
+            <p className="mt-1 text-sm text-muted-foreground">O mesmo cálculo da área detalhada: presenças divididas por todos os registros disponíveis.</p>
+          </div>
+          <Link to="/aluno/frequencia" className="text-sm font-semibold text-primary">Ver histórico completo →</Link>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Presenças</p><p className="mt-1 text-2xl font-semibold">{attendance.isPending ? "—" : presentCount}</p></div>
+          <div className="rounded-2xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-2xl font-semibold">{attendance.isPending ? "—" : absentCount}</p></div>
+          <div className="rounded-2xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Outros registros</p><p className="mt-1 text-2xl font-semibold">{attendance.isPending ? "—" : lateCount + excusedCount}</p><p className="mt-1 text-[11px] text-muted-foreground">atrasos + justificativas</p></div>
         </div>
       </section>
 
