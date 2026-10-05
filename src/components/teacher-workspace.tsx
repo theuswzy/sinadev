@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, GraduationCap, Megaphone, Plus, School, Users, BarChart3, Paperclip, Pencil, Trash2, X, FileText, Download } from "lucide-react";
@@ -528,18 +529,41 @@ function Communication({d}:{d:ReturnType<typeof useData>}){
   </div>;
 }
 
+const sectionPaths: Record<Section, "/professor" | "/professor/turmas" | "/professor/alunos" | "/professor/disciplinas" | "/professor/notas" | "/professor/frequencia" | "/professor/avaliacoes" | "/professor/atividades" | "/professor/materiais" | "/professor/agenda" | "/professor/comunicacao"> = {
+  inicio: "/professor",
+  turmas: "/professor/turmas",
+  alunos: "/professor/alunos",
+  disciplinas: "/professor/disciplinas",
+  notas: "/professor/notas",
+  frequencia: "/professor/frequencia",
+  avaliacoes: "/professor/avaliacoes",
+  atividades: "/professor/atividades",
+  materiais: "/professor/materiais",
+  agenda: "/professor/agenda",
+  comunicacao: "/professor/comunicacao",
+};
+
+const pathToSection: Partial<Record<string, Section>> = Object.fromEntries(
+  Object.entries(sectionPaths).map(([section, path]) => [path, section]),
+) as Partial<Record<string, Section>>;
+
 export function TeacherWorkspace({initialSection="inicio"}:{initialSection?:Section}){
-  const [section,setSection]=useState<Section>(initialSection);const d=useData(section);const current=menu.find(x=>x.id===section) ?? menu[0]!;
-  const body=section==="inicio"?<Overview d={d} onNavigate={setSection}/>:section==="turmas"?<Classes d={d} onNavigate={setSection}/>:section==="alunos"?<Students d={d}/>:section==="disciplinas"?<Subjects d={d}/>:section==="notas"?<Grades d={d}/>:section==="frequencia"?<Attendance d={d}/>:section==="avaliacoes"?<Assessments d={d}/>:section==="atividades"?<Tasks d={d}/>:section==="materiais"?<Materials d={d}/>:section==="agenda"?<Agenda d={d}/>:<Communication d={d}/>;
-  return <AcademicShell title={current.label} subtitle="Gestão acadêmica docente" requiredRole="teacher"><div className="space-y-5"><DataError d={d}/><div className="rounded-2xl border border-border bg-card p-2">
-  <div className="hidden gap-1 overflow-x-auto lg:flex">
-    {menu.map(item=>{const Icon=item.Icon;return <button key={item.id} type="button" onClick={()=>setSection(item.id)} className={"inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold "+(item.id===section?"bg-primary text-primary-foreground":"text-muted-foreground hover:bg-muted hover:text-foreground")}><Icon className="size-4"/>{item.label}</button>})}
-  </div>
-  <div className="lg:hidden">
-    <label htmlFor="teacher-section-mobile" className="mb-1 block px-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Seção</label>
-    <select id="teacher-section-mobile" value={section} onChange={e=>setSection(e.target.value as Section)} className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold">
-      {menu.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}
-    </select>
-  </div>
-</div>{body}</div></AcademicShell>;
+  const location=useLocation();
+  const navigate=useNavigate();
+  const section=pathToSection[location.pathname] ?? initialSection;
+  const d=useData(section);
+  const current=menu.find(x=>x.id===section) ?? menu[0]!;
+
+  function onNavigate(nextSection: Section) {
+    void navigate({to:sectionPaths[nextSection]});
+  }
+
+  const body=section==="inicio"?<Overview d={d} onNavigate={onNavigate}/>:section==="turmas"?<Classes d={d} onNavigate={onNavigate}/>:section==="alunos"?<Students d={d}/>:section==="disciplinas"?<Subjects d={d}/>:section==="notas"?<Grades d={d}/>:section==="frequencia"?<Attendance d={d}/>:section==="avaliacoes"?<Assessments d={d}/>:section==="atividades"?<Tasks d={d}/>:section==="materiais"?<Materials d={d}/>:section==="agenda"?<Agenda d={d}/>:<Communication d={d}/>;
+
+  return <AcademicShell title={current.label} subtitle="Gestão acadêmica docente" requiredRole="teacher">
+    <div className="space-y-5">
+      <DataError d={d}/>
+      {body}
+    </div>
+  </AcademicShell>;
 }
