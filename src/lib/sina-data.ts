@@ -20,7 +20,26 @@ export async function getRole(): Promise<UserRole> {
     throw new Error("Finalize seu cadastro para acessar o SINA.");
   }
   if (profile.status === "pending") {
-    throw new Error("Sua conta está aguardando aprovação do administrador.");
+    // Alunos podem acessar a própria conta imediatamente após confirmar o
+    // e-mail. O vínculo acadêmico (escola/turma/disciplina) continua sendo
+    // controlado separadamente por usuários autorizados.
+    const { data: studentRole, error: studentRoleError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", auth.user.id)
+      .eq("role", "student")
+      .maybeSingle();
+
+    if (studentRoleError) throw studentRoleError;
+
+    if (studentRole?.role === "student") {
+      await supabase
+        .from("profiles")
+        .update({ status: "active" })
+        .eq("user_id", auth.user.id);
+    } else {
+      throw new Error("Sua conta está aguardando aprovação do administrador.");
+    }
   }
   if (profile.status === "suspended") {
     throw new Error("Sua conta está suspensa. Procure o administrador da instituição.");
