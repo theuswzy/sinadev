@@ -890,6 +890,34 @@ export async function createTeacherCalendarEvent(args: {
   return data;
 }
 
+export async function updateTeacherCalendarEvent(args: {
+  id: string;
+  classroomId: string | null;
+  title: string;
+  description: string;
+  startAt: string;
+  endAt: string | null;
+  eventType: string;
+}) {
+  const { data, error } = await supabase.rpc("teacher_update_calendar_event", {
+    _id: args.id,
+    _classroom_id: args.classroomId as string,
+    _title: args.title,
+    _description: args.description,
+    _start_at: args.startAt,
+    _end_at: args.endAt as string,
+    _event_type: args.eventType,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteTeacherCalendarEvent(id: string) {
+  const { data, error } = await supabase.rpc("teacher_delete_calendar_event", { _id: id });
+  if (error) throw error;
+  return data ?? false;
+}
+
 export type TeacherClassReport = {
   student_id: string;
   student_name: string;
