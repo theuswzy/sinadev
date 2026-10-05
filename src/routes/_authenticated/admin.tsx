@@ -796,8 +796,8 @@ ${institutionNameValue}`);
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <div className="flex shrink-0 gap-1 rounded-md border border-border p-1" aria-label={`Função acadêmica de ${account.email}`}>
-                      <Button size="sm" variant={account.academic_role === "student" ? "default" : "ghost"} disabled={account.is_administrator || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "student")}>Aluno</Button>
-                      <Button size="sm" variant={account.academic_role === "teacher" ? "default" : "ghost"} disabled={account.is_administrator || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "teacher")}>Professor</Button>
+                      <Button size="sm" variant={account.academic_role === "student" ? "default" : "ghost"} disabled={account.is_administrator || account.account_status !== "active" || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "student")} title={account.account_status === "pending" ? "Aprove o cadastro primeiro na área de solicitações." : undefined}>Aluno</Button>
+                      <Button size="sm" variant={account.academic_role === "teacher" ? "default" : "ghost"} disabled={account.is_administrator || account.account_status !== "active" || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "teacher")} title={account.account_status === "pending" ? "Aprove o cadastro primeiro na área de solicitações." : undefined}>Professor</Button>
                     </div>
                     {!account.is_administrator && (
                       <>
