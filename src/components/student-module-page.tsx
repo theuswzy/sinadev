@@ -16,6 +16,7 @@ import {
   loadStudentTasksDetailed,
   loadStudentAnnouncementsDetailed,
   loadStudentSubjects,
+  type Grade,
   submitTask,
 } from "@/lib/sina-data";
 
@@ -146,6 +147,22 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     }
     return map;
   }, [studentSubjects.data]);
+
+  const teacherNamesById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of studentSubjects.data ?? []) {
+      if (item.teacher_name) map.set(item.teacher_id, item.teacher_name);
+    }
+    return map;
+  }, [studentSubjects.data]);
+
+  const gradeTeachers = (grade: Grade) => {
+    if (grade.teacher_id) {
+      const teacher = teacherNamesById.get(grade.teacher_id);
+      if (teacher) return [teacher];
+    }
+    return teacherNamesBySubject.get(grade.subject) ?? [];
+  };
 
   const now = Date.now();
   const overdueTasks = pendingTasks.filter((task) => task.due_at && new Date(task.due_at).getTime() < now);
@@ -302,7 +319,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
       {module === "notas" && (
         <section className="mt-6 space-y-5">
-          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-xl font-semibold">Notas separadas por matéria e professor</h2><p className="mt-1 text-sm text-muted-foreground">Os lançamentos e as avaliações ficam agrupados por disciplina. Assim você sempre sabe de qual professor veio cada registro.</p></div>
+          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-xl font-semibold">Notas separadas por matéria e professor</h2><p className="mt-1 text-sm text-muted-foreground">Os lançamentos e as avaliações ficam agrupados por disciplina. Notas novas guardam o professor responsável; registros antigos sem essa informação mostram os professores atualmente vinculados à matéria, sem atribuição indevida.</p></div>
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Lançamentos</p><p className="mt-1 text-2xl font-semibold">{grades.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">notas por período</p></div>
             <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Avaliações</p><p className="mt-1 text-2xl font-semibold">{assessments.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">provas e trabalhos</p></div>
@@ -313,7 +330,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
             <div className="border-b border-border p-5"><h3 className="font-semibold">Lançamentos por disciplina</h3><p className="mt-1 text-xs text-muted-foreground">O professor da matéria fica identificado na mesma linha.</p></div>
             <div className="overflow-x-auto"><table className="w-full min-w-[880px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-4 text-left">Disciplina</th><th className="p-4 text-left">Professor</th><th className="p-4 text-left">Período</th><th className="p-4 text-left">Nota</th><th className="p-4 text-left">Faltas</th></tr></thead><tbody>
               {(grades.data ?? []).map((g) => {
-                const teachers = teacherNamesBySubject.get(g.subject) ?? [];
+                const teachers = gradeTeachers(g);
                 return <tr key={g.id} className="border-t border-border">
                   <td className="p-4 font-medium">{g.subject}</td>
                   <td className="p-4 text-xs text-muted-foreground">{teachers.length ? teachers.join(", ") : "Professor não informado"}</td>
