@@ -77,6 +77,8 @@ function DataError({d}:{d:ReturnType<typeof useData>}) {
 }
 
 function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(section:Section)=>void}){
+  const tasks=useQuery({queryKey:["teacher-overview-tasks"],queryFn:loadTeacherTasks,staleTime:15000});
+  const materials=useQuery({queryKey:["teacher-overview-materials"],queryFn:loadTeacherAcademicMaterials,staleTime:15000});
   const classes=(d.classes.data??[]).filter(x=>x.status==="active");
   const students=(d.students.data??[]).filter(x=>x.class_status==="minha_turma");
   const subjects=(d.subjects.data??[]).filter(x=>x.status==="active");
@@ -97,6 +99,35 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {actions.map(({label,value,desc,icon:Icon,go})=><button key={label} type="button" onClick={()=>onNavigate(go)} className="sina-card group p-5 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><span className="text-xs font-semibold text-primary opacity-0 transition group-hover:opacity-100">Abrir →</span></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></button>)}
     </div>
+    <Card title="O que precisa da sua atenção?" description="Indicadores rápidos para você saber onde agir primeiro.">
+      <div className="grid gap-3 md:grid-cols-3">
+        <button type="button" onClick={()=>onNavigate("alunos")} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Alunos sem turma</p>
+          <p className="mt-1 text-3xl font-semibold">{pending.length}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{pending.length?"Há alunos aguardando vínculo.":"Nenhum aluno aguardando vínculo."}</p>
+        </button>
+        <button type="button" onClick={()=>onNavigate("atividades")} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Atividades com prazo vencido</p>
+          <p className="mt-1 text-3xl font-semibold">{(tasks.data??[]).filter(t=>t.due_at&&new Date(t.due_at).getTime()<Date.now()).length}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Revise as atividades e acompanhe as entregas.</p>
+        </button>
+        <button type="button" onClick={()=>onNavigate("materiais")} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Materiais publicados</p>
+          <p className="mt-1 text-3xl font-semibold">{materials.data?.length??0}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Arquivos disponíveis para suas turmas.</p>
+        </button>
+      </div>
+      {tasks.isError&&<p className="mt-3 text-xs text-destructive">Não foi possível atualizar o indicador de atividades.</p>}
+      {materials.isError&&<p className="mt-1 text-xs text-destructive">Não foi possível atualizar o indicador de materiais.</p>}
+    </Card>
+    <Card title="Próximos prazos" description="Acompanhe rapidamente as atividades que estão chegando.">
+      <div className="grid gap-2 md:grid-cols-2">
+        {(tasks.data??[]).filter(t=>t.due_at&&new Date(t.due_at).getTime()>=Date.now()).sort((a,b)=>new Date(a.due_at!).getTime()-new Date(b.due_at!).getTime()).slice(0,6).map(t=><button key={t.id} type="button" onClick={()=>onNavigate("atividades")} className="rounded-xl border border-border p-3 text-left hover:border-primary/40 hover:bg-primary/5">
+          <b>{t.title}</b><p className="mt-1 text-xs text-muted-foreground">{t.classroom} · {t.subject}</p><p className="mt-1 text-xs font-medium text-primary">{new Date(t.due_at!).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})}</p>
+        </button>)}
+        {!tasks.isPending&&!(tasks.data??[]).some(t=>t.due_at&&new Date(t.due_at).getTime()>=Date.now())&&<p className="text-sm text-muted-foreground">Nenhum prazo futuro cadastrado.</p>}
+      </div>
+    </Card>
     <Card title="Próximas ações" description="Use o menu para executar cada etapa. O SINA mantém o vínculo entre a ação e a turma.">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {[
