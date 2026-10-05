@@ -1574,6 +1574,20 @@ export type Database = {
           weight: number
         }[]
       }
+      student_list_attendance_detailed: {
+        Args: { _limit?: number }
+        Returns: {
+          attendance_date: string
+          classroom_id: string
+          classroom_name: string
+          note: string | null
+          status: string
+          subject_id: string | null
+          subject_name: string | null
+          teacher_id: string
+          teacher_name: string
+        }[]
+      }
       student_list_attendance: {
         Args: { _limit?: number }
         Returns: {
