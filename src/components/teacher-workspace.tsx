@@ -18,7 +18,7 @@ import {
   loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
   loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherGrades, loadTeacherAcademicMaterials,
   saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
-  teacherRemoveStudentFromClassroom, unassignTeacherSubjectFromClass, deleteTeacherSubject, updateTeacherSubject, updateTeacherCalendarEvent, deleteTeacherCalendarEvent, type AttendanceRow
+  teacherRemoveStudentFromClassroom, unassignTeacherSubjectFromClass, deleteTeacherSubject, updateTeacherSubject, updateTeacherCalendarEvent, deleteTeacherCalendarEvent, type AttendanceRow, type TeacherTask, type TeacherAnnouncement
 } from "@/lib/sina-data";
 
 type Section = "inicio"|"turmas"|"alunos"|"disciplinas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"materiais"|"agenda"|"comunicacao";
@@ -91,7 +91,7 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
   const overdueTasks=(tasks.data??[]).filter(t=>t.due_at&&new Date(t.due_at).getTime()<Date.now());
   const upcomingTasks=(tasks.data??[]).filter(t=>t.due_at&&new Date(t.due_at).getTime()>=Date.now()).sort((a,b)=>new Date(a.due_at!).getTime()-new Date(b.due_at!).getTime()).slice(0,5);
   const upcomingEvents=(calendar.data??[]).filter(e=>new Date(e.start_at).getTime()>=Date.now()).slice(0,5);
-  const actions=[
+  const actions: { label: string; value: number; desc: string; icon: LucideIcon; go: Section }[]=[
     {label:"Turmas",value:classes.length,desc:"Acompanhar desempenho e vínculos",icon:Users,go:"turmas" as Section},
     {label:"Alunos",value:students.length,desc:"Consultar e organizar estudantes",icon:GraduationCap,go:"alunos" as Section},
     {label:"Disciplinas",value:subjects.length,desc:"Gerenciar suas disciplinas",icon:BookOpen,go:"disciplinas" as Section},
