@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, BookOpen, UserCheck, Ban, UserRoundCheck, XCircle } from "lucide-react";
+import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, BookOpen, UserCheck, Ban, UserRoundCheck, XCircle, Building2, Power, Trash2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,6 +119,36 @@ function AdminArea() {
       toast.error(errorText(error));
     } finally {
       setCreatingInstitution(false);
+    }
+  }
+
+  async function setInstitutionStatus(institutionId: string, status: "active" | "inactive") {
+    setBusyId("institution:" + institutionId);
+    try {
+      const { error } = await supabase.rpc("admin_set_institution_status", { _institution_id: institutionId, _status: status });
+      if (error) throw error;
+      toast.success(status === "active" ? "Escola reativada." : "Escola desativada.");
+      await queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function deleteInstitution(institutionId: string, institutionNameValue: string) {
+    if (!window.confirm(`Excluir definitivamente a escola "${institutionNameValue}"? Esta ação só será permitida quando não existirem dados acadêmicos ou usuários vinculados.`)) return;
+    setBusyId("delete-institution:" + institutionId);
+    try {
+      const { error } = await supabase.rpc("admin_delete_institution", { _institution_id: institutionId });
+      if (error) throw error;
+      toast.success("Escola excluída definitivamente.");
+      await queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
+      window.location.reload();
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -339,6 +369,51 @@ function AdminArea() {
                 {creatingInstitution ? "Vinculando…" : "Vincular escola e criar instituição"}
               </Button>
             </div>
+          </div>
+        </section>
+
+        <section className="sina-card p-6">
+          <div className="flex items-start gap-3">
+            <Building2 className="mt-0.5 size-5 text-primary" />
+            <div>
+              <h2 className="font-semibold">Escolas e instituições</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Ative, desative ou exclua uma instituição. A exclusão definitiva só ocorre quando não existem dados vinculados.</p>
+            </div>
+          </div>
+          <div className="mt-5 space-y-2">
+            {(institutions.data ?? []).map((institution) => (
+              <div key={institution.id} className="flex flex-col gap-3 rounded-2xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="font-semibold">{institution.name}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span>{institution.slug}</span>
+                    <span className={institution.status === "active" ? "rounded-full bg-primary/10 px-2 py-1 font-semibold text-primary" : "rounded-full bg-muted px-2 py-1 font-semibold"}>{institution.status === "active" ? "Ativa" : "Inativa"}</span>
+                    {institution.is_active && <span className="rounded-full border border-border px-2 py-1">Atual</span>}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busyId?.includes(institution.id)}
+                    onClick={() => void setInstitutionStatus(institution.id, institution.status === "active" ? "inactive" : "active")}
+                  >
+                    <Power className="mr-2 size-4" />
+                    {institution.status === "active" ? "Desativar" : "Ativar"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive"
+                    disabled={busyId?.includes(institution.id)}
+                    onClick={() => void deleteInstitution(institution.id, institution.name)}
+                  >
+                    <Trash2 className="mr-2 size-4" />Excluir
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {!(institutions.data ?? []).length && <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhuma escola vinculada a esta conta administrativa.</p>}
           </div>
         </section>
 
