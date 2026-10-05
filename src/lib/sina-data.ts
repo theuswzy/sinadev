@@ -467,6 +467,8 @@ export type AttendanceRow = {
   enrollment: string;
   status: "present" | "absent" | "late" | "excused";
   note: string;
+  subject_id?: string | null;
+  subject_name?: string | null;
 };
 
 export type TeacherAssessment = {
@@ -721,16 +723,21 @@ export async function teacherClaimClassroom(classroomId: string) {
   return data ?? false;
 }
 
-export async function loadAttendance(classroomId: string, date: string): Promise<AttendanceRow[]> {
-  const { data, error } = await supabase.rpc("teacher_get_attendance", { _classroom_id: classroomId, _date: date });
+export async function loadAttendance(classroomId: string, date: string, subjectId: string): Promise<AttendanceRow[]> {
+  const { data, error } = await supabase.rpc("teacher_get_attendance", {
+    _classroom_id: classroomId,
+    _date: date,
+    _subject_id: subjectId,
+  });
   if (error) throw error;
   return (data ?? []) as AttendanceRow[];
 }
 
-export async function saveAttendance(classroomId: string, date: string, rows: Pick<AttendanceRow, "student_id" | "status" | "note">[]): Promise<number> {
+export async function saveAttendance(classroomId: string, date: string, subjectId: string, rows: Pick<AttendanceRow, "student_id" | "status" | "note">[]): Promise<number> {
   const { data, error } = await supabase.rpc("teacher_save_attendance", {
     _classroom_id: classroomId,
     _date: date,
+    _subject_id: subjectId,
     _rows: rows,
   });
   if (error) throw error;
