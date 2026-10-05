@@ -64,7 +64,6 @@ begin
       insert into public.user_roles(user_id, role)
       values(uid, 'student'::public.app_role)
       on conflict (user_id, role) do nothing;
-      current_role := 'student';
     end if;
 
     select d.institution_id into inst
