@@ -56,7 +56,7 @@ function StudentDashboard() {
       .values(),
   ).sort((a, b) => a.subject.localeCompare(b.subject, "pt-BR") || a.teacher.localeCompare(b.teacher, "pt-BR"));
   const subjectTeachers = (subject: string) => Array.from(new Set((studentSubjects.data ?? []).filter(item => item.name === subject).map(item => item.teacher_name).filter(Boolean)));
-  const teacherNamesById = new Map((studentSubjects.data ?? []).map(item => [item.teacher_id, item.teacher_name]).filter((item): item is [string, string] => Boolean(item[1])));
+  const teacherNamesById = new Map((studentSubjects.data ?? []).map(item => [item.teacher_id, item.teacher_name] as const));
   const gradeTeacherNames = (subject: string) => {
     const exact = Array.from(new Set(
       scoredGrades.filter(g => g.subject === subject && g.teacher_id).map(g => g.teacher_id ? teacherNamesById.get(g.teacher_id) : null).filter(Boolean),
