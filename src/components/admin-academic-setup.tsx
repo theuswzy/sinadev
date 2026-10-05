@@ -49,7 +49,7 @@ function parseCsvLine(line: string) {
 function parseAcademicCsv(text: string) {
   const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter(line => line.trim());
   if (lines.length < 2) throw new Error("CSV vazio ou sem linhas de dados.");
-  const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+  const headers = parseCsvLine(lines[0]!).map(h => h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
   const rows = lines.slice(1).map(line => {
     const values = parseCsvLine(line);
     return Object.fromEntries(headers.map((header, i) => [header, values[i] ?? ""]));
