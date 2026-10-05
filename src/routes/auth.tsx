@@ -107,10 +107,10 @@ function AuthPage() {
     const schoolId = explicitSchoolId || window.localStorage.getItem("sina-school-directory-id") || undefined;
     window.localStorage.removeItem("sina-school-directory-id");
 
-    // No login normal, contas já aprovadas não precisam passar novamente pelo
-    // fluxo de onboarding. Resolve a área diretamente pela função ativa.
-    // O onboarding continua sendo usado no cadastro, inclusive para Google.
-    if (!explicitRole) {
+    // Student accounts are active immediately. Do not send students through
+    // the approval/institution onboarding RPC during confirmation or login.
+    // School, classroom and academic linkage happen later.
+    if (!explicitRole || explicitRole === "student") {
       const role = await getRole();
       await navigate({
         to: role === "admin" ? "/admin" : role === "teacher" ? "/professor" : "/aluno",
@@ -119,7 +119,7 @@ function AuthPage() {
       return;
     }
 
-    const state = await ensureAccountOnboardingForSchool(explicitRole, schoolId ?? null);
+    const state = await ensureAccountOnboardingForSchool("teacher", schoolId ?? null);
 
     if (state.status === "pending") {
       setPendingState(state);
