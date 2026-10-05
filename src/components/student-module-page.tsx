@@ -118,7 +118,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
       subject: string;
       teacher: string;
       classroom: string;
-      items: typeof (assessments.data ?? []);
+      items: Array<NonNullable<typeof assessments.data>[number]>;
     }>();
     for (const item of assessments.data ?? []) {
       const subject = item.subject_name || "Sem disciplina";
