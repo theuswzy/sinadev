@@ -1399,6 +1399,8 @@ export type Database = {
         Args: { _status: string; _user_id: string }
         Returns: boolean
       }
+      admin_set_institution_status: { Args: { _institution_id: string; _status: string }; Returns: boolean }
+      admin_delete_institution: { Args: { _institution_id: string }; Returns: boolean }
       admin_set_teacher_access: {
         Args: { _email: string; _enabled: boolean }
         Returns: boolean
