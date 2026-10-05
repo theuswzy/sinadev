@@ -1,5 +1,9 @@
--- Student frequency must retain the academic context that makes each
--- record understandable: class, subject, teacher, date and status.
+-- Student frequency must retain class, subject, teacher, date, status and notes.
+-- This migration is intentionally self-contained because the detailed student
+-- feed is defined in the same migration that introduces subject_id.
+
+ALTER TABLE public.attendance_records
+  ADD COLUMN IF NOT EXISTS subject_id uuid;
 
 CREATE OR REPLACE FUNCTION public.student_list_attendance_detailed(_limit integer DEFAULT 180)
 RETURNS TABLE(
@@ -24,7 +28,7 @@ AS $function$
     a.note,
     a.classroom_id,
     c.name,
-    cs.subject_id,
+    a.subject_id,
     su.name,
     a.teacher_id,
     coalesce(p.display_name, 'Professor não identificado')
@@ -34,11 +38,7 @@ AS $function$
    and s.user_id=auth.uid()
    and s.institution_id=a.institution_id
   join public.classrooms c on c.id=a.classroom_id
-  left join public.classroom_subjects cs
-    on cs.classroom_id=a.classroom_id
-   and cs.teacher_id=a.teacher_id
-   and cs.institution_id=a.institution_id
-  left join public.subjects su on su.id=cs.subject_id
+  left join public.subjects su on su.id=a.subject_id
   left join public.profiles p on p.user_id=a.teacher_id
   where a.institution_id=sina_private.current_institution('student'::public.app_role)
   order by a.attendance_date desc, su.name nulls last
