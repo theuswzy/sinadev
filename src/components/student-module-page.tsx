@@ -33,10 +33,10 @@ const meta: Record<StudentModule, { title: string; subtitle: string }> = {
 
 export function StudentModulePage({ module }: { module: StudentModule }) {
   const student = useQuery({ queryKey: ["my-student"], queryFn: loadMyStudent });
-  const tasks = useQuery({ queryKey: ["student-module-tasks"], queryFn: loadStudentTasksDetailed, enabled: module === "tarefas" });
+  const tasks = useQuery({ queryKey: ["student-module-tasks"], queryFn: loadStudentTasksDetailed, enabled: module === "tarefas" || module === "disciplinas" });
   const studentSubjects = useQuery({ queryKey: ["student-module-subjects"], queryFn: loadStudentSubjects, enabled: module === "disciplinas" || module === "tarefas" || module === "notas" });
   const grades = useQuery({ queryKey: ["student-module-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id && (module === "disciplinas" || module === "notas") });
-  const assessments = useQuery({ queryKey: ["student-module-assessments"], queryFn: loadStudentAssessmentsDetailed, enabled: module === "notas" });
+  const assessments = useQuery({ queryKey: ["student-module-assessments"], queryFn: loadStudentAssessmentsDetailed, enabled: module === "notas" || module === "disciplinas" });
   const attendance = useQuery({ queryKey: ["student-module-attendance"], queryFn: loadStudentAttendance, enabled: module === "frequencia" });
   const announcements = useQuery({ queryKey: ["student-module-announcements"], queryFn: loadStudentAnnouncementsDetailed, enabled: module === "avisos" });
   const submissions = useQuery({ queryKey: ["student-module-submissions"], queryFn: loadStudentTaskSubmissions, enabled: module === "tarefas" });
