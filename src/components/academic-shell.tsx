@@ -103,7 +103,7 @@ export function AcademicShell({
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let cancelled = false;
-    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    let refreshTimer: number | null = null;
 
     const refreshAcademicQueries = () => {
       if (cancelled) return;
