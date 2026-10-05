@@ -113,7 +113,7 @@ export function AcademicShell({
         // A teacher publishing an activity, for example, invalidates the
         // student's dashboard; an admin changing a classroom invalidates the
         // teacher/student academic context as well.
-        const prefixes = ["my-role", "my-institutions", "my-student", "dashboard-", "teacher-", "admin-"];
+        const prefixes = ["my-", "dashboard-", "teacher-", "student-", "admin-"];
         void queryClient.invalidateQueries({
           predicate: (query) => {
             const key = (query.queryKey as readonly unknown[])[0];
@@ -337,9 +337,9 @@ export function AcademicShell({
               <p className="hidden truncate text-xs text-muted-foreground sm:block">{subtitle}</p>
             </div>
 
-            <div className="hidden items-center gap-2 md:flex">
+            <div className="flex items-center gap-2">
               {institutions.data && institutions.data.length > 0 && (
-                <div className="hidden lg:flex items-center gap-2 rounded-xl border border-border bg-card px-2.5 py-1.5">
+                <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-2 py-1.5">
                   <Building2 className="size-4 text-primary" />
                   <select
                     aria-label="Instituição ativa"
@@ -362,7 +362,7 @@ export function AcademicShell({
                         }),
                       ]);
                     }}
-                    className="max-w-48 bg-transparent text-xs font-semibold outline-none"
+                    className="max-w-[120px] bg-transparent text-xs font-semibold outline-none sm:max-w-48"
                   >
                     {institutions.data.map((institution) => (
                       <option key={institution.id} value={institution.id}>{institution.name}</option>
@@ -370,7 +370,7 @@ export function AcademicShell({
                   </select>
                 </div>
               )}
-              <span className="rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+              <span className="hidden rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground sm:inline-flex">
                 {roleShort}
               </span>
               <ThemeToggle />
