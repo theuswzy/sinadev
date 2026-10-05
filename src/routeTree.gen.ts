@@ -204,7 +204,6 @@ export interface FileRoutesByFullPath {
   '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
   '/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
   '/professor/materiais': typeof AuthenticatedProfessorMateriaisRoute
-  '/professor/materiais': typeof AuthenticatedProfessorMateriaisRoute
   '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
   '/professor/notas': typeof AuthenticatedProfessorNotasRoute
   '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
@@ -230,6 +229,7 @@ export interface FileRoutesByTo {
   '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
   '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
   '/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
+  '/professor/materiais': typeof AuthenticatedProfessorMateriaisRoute
   '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
   '/professor/notas': typeof AuthenticatedProfessorNotasRoute
   '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
