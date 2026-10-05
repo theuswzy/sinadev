@@ -925,10 +925,28 @@ export async function deleteTeacherAnnouncement(id: string) {
   return data;
 }
 
+export type StudentAttendanceDetailed = {
+  attendance_date: string;
+  status: string;
+  note: string | null;
+  classroom_id: string;
+  classroom_name: string;
+  subject_id: string | null;
+  subject_name: string | null;
+  teacher_id: string;
+  teacher_name: string;
+};
+
 export async function loadStudentAttendance(): Promise<{ attendance_date: string; status: string; note: string | null; classroom: string }[]> {
   const { data, error } = await supabase.rpc("student_list_attendance", { _limit: 90 });
   if (error) throw error;
   return data ?? [];
+}
+
+export async function loadStudentAttendanceDetailed(): Promise<StudentAttendanceDetailed[]> {
+  const { data, error } = await supabase.rpc("student_list_attendance_detailed", { _limit: 180 });
+  if (error) throw error;
+  return (data ?? []) as StudentAttendanceDetailed[];
 }
 
 export async function loadTeacherCalendar(from: string, to: string): Promise<CalendarEvent[]> {
