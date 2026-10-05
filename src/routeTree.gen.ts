@@ -199,7 +199,6 @@ export interface FileRoutesByFullPath {
   '/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
   '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
   '/professor/alunos': typeof AuthenticatedProfessorAlunosRoute
-  '/professor/alunos': typeof AuthenticatedProfessorAlunosRoute
   '/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
   '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
   '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
