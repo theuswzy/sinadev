@@ -119,9 +119,7 @@ function AuthPage() {
       return;
     }
 
-    const state = schoolId
-      ? await ensureAccountOnboardingForSchool(explicitRole, schoolId)
-      : await ensureAccountOnboarding(explicitRole);
+    const state = await ensureAccountOnboardingForSchool(explicitRole, schoolId ?? null);
 
     if (state.status === "pending") {
       setPendingState(state);
