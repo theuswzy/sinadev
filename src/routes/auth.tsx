@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowRight, CheckCircle2, GraduationCap, LockKeyhole, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { ArrowRight, CheckCircle2, GraduationCap, LockKeyhole, MailCheck, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,6 +86,8 @@ function AuthPage() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [signupConfirmationOpen, setSignupConfirmationOpen] = useState(false);
+  const [signupConfirmationEmail, setSignupConfirmationEmail] = useState("");
 
   async function finishAuth(explicitRole?: RequestedRole, explicitSchoolId?: string) {
     const inviteToken = window.localStorage.getItem("sina-institution-invite-token");
@@ -265,7 +267,9 @@ function AuthPage() {
         if (data.session) {
           await finishAuth(requestedRole, selectedSchool.id);
         } else {
-          setMessage("Conta criada. Confirme seu e-mail para continuar; depois o SINA enviará sua solicitação para aprovação.");
+          setSignupConfirmationEmail(email.trim());
+          setSignupConfirmationOpen(true);
+          setMessage("");
         }
         return;
       }
@@ -370,6 +374,86 @@ function AuthPage() {
           <div className="h-full w-1/3 animate-pulse bg-primary" />
         </div>
       )}
+
+      {signupConfirmationOpen && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-foreground/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="signup-confirmation-title"
+          aria-describedby="signup-confirmation-description"
+        >
+          <div className="w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card shadow-2xl">
+            <div className="bg-primary px-6 py-5 text-primary-foreground sm:px-7">
+              <div className="flex items-center gap-3">
+                <span className="flex size-11 items-center justify-center rounded-2xl bg-primary-foreground/15">
+                  <MailCheck className="size-6" />
+                </span>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] opacity-80">Cadastro concluído</p>
+                  <h2 id="signup-confirmation-title" className="mt-1 font-display text-2xl font-semibold">
+                    Conta criada com sucesso!
+                  </h2>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-5 p-6 sm:p-7">
+              <div>
+                <p id="signup-confirmation-description" className="text-sm leading-6 text-foreground">
+                  Enviamos um e-mail de confirmação para:
+                </p>
+                <div className="mt-2 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-semibold break-all">
+                  {signupConfirmationEmail}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-secondary/60 p-4">
+                <p className="text-sm font-semibold">O que fazer agora?</p>
+                <div className="mt-3 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      Abra o e-mail do SINA e clique no link de confirmação.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">2</span>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      Depois, volte ao SINA e entre com seu e-mail e senha.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">3</span>
+                    <p className="text-sm leading-6 text-muted-foreground">
+                      Sua solicitação será encaminhada para aprovação do administrador da instituição.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs leading-5 text-muted-foreground">
+                Não encontrou a mensagem? Verifique também a pasta de spam ou lixo eletrônico.
+              </p>
+
+              <Button
+                type="button"
+                className="h-11 w-full font-semibold"
+                onClick={() => {
+                  setSignupConfirmationOpen(false);
+                  setMode("login");
+                  setPassword("");
+                  setPasswordConfirm("");
+                  setMessage("Confirme seu e-mail antes de entrar no SINA.");
+                }}
+              >
+                Ir para entrar <ArrowRight />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="border-b border-brand-border bg-brand text-brand-foreground">
         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
           <Link to="/" className="group flex items-center gap-2.5 font-display text-xl font-bold">
