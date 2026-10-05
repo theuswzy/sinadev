@@ -26,8 +26,32 @@ function authErrorMessage(error: unknown): string {
   if (normalized.includes("user already registered")) return "Este e-mail já possui uma conta.";
   if (normalized.includes("password should be at least")) return "A senha precisa ter pelo menos 6 caracteres.";
   if (normalized.includes("email rate limit")) return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+  if (normalized.includes("otp_expired") || normalized.includes("token has expired") || normalized.includes("invalid or has expired")) {
+    return "Este link de segurança expirou ou já foi usado. Solicite um novo e-mail.";
+  }
+  if (normalized.includes("code verifier") || normalized.includes("pkce")) {
+    return "Este link foi aberto em outro navegador ou sessão. Solicite um novo e-mail de confirmação.";
+  }
+  if (normalized.includes("redirect") && normalized.includes("not allowed")) {
+    return "O endereço de retorno deste e-mail não está autorizado no Supabase.";
+  }
   if (normalized.includes("network") || normalized.includes("fetch")) return "Não foi possível conectar ao serviço. Verifique sua internet e tente novamente.";
   return message || "Não foi possível concluir a operação.";
+}
+
+function readAuthRedirectError(): string | null {
+  const params = new URLSearchParams();
+  const url = new URL(window.location.href);
+
+  url.searchParams.forEach((value, key) => params.set(key, value));
+  new URLSearchParams(url.hash.replace(/^#/, "")).forEach((value, key) => params.set(key, value));
+
+  const error = params.get("error_description") || params.get("error");
+  if (!error) return null;
+
+  const code = params.get("error_code");
+  const detail = code ? ` [${code}]` : "";
+  return authErrorMessage(new Error(`${error}${detail}`));
 }
 
 export const Route = createFileRoute("/auth")({
@@ -172,6 +196,9 @@ function AuthPage() {
       // O cliente Supabase trata o hash automaticamente, mas o fluxo PKCE
       // precisa trocar explicitamente o código por uma sessão.
       const url = new URL(window.location.href);
+      const redirectError = readAuthRedirectError();
+      if (redirectError) throw new Error(redirectError);
+
       const code = url.searchParams.get("code");
 
       if (code) {
