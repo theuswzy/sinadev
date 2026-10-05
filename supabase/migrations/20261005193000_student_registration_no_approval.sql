@@ -153,3 +153,29 @@ $$;
 
 revoke all on function public.ensure_account_onboarding_v2(text,uuid) from public, anon;
 grant execute on function public.ensure_account_onboarding_v2(text,uuid) to authenticated;
+
+
+-- Backfill students who already created an account under the old approval flow.
+-- Their pending request must no longer prevent login.
+insert into public.user_roles(user_id, role)
+select distinct rr.user_id, 'student'::public.app_role
+from public.account_role_requests rr
+where rr.requested_role = 'student'::public.app_role
+  and rr.status = 'pending'
+on conflict (user_id, role) do nothing;
+
+update public.profiles p
+set status='active', updated_at=now()
+where p.status='pending'
+  and exists (
+    select 1 from public.user_roles r
+    where r.user_id=p.user_id and r.role='student'::public.app_role
+  );
+
+update public.account_role_requests rr
+set status='approved',
+    reviewed_at=coalesce(rr.reviewed_at,now()),
+    review_note=coalesce(rr.review_note,'Aluno: acesso liberado automaticamente após criação da conta.'),
+    updated_at=now()
+where rr.requested_role='student'::public.app_role
+  and rr.status='pending';
