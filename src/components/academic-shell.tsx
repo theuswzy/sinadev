@@ -358,13 +358,44 @@ export function AcademicShell({
 
           <nav
             aria-label="Navegação principal"
-            className="scrollbar-none -mx-3 flex gap-1 overflow-x-auto px-3 pb-3 md:mx-0 md:px-0"
+            className="scrollbar-none -mx-3 hidden gap-1 overflow-x-auto px-3 pb-3 md:flex md:mx-0 md:px-0"
           >
             {sectionLinks.map(renderNavItem)}
           </nav>
 
+          <div className="flex items-center gap-2 border-t border-border/60 py-2 md:hidden">
+            {sectionLinks.slice(0, 4).map(renderNavItem)}
+            {sectionLinks.length > 4 && (
+              <button
+                type="button"
+                onClick={() => setMobileOpen((value) => !value)}
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2.5 text-sm font-semibold text-muted-foreground"
+                aria-expanded={mobileOpen}
+              >
+                <Menu className="size-[17px]" />
+                Mais
+              </button>
+            )}
+          </div>
+
           {mobileOpen && (
-            <div className="border-t border-border py-3 md:hidden">
+            <div className="border-t border-border bg-muted/20 py-3 md:hidden">
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                {sectionLinks.slice(4).map((item) => {
+                  const Icon = item.Icon;
+                  const active = isActive(item);
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href as AcademicNavPath}
+                      onClick={() => setMobileOpen(false)}
+                      className={active ? "flex items-center gap-2 rounded-xl bg-primary px-3 py-3 text-sm font-semibold text-primary-foreground" : "flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-3 text-sm font-semibold text-muted-foreground"}
+                    >
+                      <Icon className="size-4" />{item.label}
+                    </Link>
+                  );
+                })}
+              </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <button
                   type="button"
