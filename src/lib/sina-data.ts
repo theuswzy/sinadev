@@ -760,7 +760,7 @@ export async function teacherClaimClassroom(classroomId: string) {
 
 export async function loadAttendance(classroomId: string, date: string, subjectId: string): Promise<AttendanceRow[]> {
   const { data, error } = await supabase.rpc("teacher_get_attendance", {
-    _classroom_id: classroomId,
+    _classroom_id: classroomId ?? undefined,
     _date: date,
     _subject_id: subjectId,
   });
