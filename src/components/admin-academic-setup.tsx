@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, BookOpen, CalendarRange, Layers3, Save, Archive, RotateCcw, Users, FileUp, Mail, Copy, X, Pencil, Trash2, SlidersHorizontal } from "lucide-react";
+import { AlertTriangle, BookOpen, CalendarRange, Layers3, Save, Archive, RotateCcw, Users, FileUp, Mail, Copy, X, Pencil, Trash2, SlidersHorizontal, Eye } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
   adminAssignTeacherToClassroom,
   adminUnassignTeacherFromClassroom,
   adminImportAcademicCsv,
+  loadAdminClassroomHub,
   createAdminInstitutionInvitation, loadAdminInstitutionInvitations, revokeAdminInstitutionInvitation,
 } from "@/lib/sina-data";
 
@@ -63,6 +64,13 @@ export function AdminAcademicSetup() {
   const teachers = useQuery({ queryKey: ["admin-institution-teachers"], queryFn: loadAdminInstitutionTeachers });
   const assignments = useQuery({ queryKey: ["admin-teacher-classroom-assignments"], queryFn: loadAdminTeacherAssignments });
   const invitations = useQuery({ queryKey: ["admin-institution-invitations"], queryFn: loadAdminInstitutionInvitations });
+  const [classroomHubId, setClassroomHubId] = useState<string | null>(null);
+  const classroomHub = useQuery({
+    queryKey: ["admin-classroom-hub", classroomHubId],
+    queryFn: () => loadAdminClassroomHub(classroomHubId!),
+    enabled: !!classroomHubId,
+    staleTime: 10000,
+  });
   const [classroomName, setClassroomName] = useState("");
   const [classroomCode, setClassroomCode] = useState("");
   const [subjectName, setSubjectName] = useState("");
@@ -263,6 +271,7 @@ export function AdminAcademicSetup() {
                         </div>
                       </div>
                       <div className="flex shrink-0 flex-wrap gap-1">
+                        <Button size="sm" variant="ghost" disabled={busyAction !== null} onClick={() => setClassroomHubId(c.id)} aria-label={`Abrir central de ${c.name}`}><Eye className="size-4" /></Button>
                         <Button size="sm" variant="ghost" disabled={busyAction !== null} onClick={() => setEditingClassroom({ id: c.id, name: c.name, code: c.code || "" })} aria-label={`Editar ${c.name}`}><Pencil className="size-4" /></Button>
                         {c.status === "active" ? (
                           <Button size="sm" variant="ghost" disabled={busyAction !== null} onClick={() => void archiveClassroom(c.id)} aria-label={`Arquivar ${c.name}`}>{busyAction === "archive:"+c.id ? "…" : <Archive className="size-4" />}</Button>
@@ -406,6 +415,109 @@ export function AdminAcademicSetup() {
               </div>
             )}
           </section>
+
+          <Dialog open={!!classroomHubId} onOpenChange={open => { if (!open) setClassroomHubId(null); }}>
+            <DialogContent className="rounded-2xl border-border sm:max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>{classroomHub.data?.classroom.name || "Central da turma"}</DialogTitle>
+                <DialogDescription>
+                  Visão operacional da turma: pessoas, disciplinas, professores e volume de dados acadêmicos.
+                </DialogDescription>
+              </DialogHeader>
+
+              {classroomHub.isPending && <div className="py-8 text-center text-sm text-muted-foreground">Carregando central da turma…</div>}
+              {classroomHub.error && (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
+                  <p className="font-semibold">Não foi possível carregar esta turma.</p>
+                  <p className="mt-1 text-muted-foreground">{errorText(classroomHub.error)}</p>
+                  <Button className="mt-3" size="sm" variant="outline" onClick={() => void classroomHub.refetch()}>Tentar novamente</Button>
+                </div>
+              )}
+              {classroomHub.data && (
+                <div className="max-h-[70vh] space-y-5 overflow-y-auto pr-1">
+                  <div className="grid gap-3 sm:grid-cols-4">
+                    {[
+                      ["Alunos", classroomHub.data.metrics.students],
+                      ["Professores", classroomHub.data.metrics.teachers],
+                      ["Disciplinas", classroomHub.data.metrics.subject_links],
+                      ["Notas", classroomHub.data.metrics.grades],
+                      ["Avaliações", classroomHub.data.metrics.assessments],
+                      ["Atividades", classroomHub.data.metrics.tasks],
+                      ["Materiais", classroomHub.data.metrics.materials],
+                      ["Frequência", classroomHub.data.metrics.attendance],
+                    ].map(([label, value]) => (
+                      <div key={String(label)} className="rounded-xl border border-border bg-muted/20 p-3">
+                        <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+                        <p className="mt-1 text-2xl font-semibold tabular-nums">{String(value)}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <section className="rounded-xl border border-border p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="font-semibold">Professores</h3>
+                        <span className="text-xs text-muted-foreground">{classroomHub.data.teachers.length}</span>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {classroomHub.data.teachers.map(teacher => (
+                          <div key={teacher.user_id} className="rounded-lg bg-secondary/50 p-3 text-sm">
+                            <p className="font-medium">{teacher.name}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">Professor vinculado à turma</p>
+                          </div>
+                        ))}
+                        {!classroomHub.data.teachers.length && <p className="text-sm text-muted-foreground">Nenhum professor vinculado.</p>}
+                      </div>
+                    </section>
+
+                    <section className="rounded-xl border border-border p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="font-semibold">Disciplinas e responsáveis</h3>
+                        <span className="text-xs text-muted-foreground">{classroomHub.data.subjects.length}</span>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {classroomHub.data.subjects.map(subject => (
+                          <div key={subject.id + (subject.teacher_id ?? "")} className="rounded-lg bg-secondary/50 p-3 text-sm">
+                            <p className="font-medium">{subject.name}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{subject.code || "Sem código"} · {subject.teacher_name}</p>
+                          </div>
+                        ))}
+                        {!classroomHub.data.subjects.length && <p className="text-sm text-muted-foreground">Nenhuma disciplina vinculada.</p>}
+                      </div>
+                    </section>
+                  </div>
+
+                  <section className="rounded-xl border border-border p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="font-semibold">Alunos da turma</h3>
+                      <span className="text-xs text-muted-foreground">{classroomHub.data.students.length}</span>
+                    </div>
+                    <div className="mt-3 overflow-x-auto rounded-xl border border-border">
+                      <table className="w-full min-w-[560px] text-sm">
+                        <thead className="bg-secondary/50 text-left">
+                          <tr>
+                            <th className="px-3 py-2 font-semibold">Aluno</th>
+                            <th className="px-3 py-2 font-semibold">Matrícula</th>
+                            <th className="px-3 py-2 font-semibold">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {classroomHub.data.students.map(student => (
+                            <tr key={student.id}>
+                              <td className="px-3 py-2 font-medium">{student.full_name}</td>
+                              <td className="px-3 py-2 text-muted-foreground">{student.enrollment || "—"}</td>
+                              <td className="px-3 py-2 text-xs text-muted-foreground">{student.status}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {!classroomHub.data.students.length && <p className="p-5 text-sm text-muted-foreground">Nenhum aluno vinculado a esta turma.</p>}
+                    </div>
+                  </section>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
 
           <Dialog open={!!editingClassroom} onOpenChange={open => { if (!open && busyAction === null) setEditingClassroom(null); }}>
             <DialogContent>
