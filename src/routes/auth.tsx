@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, GraduationCap, LockKeyhole, ShieldCheck, User
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   acceptInstitutionInvitation,
@@ -302,18 +303,29 @@ function AuthPage() {
       window.localStorage.removeItem("sina-school-directory-id");
     }
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth`,
-      },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: `${window.location.origin}/auth`,
     });
 
-    if (error) {
+    if (result.error) {
       window.localStorage.removeItem("sina-requested-role");
       window.localStorage.removeItem("sina-school-directory-id");
-      setMessage(authErrorMessage(error));
+      setMessage(authErrorMessage(result.error));
       setBusy(false);
+      return;
+    }
+
+    if (!result.redirected) {
+      try {
+        await finishAuth(
+          isSignup ? requestedRole ?? undefined : undefined,
+          isSignup ? selectedSchool?.id : undefined,
+        );
+      } catch (error) {
+        setMessage(authErrorMessage(error));
+      } finally {
+        setBusy(false);
+      }
     }
   }
 
