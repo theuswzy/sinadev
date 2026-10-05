@@ -113,17 +113,13 @@ export function AcademicShell({
         // A teacher publishing an activity, for example, invalidates the
         // student's dashboard; an admin changing a classroom invalidates the
         // teacher/student academic context as well.
-        const prefixes = [
-          "my-role",
-          "my-institutions",
-          "my-student",
-          "dashboard-",
-          "teacher-",
-          "admin-",
-        ];
-        for (const prefix of prefixes) {
-          void queryClient.invalidateQueries({ queryKey: [prefix], exact: false });
-        }
+        const prefixes = ["my-role", "my-institutions", "my-student", "dashboard-", "teacher-", "admin-"];
+        void queryClient.invalidateQueries({
+          predicate: (query) => {
+            const key = query.queryKey[0];
+            return typeof key === "string" && prefixes.some((prefix) => key === prefix || key.startsWith(prefix));
+          },
+        });
       }, 180);
     };
 
