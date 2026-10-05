@@ -376,7 +376,28 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
       {module === "notas" && (
         <section className="mt-6 space-y-5">
-          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-xl font-semibold">Notas separadas por matéria e professor</h2><p className="mt-1 text-sm text-muted-foreground">Os lançamentos e as avaliações ficam agrupados por disciplina. Notas novas guardam o professor responsável; registros antigos sem essa informação mostram os professores atualmente vinculados à matéria, sem atribuição indevida.</p></div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p>
+            <h2 className="mt-1 text-xl font-semibold">Média geral por disciplina</h2>
+            <p className="mt-1 text-sm text-muted-foreground">A média geral agora começa pela visão das disciplinas. Clique em uma matéria para ir à área de disciplinas e acompanhar o restante dos detalhes.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {(studentSubjects.data ?? []).map((item) => {
+              const performance = subjects.find((s) => s.subject === item.name);
+              return <Link key={item.id + item.teacher_id} to="/aluno/disciplinas" className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><BarChart3 className="size-5"/></span>
+                  <ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary"/>
+                </div>
+                <h3 className="mt-4 font-semibold">{item.name}</h3>
+                <p className="mt-1 text-xs text-muted-foreground">Prof. {item.teacher_name || "não informado"}</p>
+                <p className="mt-3 font-display text-3xl font-semibold">{performance?.average == null ? "—" : formatScore(performance.average)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{performance ? performance.periods + " lançamento(s)" : "Ainda sem lançamento"}</p>
+                <p className="mt-3 text-xs font-semibold text-primary">Abrir detalhes →</p>
+              </Link>;
+            })}
+            {!studentSubjects.data?.length && <div className="sina-card p-6 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Nenhuma disciplina vinculada ainda.</div>}
+          </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Lançamentos</p><p className="mt-1 text-2xl font-semibold">{grades.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">notas por período</p></div>
             <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Avaliações</p><p className="mt-1 text-2xl font-semibold">{assessments.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">provas e trabalhos</p></div>
@@ -421,20 +442,62 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
       {module === "frequencia" && (
         <section className="mt-6 space-y-5">
-          <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Histórico</p><h2 className="mt-1 text-xl font-semibold">Registro de frequência</h2><p className="mt-1 text-sm text-muted-foreground">Veja exatamente quando a presença foi registrada e qual foi o status.</p></div><span className="hidden rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold sm:inline-flex">{attendance.data?.length ?? 0} registro{attendance.data?.length === 1 ? "" : "s"}</span></div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-primary">Diário acadêmico</p>
+              <h2 className="mt-1 text-xl font-semibold">Frequência detalhada por disciplina</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Data, disciplina, professor, turma, situação e observação aparecem juntos em cada registro.</p>
+            </div>
+            <span className="rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold">{attendance.data?.length ?? 0} registro{attendance.data?.length === 1 ? "" : "s"}</span>
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <div className="sina-card p-4"><Clock3 className="size-4 text-primary"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Registros</p><p className="mt-1 text-2xl font-semibold">{attendanceSummary.total}</p></div>
             <div className="sina-card p-4"><CheckCircle2 className="size-4 text-success"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Presenças</p><p className="mt-1 text-2xl font-semibold">{attendanceSummary.present}</p></div>
             <div className="sina-card p-4"><AlertTriangle className="size-4 text-destructive"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-2xl font-semibold">{attendanceSummary.absent}</p></div>
             <div className="sina-card p-4"><UserRound className="size-4 text-warning"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Atrasos</p><p className="mt-1 text-2xl font-semibold">{attendanceSummary.late}</p></div>
-            <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Frequência calculada</p><p className="mt-1 text-2xl font-semibold">{attendanceSummary.percentage == null ? "—" : `${attendanceSummary.percentage}%`}</p><p className="mt-1 text-[11px] text-muted-foreground">presenças ÷ registros disponíveis</p></div>
+            <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Frequência</p><p className="mt-1 text-2xl font-semibold">{attendanceSummary.percentage == null ? "—" : attendanceSummary.percentage + "%"}</p><p className="mt-1 text-[11px] text-muted-foreground">presenças ÷ registros disponíveis</p></div>
           </div>
-          <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4 text-sm"><p className="font-semibold">Como interpretar</p><p className="mt-1 text-muted-foreground">Cada linha abaixo é um registro do diário da turma. “Justificada” continua sendo apresentada separadamente e não é convertida automaticamente em presença ou falta.</p></div>
-          <div className="sina-card divide-y divide-border">{(attendance.data ?? []).map((item, index) => <div key={item.attendance_date + index} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-medium">{new Date(item.attendance_date + "T12:00:00").toLocaleDateString("pt-BR")}</p><p className="text-xs text-muted-foreground">Turma: {item.classroom}{item.note ? " · Observação: " + item.note : ""}</p></div><div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">Fonte: diário da turma</span><span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold">{item.status === "absent" ? "Falta" : item.status === "late" ? "Atrasado" : item.status === "excused" ? "Justificada" : "Presente"}</span></div></div>)}</div>
-          {!attendance.isPending && !attendance.data?.length && <div className="sina-card p-8 text-center text-sm text-muted-foreground">Ainda não há registros de frequência para exibir.</div>}
+
+          <div className="sina-card overflow-hidden">
+            <div className="border-b border-border p-5">
+              <h3 className="font-semibold">Histórico completo</h3>
+              <p className="mt-1 text-xs text-muted-foreground">Use esta tabela como seu histórico oficial de acompanhamento.</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1100px] text-sm">
+                <thead className="bg-secondary/50">
+                  <tr>
+                    <th className="p-4 text-left">Data</th>
+                    <th className="p-4 text-left">Disciplina</th>
+                    <th className="p-4 text-left">Professor</th>
+                    <th className="p-4 text-left">Turma</th>
+                    <th className="p-4 text-left">Situação</th>
+                    <th className="p-4 text-left">Observação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(attendance.data ?? []).map((item, index) => (
+                    <tr key={item.attendance_date + item.teacher_id + index} className="border-t border-border">
+                      <td className="p-4 whitespace-nowrap">{new Date(item.attendance_date + "T12:00:00").toLocaleDateString("pt-BR")}</td>
+                      <td className="p-4 font-medium">{item.subject_name || "Disciplina não identificada"}</td>
+                      <td className="p-4 text-xs text-muted-foreground">{item.teacher_name}</td>
+                      <td className="p-4 text-xs text-muted-foreground">{item.classroom_name}</td>
+                      <td className="p-4">
+                        <span className={item.status === "absent" ? "rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-semibold text-destructive" : item.status === "late" ? "rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300" : "rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary"}>
+                          {item.status === "absent" ? "Falta" : item.status === "late" ? "Atrasado" : item.status === "excused" ? "Justificada" : "Presente"}
+                        </span>
+                      </td>
+                      <td className="p-4 text-xs text-muted-foreground">{item.note || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!attendance.data?.length && <p className="p-8 text-center text-sm text-muted-foreground">Ainda não há registros de frequência para exibir.</p>}
+            </div>
+          </div>
         </section>
       )}
-
       {module === "agenda" && (
         <section className="mt-6 space-y-4">
           <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Planejamento</p><h2 className="mt-1 text-xl font-semibold">Agenda acadêmica</h2><p className="mt-1 text-sm text-muted-foreground">Cada evento informa sua origem, turma, tipo e horário.</p></div>
