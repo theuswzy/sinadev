@@ -61,6 +61,15 @@ function StudentDashboard() {
         </section>
       )}
 
+      <section className="mt-5 sina-card p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Precisa da sua atenção</p><h2 className="mt-1 text-lg font-semibold">Próximos passos</h2></div><Bell className="size-5 text-primary"/></div>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <Link to="/aluno/tarefas" className="rounded-xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5"><p className="text-xs font-bold uppercase text-muted-foreground">Pendências</p><p className="mt-1 text-2xl font-semibold">{pending.length}</p><p className="mt-1 text-xs text-muted-foreground">{pending.length?"Atividade(s) aguardando você.":"Você está em dia."}</p></Link>
+          <Link to="/aluno/agenda" className="rounded-xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5"><p className="text-xs font-bold uppercase text-muted-foreground">Próximas atividades</p><p className="mt-1 text-2xl font-semibold">{(tasks.data??[]).filter(t=>!t.completed&&t.due_at&&new Date(t.due_at).getTime()>=Date.now()).length}</p><p className="mt-1 text-xs text-muted-foreground">Com prazo futuro.</p></Link>
+          <Link to="/aluno/avisos" className="rounded-xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5"><p className="text-xs font-bold uppercase text-muted-foreground">Avisos</p><p className="mt-1 text-2xl font-semibold">{announcements.data?.length??0}</p><p className="mt-1 text-xs text-muted-foreground">Comunicados disponíveis.</p></Link>
+        </div>
+      </section>
+
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           {to:"/aluno/tarefas",icon:ClipboardList,label:"Pendências",value:pending.length,desc:"tarefas para resolver"},
