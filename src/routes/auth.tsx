@@ -780,7 +780,16 @@ function AuthPage() {
                   </div>
                 ) : mode === "login" ? (
                   <>
-                    {message && <div role="status" className="mt-6 rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">{message}</div>}
+                    {message && (
+                      <div role="status" className="mt-6 space-y-3 rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">
+                        <p>{message}</p>
+                        {needsConfirmationResend && email.trim() && (
+                          <Button type="button" variant="outline" size="sm" disabled={resendBusy} onClick={() => void resendSignupConfirmation(email)}>
+                            {resendBusy ? "Enviando..." : "Reenviar confirmação por e-mail"}
+                          </Button>
+                        )}
+                      </div>
+                    )}
                     <form onSubmit={submit} className="mt-6 space-y-4">
                       <label className="block text-sm font-medium">E-mail
                         <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 h-11" autoComplete="email" placeholder="voce@exemplo.com" />
