@@ -26,10 +26,12 @@ import { Route as AuthenticatedAlunoFrequenciaRouteImport } from './routes/_auth
 import { Route as AuthenticatedAlunoNotasRouteImport } from './routes/_authenticated/aluno/notas'
 import { Route as AuthenticatedAlunoTarefasRouteImport } from './routes/_authenticated/aluno/tarefas'
 import { Route as AuthenticatedProfessorAgendaRouteImport } from './routes/_authenticated/professor/agenda'
+import { Route as AuthenticatedProfessorAlunosRouteImport } from './routes/_authenticated/professor/alunos'
 import { Route as AuthenticatedProfessorAtividadesRouteImport } from './routes/_authenticated/professor/atividades'
 import { Route as AuthenticatedProfessorAvaliacoesRouteImport } from './routes/_authenticated/professor/avaliacoes'
 import { Route as AuthenticatedProfessorComunicacaoRouteImport } from './routes/_authenticated/professor/comunicacao'
 import { Route as AuthenticatedProfessorDisciplinasRouteImport } from './routes/_authenticated/professor/disciplinas'
+import { Route as AuthenticatedProfessorMateriaisRouteImport } from './routes/_authenticated/professor/materiais'
 import { Route as AuthenticatedProfessorFrequenciaRouteImport } from './routes/_authenticated/professor/frequencia'
 import { Route as AuthenticatedProfessorNotasRouteImport } from './routes/_authenticated/professor/notas'
 import { Route as AuthenticatedProfessorTurmasRouteImport } from './routes/_authenticated/professor/turmas'
@@ -124,6 +126,12 @@ const AuthenticatedProfessorAgendaRoute =
     path: '/agenda',
     getParentRoute: () => AuthenticatedProfessorRoute,
   } as any)
+const AuthenticatedProfessorAlunosRoute =
+  AuthenticatedProfessorAlunosRouteImport.update({
+    id: '/alunos',
+    path: '/alunos',
+    getParentRoute: () => AuthenticatedProfessorRoute,
+  } as any)
 const AuthenticatedProfessorAtividadesRoute =
   AuthenticatedProfessorAtividadesRouteImport.update({
     id: '/atividades',
@@ -146,6 +154,12 @@ const AuthenticatedProfessorDisciplinasRoute =
   AuthenticatedProfessorDisciplinasRouteImport.update({
     id: '/disciplinas',
     path: '/disciplinas',
+    getParentRoute: () => AuthenticatedProfessorRoute,
+  } as any)
+const AuthenticatedProfessorMateriaisRoute =
+  AuthenticatedProfessorMateriaisRouteImport.update({
+    id: '/materiais',
+    path: '/materiais',
     getParentRoute: () => AuthenticatedProfessorRoute,
   } as any)
 const AuthenticatedProfessorFrequenciaRoute =
@@ -184,10 +198,13 @@ export interface FileRoutesByFullPath {
   '/aluno/notas': typeof AuthenticatedAlunoNotasRoute
   '/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
   '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
+  '/professor/alunos': typeof AuthenticatedProfessorAlunosRoute
+  '/professor/alunos': typeof AuthenticatedProfessorAlunosRoute
   '/professor/atividades': typeof AuthenticatedProfessorAtividadesRoute
   '/professor/avaliacoes': typeof AuthenticatedProfessorAvaliacoesRoute
   '/professor/comunicacao': typeof AuthenticatedProfessorComunicacaoRoute
   '/professor/disciplinas': typeof AuthenticatedProfessorDisciplinasRoute
+  '/professor/materiais': typeof AuthenticatedProfessorMateriaisRoute
   '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
   '/professor/notas': typeof AuthenticatedProfessorNotasRoute
   '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
@@ -263,10 +280,13 @@ export interface FileRouteTypes {
     | '/aluno/notas'
     | '/aluno/tarefas'
     | '/professor/agenda'
+    | '/professor/alunos'
+    | '/professor/alunos'
     | '/professor/atividades'
     | '/professor/avaliacoes'
     | '/professor/comunicacao'
     | '/professor/disciplinas'
+    | '/professor/materiais'
     | '/professor/frequencia'
     | '/professor/notas'
     | '/professor/turmas'
@@ -314,10 +334,12 @@ export interface FileRouteTypes {
     | '/_authenticated/aluno/notas'
     | '/_authenticated/aluno/tarefas'
     | '/_authenticated/professor/agenda'
+    | '/_authenticated/professor/alunos'
     | '/_authenticated/professor/atividades'
     | '/_authenticated/professor/avaliacoes'
     | '/_authenticated/professor/comunicacao'
     | '/_authenticated/professor/disciplinas'
+    | '/_authenticated/professor/materiais'
     | '/_authenticated/professor/frequencia'
     | '/_authenticated/professor/notas'
     | '/_authenticated/professor/turmas'
@@ -452,6 +474,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfessorAgendaRouteImport
       parentRoute: typeof AuthenticatedProfessorRoute
     }
+    '/_authenticated/professor/alunos': {
+      id: '/_authenticated/professor/alunos'
+      path: '/alunos'
+      fullPath: '/professor/alunos'
+      preLoaderRoute: typeof AuthenticatedProfessorAlunosRouteImport
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
     '/_authenticated/professor/atividades': {
       id: '/_authenticated/professor/atividades'
       path: '/atividades'
@@ -478,6 +507,13 @@ declare module '@tanstack/react-router' {
       path: '/disciplinas'
       fullPath: '/professor/disciplinas'
       preLoaderRoute: typeof AuthenticatedProfessorDisciplinasRouteImport
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
+    '/_authenticated/professor/materiais': {
+      id: '/_authenticated/professor/materiais'
+      path: '/materiais'
+      fullPath: '/professor/materiais'
+      preLoaderRoute: typeof AuthenticatedProfessorMateriaisRouteImport
       parentRoute: typeof AuthenticatedProfessorRoute
     }
     '/_authenticated/professor/frequencia': {
@@ -527,10 +563,12 @@ const AuthenticatedAlunoRouteWithChildren =
 
 interface AuthenticatedProfessorRouteChildren {
   AuthenticatedProfessorAgendaRoute: typeof AuthenticatedProfessorAgendaRoute
+  AuthenticatedProfessorAlunosRoute: typeof AuthenticatedProfessorAlunosRoute
   AuthenticatedProfessorAtividadesRoute: typeof AuthenticatedProfessorAtividadesRoute
   AuthenticatedProfessorAvaliacoesRoute: typeof AuthenticatedProfessorAvaliacoesRoute
   AuthenticatedProfessorComunicacaoRoute: typeof AuthenticatedProfessorComunicacaoRoute
   AuthenticatedProfessorDisciplinasRoute: typeof AuthenticatedProfessorDisciplinasRoute
+  AuthenticatedProfessorMateriaisRoute: typeof AuthenticatedProfessorMateriaisRoute
   AuthenticatedProfessorFrequenciaRoute: typeof AuthenticatedProfessorFrequenciaRoute
   AuthenticatedProfessorNotasRoute: typeof AuthenticatedProfessorNotasRoute
   AuthenticatedProfessorTurmasRoute: typeof AuthenticatedProfessorTurmasRoute
@@ -539,6 +577,7 @@ interface AuthenticatedProfessorRouteChildren {
 const AuthenticatedProfessorRouteChildren: AuthenticatedProfessorRouteChildren =
   {
     AuthenticatedProfessorAgendaRoute: AuthenticatedProfessorAgendaRoute,
+    AuthenticatedProfessorAlunosRoute: AuthenticatedProfessorAlunosRoute,
     AuthenticatedProfessorAtividadesRoute:
       AuthenticatedProfessorAtividadesRoute,
     AuthenticatedProfessorAvaliacoesRoute:
@@ -547,6 +586,8 @@ const AuthenticatedProfessorRouteChildren: AuthenticatedProfessorRouteChildren =
       AuthenticatedProfessorComunicacaoRoute,
     AuthenticatedProfessorDisciplinasRoute:
       AuthenticatedProfessorDisciplinasRoute,
+    AuthenticatedProfessorMateriaisRoute:
+      AuthenticatedProfessorMateriaisRoute,
     AuthenticatedProfessorFrequenciaRoute:
       AuthenticatedProfessorFrequenciaRoute,
     AuthenticatedProfessorNotasRoute: AuthenticatedProfessorNotasRoute,
