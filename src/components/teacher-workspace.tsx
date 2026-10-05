@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, GraduationCap, Megaphone, Plus, School, Users, BarChart3, Paperclip, Pencil, Trash2, X, FileText, Download } from "lucide-react";
 import { toast } from "sonner";
 import { AcademicShell } from "@/components/academic-shell";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -312,27 +313,45 @@ function Students({d}:{d:ReturnType<typeof useData>}){
 
 function Subjects({d}:{d:ReturnType<typeof useData>}){
   const [name,setName]=useState("");const [code,setCode]=useState("");const [subject,setSubject]=useState("");const [classroom,setClassroom]=useState("");const [busy,setBusy]=useState("");
+  const [confirm,setConfirm]=useState<{kind:"unlink"|"delete";id:string;name:string;classroom:string}|null>(null);
   async function create(){try{await createTeacherSubject(name.trim(),code.trim());setName("");setCode("");await d.refresh();toast.success("Disciplina criada.");}catch(e){toast.error(errorText(e))}}
   async function assign(){if(!subject||!classroom)return;setBusy("assign");try{await assignTeacherSubjectToClass(subject,classroom);setSubject("");setClassroom("");await d.refresh();toast.success("Disciplina vinculada à turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
-  async function removeAssignment(id:string){if(!window.confirm("Desvincular esta disciplina da turma?"))return;setBusy("remove:"+id);try{await unassignTeacherSubjectFromClass(id);await d.refresh();toast.success("Disciplina desvinculada.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
+  async function confirmRemoveAssignment(){
+    if(!confirm||confirm.kind!=="unlink")return;
+    setBusy("remove:"+confirm.id);
+    try{await unassignTeacherSubjectFromClass(confirm.id);await d.refresh();toast.success("Disciplina desvinculada.");setConfirm(null);}
+    catch(e){toast.error(errorText(e))}
+    finally{setBusy("")}
+  }
   async function editSubject(id:string,currentName:string,currentCode:string){const nextName=window.prompt("Nome da disciplina",currentName);if(nextName===null)return;const nextCode=window.prompt("Código",currentCode);if(nextCode===null)return;try{await supabase.rpc("teacher_update_subject",{_id:id,_name:nextName.trim(),_code:nextCode.trim()});await d.refresh();toast.success("Disciplina atualizada.");}catch(e){toast.error(errorText(e))}}
-  async function deleteSubject(id:string,name:string){
-    if(!window.confirm('Excluir a disciplina "'+name+'"? Essa ação remove a disciplina e seus vínculos com as turmas.'))return;
-    setBusy("delete-subject:"+id);
-    try{await deleteTeacherSubject(id);await d.refresh();toast.success("Disciplina excluída.");}
+  async function confirmDeleteSubject(){
+    if(!confirm||confirm.kind!=="delete")return;
+    setBusy("delete-subject:"+confirm.id);
+    try{await deleteTeacherSubject(confirm.id);await d.refresh();toast.success("Disciplina excluída.");setConfirm(null);}
     catch(e){toast.error(errorText(e))}
     finally{setBusy("")}
   }
   return <div className="space-y-5">
     <Card title="Disciplinas" description="Cadastre e distribua as disciplinas que você administra.">
       <div className="grid gap-3 md:grid-cols-[1fr_160px_auto]"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome"/><Input value={code} onChange={e=>setCode(e.target.value)} placeholder="Código"/><Button disabled={!name.trim()||!!busy} onClick={()=>void create()}><Plus className="mr-2 size-4"/>Criar</Button></div>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">{(d.subjects.data??[]).map(s=><div key={s.id} className="rounded-xl border border-border p-3"><div className="flex items-start justify-between gap-3"><div><b>{s.name}</b><p className="text-xs text-muted-foreground">{s.code||"Sem código"} · {s.status}</p></div>{s.status==="active"&&<div className="flex gap-2"><Button size="sm" variant="outline" disabled={!!busy} onClick={()=>void editSubject(s.id,s.name,s.code||"")}>Editar</Button><Button size="sm" variant="ghost" className="text-destructive" disabled={!!busy} onClick={()=>void deleteSubject(s.id,s.name)}>{busy==="delete-subject:"+s.id?"Excluindo…":"Excluir"}</Button></div>}</div></div>)}</div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">{(d.subjects.data??[]).map(s=><div key={s.id} className="rounded-xl border border-border p-3"><div className="flex items-start justify-between gap-3"><div><b>{s.name}</b><p className="text-xs text-muted-foreground">{s.code||"Sem código"} · {s.status}</p></div>{s.status==="active"&&<div className="flex gap-2"><Button size="sm" variant="outline" disabled={!!busy} onClick={()=>void editSubject(s.id,s.name,s.code||"")}>Editar</Button><Button size="sm" variant="ghost" className="text-destructive" disabled={!!busy} onClick={()=>setConfirm({kind:"delete",id:s.id,name:s.name,classroom:""})}>{busy==="delete-subject:"+s.id?"Excluindo…":"Excluir"}</Button></div>}</div></div>)}</div>
     </Card>
     <Card title="Vincular disciplina à turma" description="Uma disciplina precisa estar vinculada à turma antes de receber atividades e materiais.">
       <div className="grid gap-3 md:grid-cols-3"><Select label="Disciplina" value={subject} onChange={setSubject}><option value="">Selecione</option>{(d.subjects.data??[]).filter(s=>s.status==="active").map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</Select><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select><div className="self-end"><Button disabled={!subject||!classroom||!!busy} onClick={()=>void assign()}>{busy==="assign"?"Vinculando…":"Vincular"}</Button></div></div>
-      <div className="mt-4 space-y-2">{(d.assignments.data??[]).map((a:{id:string;subject_name:string;classroom_name:string})=><div key={a.id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3 text-sm"><div className="min-w-0"><b>{a.subject_name}</b><p className="text-xs text-muted-foreground">{a.classroom_name}</p></div><Button size="sm" variant="ghost" className="text-destructive" disabled={!!busy} onClick={()=>void removeAssignment(a.id)}>{busy==="remove:"+a.id?"Removendo…":"Desvincular"}</Button></div>)}</div>
+      <div className="mt-4 space-y-2">{(d.assignments.data??[]).map((a:{id:string;subject_name:string;classroom_name:string})=><div key={a.id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3 text-sm"><div className="min-w-0"><b>{a.subject_name}</b><p className="text-xs text-muted-foreground">{a.classroom_name}</p></div><Button size="sm" variant="ghost" className="text-destructive" disabled={!!busy} onClick={()=>setConfirm({kind:"unlink",id:a.id,name:a.subject_name,classroom:a.classroom_name})}>{busy==="remove:"+a.id?"Removendo…":"Desvincular"}</Button></div>)}</div>
       {!d.assignments.isPending&&!(d.assignments.data??[]).length&&<p className="mt-3 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhuma disciplina foi vinculada a uma turma ainda.</p>}
     </Card>
+    <ConfirmActionDialog
+      open={!!confirm}
+      onOpenChange={open=>{if(!open)setConfirm(null)}}
+      title={confirm?.kind==="delete" ? "Excluir disciplina?" : "Desvincular disciplina?"}
+      description={confirm?.kind==="delete"
+        ? 'A disciplina "'+(confirm?.name??"")+'" será excluída e seus vínculos com as turmas serão removidos. Esta ação não pode ser desfeita.'
+        : 'A disciplina "'+(confirm?.name??"")+'" será desvinculada da turma "'+(confirm?.classroom??"")+'". A disciplina continuará cadastrada no SINA.'}
+      actionLabel={confirm?.kind==="delete" ? "Excluir disciplina" : "Desvincular"}
+      loading={busy.startsWith("delete-subject:") || busy.startsWith("remove:")}
+      onConfirm={()=>void (confirm?.kind==="delete" ? confirmDeleteSubject() : confirmRemoveAssignment())}
+    />
   </div>;
 }
 
@@ -427,6 +446,7 @@ function Assessments({d}:{d:ReturnType<typeof useData>}){
 function Tasks({d}:{d:ReturnType<typeof useData>}){
   const [classroom,setClassroom]=useState("");const [subject,setSubject]=useState("");const [title,setTitle]=useState("");const [description,setDescription]=useState("");const [due,setDue]=useState("");const [selected,setSelected]=useState("");const [busy,setBusy]=useState(false);const [scores,setScores]=useState<Record<string,string>>({});const [feedback,setFeedback]=useState<Record<string,string>>({});
   const [attachment,setAttachment]=useState<File|null>(null);const [editing,setEditing]=useState<string|null>(null);
+  const [confirmDelete,setConfirmDelete]=useState<string|null>(null);
   const tasks=useQuery({queryKey:["teacher-new-tasks"],queryFn:loadTeacherTasks,staleTime:15000});const submissions=useQuery({queryKey:["teacher-new-submissions",selected],queryFn:()=>loadTaskSubmissions(selected),enabled:!!selected});
   const selectedTask=tasks.data?.find(t=>t.id===editing)??null;
   const taskSubjectOptions=(d.assignments.data??[]).filter(a=>a.classroom_name===classroom);
@@ -465,9 +485,12 @@ function Tasks({d}:{d:ReturnType<typeof useData>}){
     }finally{setBusy(false)}
   }
 
-  async function remove(id:string){
-    if(!window.confirm("Excluir esta atividade? As entregas vinculadas podem deixar de aparecer.")) return;
-    setBusy(true);try{await deleteTeacherTask(id);if(selected===id)setSelected("");await tasks.refetch();toast.success("Atividade excluída.");}catch(e){toast.error(errorText(e))}finally{setBusy(false)}
+  async function remove(){
+    if(!confirmDelete)return;
+    setBusy(true);
+    try{await deleteTeacherTask(confirmDelete);if(selected===confirmDelete)setSelected("");await tasks.refetch();toast.success("Atividade excluída.");setConfirmDelete(null);}
+    catch(e){toast.error(errorText(e))}
+    finally{setBusy(false)}
   }
 
   async function grade(id:string){const n=Number(scores[id]);if(Number.isNaN(n)||n<0||n>10){toast.error("A nota deve estar entre 0 e 10.");return;}try{await gradeTaskSubmission(id,n,feedback[id]??"");await submissions.refetch();toast.success("Entrega corrigida.");}catch(e){toast.error(errorText(e))}}
@@ -494,16 +517,25 @@ function Tasks({d}:{d:ReturnType<typeof useData>}){
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {t.attachment_name&&<span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Paperclip className="size-3"/> {t.attachment_name}</span>}
           <Button size="sm" variant="ghost" onClick={()=>startEdit(t)}><Pencil className="mr-1 size-3"/>Editar</Button>
-          <Button size="sm" variant="ghost" className="text-destructive" disabled={busy} onClick={()=>void remove(t.id)}><Trash2 className="mr-1 size-3"/>Excluir</Button>
+          <Button size="sm" variant="ghost" className="text-destructive" disabled={busy} onClick={()=>setConfirmDelete(t.id)}><Trash2 className="mr-1 size-3"/>Excluir</Button>
         </div>
       </div>)}
     </div>
+    <ConfirmActionDialog
+      open={!!confirmDelete}
+      onOpenChange={open=>{if(!open&&!busy)setConfirmDelete(null)}}
+      title="Excluir atividade?"
+      description="A atividade será excluída. As entregas vinculadas podem deixar de aparecer para os alunos."
+      actionLabel="Excluir atividade"
+      loading={busy}
+      onConfirm={remove}
+    />
     {selected&&<div className="mt-5 space-y-2">{submissions.error&&<div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar as entregas. <Button size="sm" variant="outline" onClick={()=>void submissions.refetch()}>Tentar novamente</Button></div>}{(submissions.data??[]).map(s=><div key={s.id} className="rounded-xl border border-border p-4"><b>{s.student_name}</b><p className="text-xs text-muted-foreground">{s.enrollment} · {s.status}</p><p className="mt-2 text-sm">{s.content||"Sem resposta textual."}</p>{s.attachment_name&&<p className="mt-1 text-xs text-muted-foreground">Anexo enviado: {s.attachment_name}</p>}<div className="mt-3 grid gap-2 sm:grid-cols-[120px_1fr_auto]"><Input type="number" min="0" max="10" step=".01" placeholder="Nota" value={scores[s.id]??(s.score==null?"":String(s.score))} onChange={e=>setScores(v=>({...v,[s.id]:e.target.value}))}/><Input placeholder="Feedback para o aluno" value={feedback[s.id]??(s.feedback??"")} onChange={e=>setFeedback(v=>({...v,[s.id]:e.target.value}))}/><Button disabled={scores[s.id]===""&&s.score==null} onClick={()=>void grade(s.id)}>Corrigir</Button></div></div>)}</div>}
   </Card>;
 }
 
 function Agenda({d}:{d:ReturnType<typeof useData>}){
-  const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [description,setDescription]=useState("");const [start,setStart]=useState("");const [type,setType]=useState("aula");const [busy,setBusy]=useState("");const [editing,setEditing]=useState<string|null>(null);
+  const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [description,setDescription]=useState("");const [start,setStart]=useState("");const [type,setType]=useState("aula");const [busy,setBusy]=useState("");const [editing,setEditing]=useState<string|null>(null);const [confirmDelete,setConfirmDelete]=useState<string|null>(null);
   const from=new Date(Date.now()-30*86400000).toISOString();const to=new Date(Date.now()+180*86400000).toISOString();const events=useQuery({queryKey:["teacher-new-calendar",from,to],queryFn:()=>loadTeacherCalendar(from,to),staleTime:30000});
   function reset(){setClassroom("");setTitle("");setDescription("");setStart("");setType("aula");setEditing(null);}
   function startEdit(event:NonNullable<typeof events.data>[number]){
@@ -526,11 +558,12 @@ function Agenda({d}:{d:ReturnType<typeof useData>}){
       reset();await events.refetch();
     }catch(e){toast.error(errorText(e))}finally{setBusy("")}
   }
-  async function remove(id:string){
-    if(!window.confirm("Excluir este evento da agenda?"))return;
-    setBusy("delete:"+id);
-    try{await deleteTeacherCalendarEvent(id);if(editing===id)reset();await events.refetch();toast.success("Evento removido da agenda.");}
-    catch(e){toast.error(errorText(e))}finally{setBusy("")}
+  async function remove(){
+    if(!confirmDelete)return;
+    setBusy("delete:"+confirmDelete);
+    try{await deleteTeacherCalendarEvent(confirmDelete);if(editing===confirmDelete)reset();await events.refetch();toast.success("Evento removido da agenda.");setConfirmDelete(null);}
+    catch(e){toast.error(errorText(e))}
+    finally{setBusy("")}
   }
   return <Card title="Agenda" description="Organize aulas, provas, trabalhos, reuniões e outros eventos acadêmicos.">
     {events.isLoading&&<p className="mb-4 text-sm text-muted-foreground">Carregando agenda…</p>}
@@ -546,6 +579,15 @@ function Agenda({d}:{d:ReturnType<typeof useData>}){
         {editing&&<Button type="button" variant="outline" onClick={reset} disabled={!!busy}>Cancelar</Button>}
       </div>
     </div>
+    <ConfirmActionDialog
+      open={!!confirmDelete}
+      onOpenChange={open=>{if(!open&&!busy)setConfirmDelete(null)}}
+      title="Excluir evento?"
+      description="O evento será removido da agenda e deixará de aparecer para os usuários vinculados."
+      actionLabel="Excluir evento"
+      loading={busy.startsWith("delete:")}
+      onConfirm={remove}
+    />
     <div className="mt-5 space-y-2">
       {!events.isLoading&&!events.data?.length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum evento encontrado nos últimos 30 dias ou próximos 180 dias.</p>}
       {(events.data??[]).map(e=><article key={e.id} className="rounded-xl border border-border p-3">
@@ -553,7 +595,7 @@ function Agenda({d}:{d:ReturnType<typeof useData>}){
           <div className="min-w-0"><b>{e.title}</b><p className="text-xs text-muted-foreground">{new Date(e.start_at).toLocaleString("pt-BR")} · {e.classroom_name||"Todas as turmas"} · {e.event_type}</p>{e.description&&<p className="mt-1 text-sm text-muted-foreground">{e.description}</p>}</div>
           <div className="flex shrink-0 gap-1">
             <Button size="sm" variant="ghost" onClick={()=>startEdit(e)}>Editar</Button>
-            <Button size="sm" variant="ghost" className="text-destructive" disabled={busy!==""} onClick={()=>void remove(e.id)}>Excluir</Button>
+            <Button size="sm" variant="ghost" className="text-destructive" disabled={busy!==""} onClick={()=>setConfirmDelete(e.id)}>Excluir</Button>
           </div>
         </div>
       </article>)}
@@ -562,7 +604,7 @@ function Agenda({d}:{d:ReturnType<typeof useData>}){
 }
 function Materials({d}:{d:ReturnType<typeof useData>}) {
   const [classroom,setClassroom]=useState(""); const [subject,setSubject]=useState(""); const [term,setTerm]=useState("");
-  const [title,setTitle]=useState(""); const [description,setDescription]=useState(""); const [file,setFile]=useState<File|null>(null); const [busy,setBusy]=useState("");
+  const [title,setTitle]=useState(""); const [description,setDescription]=useState(""); const [file,setFile]=useState<File|null>(null); const [busy,setBusy]=useState("");const [confirmDelete,setConfirmDelete]=useState<string|null>(null);
   const materials=useQuery({queryKey:["teacher-academic-materials"],queryFn:loadTeacherAcademicMaterials,staleTime:10000});
   const options=useQuery({queryKey:["teacher-academic-options"],queryFn:loadTeacherAcademicOptions,staleTime:30000});
   const materialSubjectIds=new Set((d.assignments.data??[]).filter(a=>a.classroom_id===classroom).map(a=>a.subject_id));
@@ -576,7 +618,7 @@ function Materials({d}:{d:ReturnType<typeof useData>}) {
       reset(); await materials.refetch(); toast.success("Material publicado para a turma.");
     } catch(e) { if(uploadedPath) void supabase.storage.from("academic-attachments").remove([uploadedPath]); toast.error(errorText(e)); } finally { setBusy(""); }
   }
-  async function remove(id:string){ if(!window.confirm("Arquivar este material?"))return; setBusy("delete:"+id); try { await deleteTeacherAcademicMaterial(id); await materials.refetch(); toast.success("Material arquivado."); } catch(e){toast.error(errorText(e));} finally{setBusy("");} }
+  async function remove(){ if(!confirmDelete)return; setBusy("delete:"+confirmDelete); try { await deleteTeacherAcademicMaterial(confirmDelete); await materials.refetch(); toast.success("Material arquivado."); setConfirmDelete(null); } catch(e){toast.error(errorText(e));} finally{setBusy("");} }
   return <div className="space-y-5">
     <Card title="Central de materiais" description="Publique PDFs, documentos, apresentações, planilhas e imagens diretamente para suas turmas.">
       <div className="grid gap-3 md:grid-cols-2">
@@ -589,13 +631,22 @@ function Materials({d}:{d:ReturnType<typeof useData>}) {
       </div>
       <div className="mt-4 flex flex-wrap gap-2"><Button disabled={busy!==""||!classroom||!title.trim()||!file} onClick={()=>void publish()}>{busy==="publish"?"Publicando…":"Publicar material"}</Button><Button variant="outline" disabled={busy!==""} onClick={reset}>Limpar</Button></div>
     </Card>
+    <ConfirmActionDialog
+      open={!!confirmDelete}
+      onOpenChange={open=>{if(!open&&busy==="")setConfirmDelete(null)}}
+      title="Arquivar material?"
+      description="O material deixará de ficar disponível como publicação ativa para os alunos."
+      actionLabel="Arquivar material"
+      loading={busy.startsWith("delete:")}
+      onConfirm={remove}
+    />
     <Card title="Materiais publicados" description="Os alunos da turma recebem acesso automaticamente pelo painel deles.">
       {materials.error&&<div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os materiais. <Button size="sm" variant="outline" className="ml-2" onClick={()=>void materials.refetch()}>Tentar novamente</Button></div>}
       {materials.isPending&&<p className="text-sm text-muted-foreground">Carregando materiais…</p>}
       <div className="grid gap-3 md:grid-cols-2">{(materials.data??[]).map(m=><article key={m.id} className="rounded-2xl border border-border p-4">
         <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex items-center gap-2"><FileText className="size-4 shrink-0 text-primary"/><b className="truncate">{m.title}</b></div>
         <p className="mt-1 text-xs text-muted-foreground">{m.classroom_name}{m.subject_name?" · "+m.subject_name:""}{m.term_name?" · "+m.term_name:""}</p>{m.description&&<p className="mt-2 text-sm text-muted-foreground">{m.description}</p>}
-        <p className="mt-2 text-xs text-muted-foreground">{m.file_name} · {(m.file_size/1024/1024).toFixed(1)} MB</p></div><Button size="sm" variant="ghost" className="text-destructive" disabled={busy!==""} onClick={()=>void remove(m.id)}><Trash2 className="size-4"/></Button></div>
+        <p className="mt-2 text-xs text-muted-foreground">{m.file_name} · {(m.file_size/1024/1024).toFixed(1)} MB</p></div><Button size="sm" variant="ghost" className="text-destructive" disabled={busy!==""} onClick={()=>setConfirmDelete(m.id)}><Trash2 className="size-4"/></Button></div>
         <div className="mt-3">{m.file_url?<a href={m.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><Download className="size-4"/>Abrir material</a>:<span className="text-xs text-muted-foreground">Link indisponível no momento.</span>}</div>
       </article>)}</div>
       {!materials.isPending&&!materials.error&&(materials.data??[]).length===0&&<p className="mt-2 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Você ainda não publicou nenhum material.</p>}
@@ -603,7 +654,7 @@ function Materials({d}:{d:ReturnType<typeof useData>}) {
   </div>;
 }
 function Communication({d}:{d:ReturnType<typeof useData>}){
-  const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [content,setContent]=useState("");const [busy,setBusy]=useState("");const [attachment,setAttachment]=useState<File|null>(null);const [editing,setEditing]=useState<string|null>(null);
+  const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [content,setContent]=useState("");const [busy,setBusy]=useState("");const [attachment,setAttachment]=useState<File|null>(null);const [editing,setEditing]=useState<string|null>(null);const [confirmDelete,setConfirmDelete]=useState<string|null>(null);
   const notices=useQuery({queryKey:["teacher-new-notices"],queryFn:loadTeacherAnnouncements,staleTime:15000});
   const selected=notices.data?.find(n=>n.id===editing)??null;
   async function claim(id:string){setBusy("claim:"+id);try{await teacherClaimClassroom(id);await d.refresh();toast.success("Turma atribuída a você. Agora ela já pode receber avisos.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
@@ -621,13 +672,22 @@ function Communication({d}:{d:ReturnType<typeof useData>}){
     try{const uploaded=attachment?await uploadAcademicAttachment(attachment,"announcements"):null;uploadedPath=uploaded?.path??null;await updateTeacherAnnouncement({id:editing,classroom,title:title.trim(),content:content.trim(),attachmentPath:uploaded?.path??selected?.attachment_path??null,attachmentName:uploaded?.name??selected?.attachment_name??null,attachmentSize:uploaded?.size??selected?.attachment_size??null,attachmentType:uploaded?.type??selected?.attachment_type??null});reset();await notices.refetch();toast.success("Aviso atualizado.");}
     catch(e){if(uploadedPath)void supabase.storage.from("academic-attachments").remove([uploadedPath]);toast.error(errorText(e))}finally{setBusy("")}
   }
-  async function remove(id:string){if(!window.confirm("Excluir este aviso?"))return;setBusy("delete");try{await deleteTeacherAnnouncement(id);await notices.refetch();toast.success("Aviso excluído.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
+  async function remove(){if(!confirmDelete)return;setBusy("delete");try{await deleteTeacherAnnouncement(confirmDelete);await notices.refetch();toast.success("Aviso excluído.");setConfirmDelete(null);}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   return <div className="space-y-5">
     <Card title="Comunicação" description="Publique avisos para suas turmas e anexe PDFs ou documentos.">
       {(d.classes.data??[]).filter(c=>c.status==="active").length===0 && (d.unassignedClasses.data??[]).length>0 && <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4"><b>Você ainda não tem uma turma atribuída.</b><p className="mt-1 text-sm text-muted-foreground">Assuma uma das turmas disponíveis para poder publicar avisos para os alunos.</p><div className="mt-3 space-y-2">{(d.unassignedClasses.data??[]).map(c=><div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background p-3"><div><b>{c.name}</b><p className="text-xs text-muted-foreground">{c.student_count} aluno(s)</p></div><Button size="sm" disabled={busy!==""} onClick={()=>void claim(c.id)}>{busy==="claim:"+c.id?"Atribuindo…":"Assumir turma"}</Button></div>)}</div></div>}
       <div className="grid gap-3"><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.name}>{c.name}</option>)}</Select><Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)}/></Field><Field label="Mensagem"><textarea value={content} onChange={e=>setContent(e.target.value)} className="min-h-28 rounded-md border border-input bg-background p-3 text-sm"/></Field><Field label="Anexo"><Input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx" onChange={e=>setAttachment(e.target.files?.[0]??null)}/><p className="text-[11px] text-muted-foreground">Até 20 MB.</p></Field><div className="flex gap-2"><Button disabled={busy!==""||!classroom||!title.trim()||!content.trim()} onClick={()=>void(editing?update():create())}>{busy==="publish"?"Publicando…":editing?"Salvar alterações":"Publicar aviso"}</Button>{editing&&<Button variant="outline" disabled={busy!==""} onClick={reset}>Cancelar</Button>}</div></div>
+      <ConfirmActionDialog
+        open={!!confirmDelete}
+        onOpenChange={open=>{if(!open&&busy==="")setConfirmDelete(null)}}
+        title="Excluir aviso?"
+        description="O aviso será removido da comunicação da turma."
+        actionLabel="Excluir aviso"
+        loading={busy==="delete"}
+        onConfirm={remove}
+      />
       {notices.error&&<div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm"><b>Não foi possível carregar os avisos.</b><Button className="ml-3" size="sm" variant="outline" onClick={()=>void notices.refetch()}>Tentar novamente</Button></div>}
-      <div className="mt-5 space-y-2">{(notices.data??[]).map(n=><div key={n.id} className="rounded-xl border border-border p-3"><div className="flex items-start justify-between gap-3"><div><b>{n.title}</b><p className="text-xs text-muted-foreground">{n.classroom}</p><p className="mt-1 text-sm text-muted-foreground">{n.content}</p>{n.attachment_name&&<p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground"><Paperclip className="size-3"/>{n.attachment_name}</p>}</div><div className="flex shrink-0 gap-1"><Button size="sm" variant="ghost" onClick={()=>startEdit(n)}><Pencil className="size-3"/></Button><Button size="sm" variant="ghost" className="text-destructive" disabled={busy!==""} onClick={()=>void remove(n.id)}><Trash2 className="size-3"/></Button></div></div></div>)}</div>
+      <div className="mt-5 space-y-2">{(notices.data??[]).map(n=><div key={n.id} className="rounded-xl border border-border p-3"><div className="flex items-start justify-between gap-3"><div><b>{n.title}</b><p className="text-xs text-muted-foreground">{n.classroom}</p><p className="mt-1 text-sm text-muted-foreground">{n.content}</p>{n.attachment_name&&<p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground"><Paperclip className="size-3"/>{n.attachment_name}</p>}</div><div className="flex shrink-0 gap-1"><Button size="sm" variant="ghost" onClick={()=>startEdit(n)}><Pencil className="size-3"/></Button><Button size="sm" variant="ghost" className="text-destructive" disabled={busy!==""} onClick={()=>setConfirmDelete(n.id)}><Trash2 className="size-3"/></Button></div></div></div>)}</div>
     </Card>
   </div>;
 }
