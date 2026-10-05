@@ -1410,6 +1410,33 @@ export async function adminImportAcademicCsv(rows: Record<string, string>[]) {
   return (data ?? { classes: 0, students: 0, skipped: 0 }) as { classes: number; students: number; skipped: number };
 }
 
+export type AdminClassroomHub = {
+  classroom: { id: string; name: string; code: string | null; status: string };
+  students: { id: string; full_name: string; enrollment: string | null; status: string }[];
+  teachers: { user_id: string; name: string }[];
+  subjects: { id: string; name: string; code: string | null; teacher_id: string | null; teacher_name: string }[];
+  metrics: {
+    students: number;
+    teachers: number;
+    subject_links: number;
+    grades: number;
+    assessments: number;
+    tasks: number;
+    materials: number;
+    attendance: number;
+  };
+};
+
+export async function loadAdminClassroomHub(classroomId: string): Promise<AdminClassroomHub> {
+  const { data, error } = await supabase.rpc("admin_get_classroom_hub", { _classroom_id: classroomId });
+  if (error) throw error;
+  return (data ?? {
+    classroom: { id: classroomId, name: "", code: null, status: "unknown" },
+    students: [], teachers: [], subjects: [],
+    metrics: { students: 0, teachers: 0, subject_links: 0, grades: 0, assessments: 0, tasks: 0, materials: 0, attendance: 0 },
+  }) as AdminClassroomHub;
+}
+
 export async function adminUpsertClassroom(id: string | null, name: string, code: string) {
   const { data, error } = await supabase.rpc("admin_upsert_classroom", { _id: id as string, _name: name, _code: code });
   if (error) throw error;
