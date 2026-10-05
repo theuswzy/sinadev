@@ -1400,6 +1400,7 @@ export type Database = {
         Returns: boolean
       }
       admin_set_institution_status: { Args: { _institution_id: string; _status: string }; Returns: boolean }
+      admin_update_institution: { Args: { _institution_id: string; _name: string; _slug: string }; Returns: boolean }
       admin_delete_institution: { Args: { _institution_id: string }; Returns: boolean }
       admin_set_teacher_access: {
         Args: { _email: string; _enabled: boolean }
