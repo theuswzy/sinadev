@@ -6,6 +6,7 @@ import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, Gr
 import { toast } from "sonner";
 import { AcademicShell } from "@/components/academic-shell";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -314,6 +315,7 @@ function Students({d}:{d:ReturnType<typeof useData>}){
 function Subjects({d}:{d:ReturnType<typeof useData>}){
   const [name,setName]=useState("");const [code,setCode]=useState("");const [subject,setSubject]=useState("");const [classroom,setClassroom]=useState("");const [busy,setBusy]=useState("");
   const [confirm,setConfirm]=useState<{kind:"unlink"|"delete";id:string;name:string;classroom:string}|null>(null);
+  const [edit,setEdit]=useState<{id:string;name:string;code:string}|null>(null);
   async function create(){try{await createTeacherSubject(name.trim(),code.trim());setName("");setCode("");await d.refresh();toast.success("Disciplina criada.");}catch(e){toast.error(errorText(e))}}
   async function assign(){if(!subject||!classroom)return;setBusy("assign");try{await assignTeacherSubjectToClass(subject,classroom);setSubject("");setClassroom("");await d.refresh();toast.success("Disciplina vinculada à turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   async function confirmRemoveAssignment(){
@@ -323,7 +325,19 @@ function Subjects({d}:{d:ReturnType<typeof useData>}){
     catch(e){toast.error(errorText(e))}
     finally{setBusy("")}
   }
-  async function editSubject(id:string,currentName:string,currentCode:string){const nextName=window.prompt("Nome da disciplina",currentName);if(nextName===null)return;const nextCode=window.prompt("Código",currentCode);if(nextCode===null)return;try{await supabase.rpc("teacher_update_subject",{_id:id,_name:nextName.trim(),_code:nextCode.trim()});await d.refresh();toast.success("Disciplina atualizada.");}catch(e){toast.error(errorText(e))}}
+  async function editSubject(){
+    if(!edit)return;
+    if(!edit.name.trim()){toast.error("Informe o nome da disciplina.");return;}
+    setBusy("edit-subject:"+edit.id);
+    try{
+      const {error}=await supabase.rpc("teacher_update_subject",{_id:edit.id,_name:edit.name.trim(),_code:edit.code.trim()});
+      if(error)throw error;
+      await d.refresh();
+      toast.success("Disciplina atualizada.");
+      setEdit(null);
+    }catch(e){toast.error(errorText(e))}
+    finally{setBusy("")}
+  }
   async function confirmDeleteSubject(){
     if(!confirm||confirm.kind!=="delete")return;
     setBusy("delete-subject:"+confirm.id);
@@ -334,7 +348,7 @@ function Subjects({d}:{d:ReturnType<typeof useData>}){
   return <div className="space-y-5">
     <Card title="Disciplinas" description="Cadastre e distribua as disciplinas que você administra.">
       <div className="grid gap-3 md:grid-cols-[1fr_160px_auto]"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome"/><Input value={code} onChange={e=>setCode(e.target.value)} placeholder="Código"/><Button disabled={!name.trim()||!!busy} onClick={()=>void create()}><Plus className="mr-2 size-4"/>Criar</Button></div>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">{(d.subjects.data??[]).map(s=><div key={s.id} className="rounded-xl border border-border p-3"><div className="flex items-start justify-between gap-3"><div><b>{s.name}</b><p className="text-xs text-muted-foreground">{s.code||"Sem código"} · {s.status}</p></div>{s.status==="active"&&<div className="flex gap-2"><Button size="sm" variant="outline" disabled={!!busy} onClick={()=>void editSubject(s.id,s.name,s.code||"")}>Editar</Button><Button size="sm" variant="ghost" className="text-destructive" disabled={!!busy} onClick={()=>setConfirm({kind:"delete",id:s.id,name:s.name,classroom:""})}>{busy==="delete-subject:"+s.id?"Excluindo…":"Excluir"}</Button></div>}</div></div>)}</div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">{(d.subjects.data??[]).map(s=><div key={s.id} className="rounded-xl border border-border p-3"><div className="flex items-start justify-between gap-3"><div><b>{s.name}</b><p className="text-xs text-muted-foreground">{s.code||"Sem código"} · {s.status}</p></div>{s.status==="active"&&<div className="flex gap-2"><Button size="sm" variant="outline" disabled={!!busy} onClick={()=>setEdit({id:s.id,name:s.name,code:s.code||""})}>Editar</Button><Button size="sm" variant="ghost" className="text-destructive" disabled={!!busy} onClick={()=>setConfirm({kind:"delete",id:s.id,name:s.name,classroom:""})}>{busy==="delete-subject:"+s.id?"Excluindo…":"Excluir"}</Button></div>}</div></div>)}</div>
     </Card>
     <Card title="Vincular disciplina à turma" description="Uma disciplina precisa estar vinculada à turma antes de receber atividades e materiais.">
       <div className="grid gap-3 md:grid-cols-3"><Select label="Disciplina" value={subject} onChange={setSubject}><option value="">Selecione</option>{(d.subjects.data??[]).filter(s=>s.status==="active").map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</Select><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select><div className="self-end"><Button disabled={!subject||!classroom||!!busy} onClick={()=>void assign()}>{busy==="assign"?"Vinculando…":"Vincular"}</Button></div></div>
@@ -352,6 +366,28 @@ function Subjects({d}:{d:ReturnType<typeof useData>}){
       loading={busy.startsWith("delete-subject:") || busy.startsWith("remove:")}
       onConfirm={()=>void (confirm?.kind==="delete" ? confirmDeleteSubject() : confirmRemoveAssignment())}
     />
+    <Dialog open={!!edit} onOpenChange={open=>{if(!open&&busy!=="edit-subject:"+edit?.id)setEdit(null)}}>
+      <DialogContent className="rounded-2xl border-border sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar disciplina</DialogTitle>
+          <DialogDescription>Atualize o nome e o código da disciplina sem sair do contexto acadêmico.</DialogDescription>
+        </DialogHeader>
+        {edit&&<div className="grid gap-4 py-2">
+          <Field label="Nome da disciplina">
+            <Input autoFocus value={edit.name} onChange={e=>setEdit(v=>v?({...v,name:e.target.value}):v)} placeholder="Ex.: Matemática"/>
+          </Field>
+          <Field label="Código">
+            <Input value={edit.code} onChange={e=>setEdit(v=>v?({...v,code:e.target.value}):v)} placeholder="Ex.: MAT01"/>
+          </Field>
+        </div>}
+        <DialogFooter className="gap-2">
+          <Button type="button" variant="outline" disabled={busy==="edit-subject:"+edit?.id} onClick={()=>setEdit(null)}>Cancelar</Button>
+          <Button type="button" disabled={!edit?.name.trim()||busy==="edit-subject:"+edit?.id} onClick={()=>void editSubject()}>
+            {busy==="edit-subject:"+edit?.id?"Salvando…":"Salvar alterações"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>;
 }
 
