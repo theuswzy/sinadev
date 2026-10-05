@@ -41,37 +41,38 @@ function StudentDashboard() {
   if (!student.data || !hasSchoolLink) {
     return (
       <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico">
-        <section className="mt-6 overflow-hidden rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm sm:p-8">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-brand-panel ring-1 ring-brand-border">
-              <UserRound className="size-7 text-brand-muted" />
+        <section className="mt-6 sina-card overflow-hidden">
+          <div className="bg-brand p-6 text-brand-foreground sm:p-8">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-muted">Área do aluno</p>
+            <h2 className="mt-2 font-display text-2xl font-bold md:text-3xl">Olá! 👋</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
+              Sua conta está ativa. Vamos concluir seu cadastro acadêmico.
+            </p>
+          </div>
+          <div className="grid gap-4 p-6 sm:grid-cols-3 sm:p-8">
+            <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <p className="text-xs font-medium text-muted-foreground">Conta</p>
+              <p className="mt-1 font-semibold">Ativa</p>
             </div>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-muted">Área do aluno</p>
-              <h2 className="mt-1 font-display text-2xl font-bold md:text-3xl">Sua conta está ativa! 👋</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
-                Seu cadastro como aluno está liberado. Agora falta apenas vincular sua conta a uma escola.
-              </p>
+            <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <p className="text-xs font-medium text-muted-foreground">Instituição</p>
+              <p className="mt-1 font-semibold text-muted-foreground">Pendente</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <p className="text-xs font-medium text-muted-foreground">Turma</p>
+              <p className="mt-1 font-semibold text-muted-foreground">Pendente</p>
             </div>
           </div>
-        </section>
-
-        <section className="mt-5 sina-card p-6 sm:p-8">
-          <div className="flex flex-col items-center text-center">
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <BookOpen className="size-7" />
-            </span>
-            <h2 className="mt-4 text-xl font-semibold">Aguardando vínculo com a escola</h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-              Um administrador ou professor autorizado poderá vincular sua conta à escola. Depois disso, o SINA
-              mostrará a etapa seguinte: a turma e, em seguida, seus dados acadêmicos.
+          <div className="border-t border-border px-6 py-5 sm:px-8">
+            <p className="text-sm text-muted-foreground">
+              Assim que sua instituição for definida, suas informações acadêmicas aparecerão aqui.
             </p>
-            <div className="mt-5 flex flex-wrap justify-center gap-3">
+            <div className="mt-4 flex flex-wrap gap-3">
               <Link to="/perfil" className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
                 Ver meu perfil
               </Link>
               <Button variant="outline" onClick={() => void student.refetch()}>
-                Verificar vínculo
+                Atualizar
               </Button>
             </div>
           </div>
@@ -83,37 +84,42 @@ function StudentDashboard() {
   if (!hasClassroomLink) {
     return (
       <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico">
-        <section className="mt-6 overflow-hidden rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm sm:p-8">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-brand-panel ring-1 ring-brand-border">
-              <UserRound className="size-7 text-brand-muted" />
+        <section className="mt-6 sina-card overflow-hidden">
+          <div className="bg-brand p-6 text-brand-foreground sm:p-8">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-muted">Área do aluno</p>
+            <h2 className="mt-2 font-display text-2xl font-bold md:text-3xl">Olá! 👋</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
+              Sua instituição já está cadastrada. O próximo passo é concluir sua turma.
+            </p>
+          </div>
+          <div className="p-6 sm:p-8">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl border border-border bg-muted/30 p-4">
+                <p className="text-xs font-medium text-muted-foreground">Conta</p>
+                <p className="mt-1 font-semibold">Ativa</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-muted/30 p-4">
+                <p className="text-xs font-medium text-muted-foreground">Instituição</p>
+                <p className="mt-1 font-semibold">Cadastrada</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-muted/30 p-4">
+                <p className="text-xs font-medium text-muted-foreground">Turma</p>
+                <p className="mt-1 font-semibold text-muted-foreground">Pendente</p>
+              </div>
             </div>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-muted">Área do aluno</p>
-              <h2 className="mt-1 font-display text-2xl font-bold md:text-3xl">Escola vinculada! 🎓</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
-                Sua escola já está vinculada à conta. Agora falta apenas definir sua turma para liberar o painel acadêmico.
+            <div className="mt-6 rounded-2xl border border-border p-5">
+              <p className="font-semibold">Cadastro acadêmico</p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                Sua turma ainda não foi definida. Quando o cadastro estiver concluído, suas disciplinas, notas,
+                frequência e atividades aparecerão automaticamente neste painel.
               </p>
             </div>
-          </div>
-        </section>
-
-        <section className="mt-5 sina-card p-6 sm:p-8">
-          <div className="flex flex-col items-center text-center">
-            <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <BookOpen className="size-7" />
-            </span>
-            <h2 className="mt-4 text-xl font-semibold">Aguardando vínculo com a turma</h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-              Um administrador ou professor autorizado poderá vincular você a uma turma. Assim que isso acontecer,
-              suas disciplinas, notas, frequência, atividades, avisos e agenda aparecerão automaticamente.
-            </p>
-            <div className="mt-5 flex flex-wrap justify-center gap-3">
+            <div className="mt-5 flex flex-wrap gap-3">
               <Link to="/perfil" className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
                 Ver meu perfil
               </Link>
               <Button variant="outline" onClick={() => void student.refetch()}>
-                Verificar vínculo
+                Atualizar
               </Button>
             </div>
           </div>
