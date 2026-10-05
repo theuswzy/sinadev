@@ -1422,6 +1422,7 @@ export type Database = {
         Args: { _code: string; _id: string; _name: string }
         Returns: string
       }
+      admin_delete_subject: { Args: { _id: string }; Returns: boolean }
       admin_upsert_term: {
         Args: {
           _ends_at: string
@@ -1676,6 +1677,7 @@ export type Database = {
         }
       }
       teacher_archive_subject: { Args: { _id: string }; Returns: boolean }
+      teacher_delete_subject: { Args: { _id: string }; Returns: boolean }
       teacher_assign_subject_to_class: {
         Args: { _classroom_id: string; _subject_id: string }
         Returns: string
@@ -1855,6 +1857,22 @@ export type Database = {
           _title: string
         }
         Returns: string
+      }
+      teacher_delete_calendar_event: {
+        Args: { _id: string }
+        Returns: boolean
+      }
+      teacher_update_calendar_event: {
+        Args: {
+          _classroom_id: string
+          _description: string
+          _end_at: string
+          _event_type: string
+          _id: string
+          _start_at: string
+          _title: string
+        }
+        Returns: Tables<"calendar_events">["Row"]
       }
       teacher_create_classroom: {
         Args: { _code: string; _name: string }
