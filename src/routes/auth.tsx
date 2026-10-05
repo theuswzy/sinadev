@@ -131,10 +131,12 @@ function AuthPage() {
     const schoolId = explicitSchoolId || window.localStorage.getItem("sina-school-directory-id") || undefined;
     window.localStorage.removeItem("sina-school-directory-id");
 
-    // Student accounts are active immediately. Do not send students through
-    // the approval/institution onboarding RPC during confirmation or login.
-    // School, classroom and academic linkage happen later.
+    // Students are active immediately, but if they selected a school during
+    // signup we must persist that school/institution link now. The onboarding
+    // RPC accepts a null school for students, so it is also safe for students
+    // who chose to leave the school link for later.
     if (!explicitRole || explicitRole === "student") {
+      await ensureAccountOnboardingForSchool("student", schoolId ?? null);
       const role = await getRole();
       await navigate({
         to: role === "admin" ? "/admin" : role === "teacher" ? "/professor" : "/aluno",
