@@ -18,7 +18,7 @@ import {
   loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
   loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherGrades, loadTeacherAcademicMaterials,
   saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
-  teacherRemoveStudentFromClassroom, unassignTeacherSubjectFromClass, deleteTeacherSubject, updateTeacherCalendarEvent, deleteTeacherCalendarEvent, type AttendanceRow
+  teacherRemoveStudentFromClassroom, unassignTeacherSubjectFromClass, deleteTeacherSubject, updateTeacherSubject, updateTeacherCalendarEvent, deleteTeacherCalendarEvent, type AttendanceRow
 } from "@/lib/sina-data";
 
 type Section = "inicio"|"turmas"|"alunos"|"disciplinas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"materiais"|"agenda"|"comunicacao";
@@ -330,8 +330,7 @@ function Subjects({d}:{d:ReturnType<typeof useData>}){
     if(!edit.name.trim()){toast.error("Informe o nome da disciplina.");return;}
     setBusy("edit-subject:"+edit.id);
     try{
-      const {error}=await supabase.rpc("teacher_update_subject",{_id:edit.id,_name:edit.name.trim(),_code:edit.code.trim()});
-      if(error)throw error;
+      await updateTeacherSubject(edit.id, edit.name.trim(), edit.code.trim());
       await d.refresh();
       toast.success("Disciplina atualizada.");
       setEdit(null);
