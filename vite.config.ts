@@ -10,7 +10,7 @@ export default defineConfig((({ mode }) => {
   Object.assign(process.env, serverEnv);
   const supabaseUrl = env["VITE_SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"] || "";
   const supabasePublishableKey =
-    env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_QpU6A-n7yUgkh715QYMQdA_Lrj5miip";
+    env["VITE_SUPABASE_PUBLISHABLE_KEY"] || process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || "";
 
   return { vite: {
     // Publishable Supabase credentials are safe to expose to the browser.
