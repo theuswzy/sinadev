@@ -3,6 +3,7 @@ import { BookOpen, CalendarRange, Layers3, Save, Archive, Users, FileUp, Mail, C
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Input } from "@/components/ui/input";
 import {
   adminArchiveClassroom,
@@ -76,6 +77,7 @@ export function AdminAcademicSetup() {
   const [inviteBusy, setInviteBusy] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [confirmDeleteSubject, setConfirmDeleteSubject] = useState<{ id: string; name: string } | null>(null);
 
   async function refresh() {
     await Promise.all([
@@ -120,13 +122,14 @@ export function AdminAcademicSetup() {
     finally { setBusyAction(null); }
   }
 
-  async function deleteSubject(id: string, name: string) {
-    if (!window.confirm('Excluir a disciplina "' + name + '"? Essa ação remove a disciplina e seus vínculos com as turmas.')) return;
-    setBusyAction("delete-subject:" + id);
+  async function deleteSubject() {
+    if (!confirmDeleteSubject) return;
+    setBusyAction("delete-subject:" + confirmDeleteSubject.id);
     try {
-      await deleteAdminSubject(id);
+      await deleteAdminSubject(confirmDeleteSubject.id);
       await refresh();
       toast.success("Disciplina excluída.");
+      setConfirmDeleteSubject(null);
     } catch (error) {
       toast.error(errorText(error));
     } finally {
@@ -182,10 +185,20 @@ export function AdminAcademicSetup() {
           <div className="grid gap-5 lg:grid-cols-3">
             <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><Layers3 className="size-4 text-primary" /><p className="font-semibold">Turmas</p></div><div className="mt-4 space-y-2"><Input placeholder="Nome da turma" value={classroomName} onChange={e => setClassroomName(e.target.value)} /><Input placeholder="Código (opcional)" value={classroomCode} onChange={e => setClassroomCode(e.target.value)} /><Button onClick={() => void saveClassroom()} disabled={busyAction !== null || !classroomName.trim()}><Save className="mr-2 size-4" />{busyAction === "classroom" ? "Salvando…" : "Criar turma"}</Button></div><div className="mt-4 space-y-2">{setup.data?.classrooms.map(c => <div key={c.id} className="flex items-center justify-between gap-2 rounded-xl bg-secondary/50 p-3 text-sm"><div><p className="font-medium">{c.name}</p><p className="text-xs text-muted-foreground">{c.code || "Sem código"} · {c.status === "active" ? "Ativa" : "Arquivada"}</p></div>{c.status === "active" && <Button size="sm" variant="ghost" disabled={busyAction !== null} onClick={() => void archiveClassroom(c.id)} aria-label={`Arquivar ${c.name}`}>{busyAction === "archive:"+c.id ? "…" : <Archive className="size-4" />}</Button>}</div>)}</div></div>
 
-            <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><BookOpen className="size-4 text-primary" /><p className="font-semibold">Disciplinas</p></div><div className="mt-4 space-y-2"><Input placeholder="Nome da disciplina" value={subjectName} onChange={e => setSubjectName(e.target.value)} /><Input placeholder="Código (opcional)" value={subjectCode} onChange={e => setSubjectCode(e.target.value)} /><Button onClick={() => void saveSubject()} disabled={busyAction !== null || !subjectName.trim()}><Save className="mr-2 size-4" />{busyAction === "subject" ? "Salvando…" : "Criar disciplina"}</Button></div><div className="mt-4 space-y-2">{setup.data?.subjects.map(s => <div key={s.id} className="flex items-center justify-between gap-3 rounded-xl bg-secondary/50 p-3 text-sm"><div><p className="font-medium">{s.name}</p><p className="text-xs text-muted-foreground">{s.code || "Sem código"} · {s.status === "active" ? "Ativa" : "Inativa"}</p></div><Button size="sm" variant="ghost" className="text-destructive" disabled={busyAction !== null} onClick={() => void deleteSubject(s.id, s.name)}>{busyAction === "delete-subject:"+s.id ? "Excluindo…" : "Excluir"}</Button></div>)}</div></div>
+            <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><BookOpen className="size-4 text-primary" /><p className="font-semibold">Disciplinas</p></div><div className="mt-4 space-y-2"><Input placeholder="Nome da disciplina" value={subjectName} onChange={e => setSubjectName(e.target.value)} /><Input placeholder="Código (opcional)" value={subjectCode} onChange={e => setSubjectCode(e.target.value)} /><Button onClick={() => void saveSubject()} disabled={busyAction !== null || !subjectName.trim()}><Save className="mr-2 size-4" />{busyAction === "subject" ? "Salvando…" : "Criar disciplina"}</Button></div><div className="mt-4 space-y-2">{setup.data?.subjects.map(s => <div key={s.id} className="flex items-center justify-between gap-3 rounded-xl bg-secondary/50 p-3 text-sm"><div><p className="font-medium">{s.name}</p><p className="text-xs text-muted-foreground">{s.code || "Sem código"} · {s.status === "active" ? "Ativa" : "Inativa"}</p></div><Button size="sm" variant="ghost" className="text-destructive" disabled={busyAction !== null} onClick={() => setConfirmDeleteSubject({ id: s.id, name: s.name })}>{busyAction === "delete-subject:"+s.id ? "Excluindo…" : "Excluir"}</Button></div>)}</div></div>
 
             <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><CalendarRange className="size-4 text-primary" /><p className="font-semibold">Períodos</p></div><div className="mt-4 space-y-2"><Input placeholder="Ex.: 1º Bimestre" value={termName} onChange={e => setTermName(e.target.value)} /><div className="grid grid-cols-2 gap-2"><Input type="date" value={termStart} onChange={e => setTermStart(e.target.value)} /><Input type="date" value={termEnd} onChange={e => setTermEnd(e.target.value)} /></div><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={termCurrent} onChange={e => setTermCurrent(e.target.checked)} /> Marcar como período atual</label><Button onClick={() => void saveTerm()} disabled={busyAction !== null || !termName.trim()}><Save className="mr-2 size-4" />{busyAction === "term" ? "Salvando…" : "Criar período"}</Button></div><div className="mt-4 space-y-2">{setup.data?.terms.map(t => <div key={t.id} className="rounded-xl bg-secondary/50 p-3 text-sm"><div className="flex items-center justify-between gap-2"><p className="font-medium">{t.name}</p>{t.is_current && <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">Atual</span>}</div><p className="text-xs text-muted-foreground">{t.starts_at || "Sem início"} · {t.ends_at || "Sem fim"}</p></div>)}</div></div>
           </div>
+
+          <ConfirmActionDialog
+            open={!!confirmDeleteSubject}
+            onOpenChange={open => { if (!open && busyAction === null) setConfirmDeleteSubject(null); }}
+            title="Excluir disciplina?"
+            description={'A disciplina "' + (confirmDeleteSubject?.name ?? "") + '" será excluída e seus vínculos com as turmas serão removidos. Essa ação não pode ser desfeita.'}
+            actionLabel="Excluir disciplina"
+            loading={busyAction?.startsWith("delete-subject:") ?? false}
+            onConfirm={deleteSubject}
+          />
 
           <div className="rounded-2xl border border-border p-4">
             <div className="flex items-center gap-2"><Mail className="size-4 text-primary" /><p className="font-semibold">Convites institucionais</p></div>
