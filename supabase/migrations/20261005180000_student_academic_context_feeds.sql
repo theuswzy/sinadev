@@ -217,6 +217,10 @@ AS $function$
   limit 100;
 $function$;
 
+revoke execute on function public.student_list_tasks_detailed() from public;
+revoke execute on function public.student_list_assessments_detailed() from public;
+revoke execute on function public.student_list_academic_materials_detailed() from public;
+revoke execute on function public.student_list_announcements_detailed() from public;
 grant execute on function public.student_list_tasks_detailed() to authenticated;
 grant execute on function public.student_list_assessments_detailed() to authenticated;
 grant execute on function public.student_list_academic_materials_detailed() to authenticated;
