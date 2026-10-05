@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Building2,
   FileText,
+  ChevronDown,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Component, type ErrorInfo, type ReactNode, useEffect, useState } from "react";
@@ -97,6 +98,7 @@ export function AcademicShell({
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [navGroup, setNavGroup] = useState<"academic" | "content" | null>(null);
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -361,9 +363,62 @@ export function AcademicShell({
 
           <nav
             aria-label="Navegação principal"
-            className="scrollbar-none -mx-3 hidden gap-1 overflow-x-auto px-3 pb-3 md:flex md:mx-0 md:px-0"
+            className="scrollbar-none -mx-3 hidden gap-1 overflow-x-auto px-3 pb-3 md:mx-0 md:flex md:px-0"
           >
-            {sectionLinks.map(renderNavItem)}
+            {role.data === "teacher" ? (
+              <>
+                {sectionLinks.slice(0, 4).map(renderNavItem)}
+                {([
+                  ["academic", "Acadêmico", sectionLinks.slice(4, 7)],
+                  ["content", "Conteúdo", sectionLinks.slice(7)],
+                ] as const).map(([groupKey, label, items]) => {
+                  const active = items.some(isActive);
+                  const open = navGroup === groupKey;
+                  return (
+                    <div key={groupKey} className="relative shrink-0">
+                      <button
+                        type="button"
+                        className={active
+                          ? "inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm"
+                          : "inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"}
+                        aria-expanded={open}
+                        onClick={() => setNavGroup(value => value === groupKey ? null : groupKey)}
+                      >
+                        <span>{label}</span>
+                        <ChevronDown className={"size-4 transition-transform " + (open ? "rotate-180" : "")} />
+                      </button>
+                      {open && (
+                        <div className="absolute left-0 top-[calc(100%+8px)] z-50 min-w-56 rounded-2xl border border-border bg-card p-1.5 shadow-xl">
+                          {items.map(item => {
+                            const Icon = item.Icon;
+                            const itemActive = isActive(item);
+                            return (
+                              <Link
+                                key={item.href}
+                                to={item.href as AcademicNavPath}
+                                onClick={() => {
+                                  setNavGroup(null);
+                                  setMobileOpen(false);
+                                }}
+                                className={itemActive
+                                  ? "flex items-center gap-3 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground"
+                                  : "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"}
+                                aria-current={itemActive ? "page" : undefined}
+                              >
+                                <Icon className="size-4" />
+                                <span>{item.label}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
+            ) : (
+              sectionLinks.map(renderNavItem)
+            )}
           </nav>
 
           <div className="flex items-center gap-2 border-t border-border/60 py-2 md:hidden">
