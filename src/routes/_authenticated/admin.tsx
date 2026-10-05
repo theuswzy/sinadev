@@ -402,6 +402,7 @@ ${institutionNameValue}`);
             )}
             <span className="hidden rounded-full border border-brand-border bg-brand-panel/70 px-3 py-1.5 text-xs font-medium text-brand-muted lg:inline-flex">Controle de acesso</span>
             <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={() => void navigate({ to: "/perfil" })} className="border-brand-border bg-transparent text-brand-foreground shadow-none hover:bg-brand-panel"><UserRoundCheck className="mr-2 size-4" /><span className="hidden sm:inline">Perfil</span></Button>
             <Button variant="outline" size="sm" onClick={logout} className="border-brand-border bg-transparent text-brand-foreground shadow-none hover:bg-brand-panel">
               <LogOut className="mr-2 size-4" /><span className="hidden sm:inline">Sair</span>
             </Button>
@@ -430,24 +431,33 @@ ${institutionNameValue}`);
           <span className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground sm:inline-flex">Instituição ativa</span>
         </div>
 
-        <div className={adminTab === "visao-geral" ? "space-y-6" : "hidden"}>
-        <section className="rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm md:p-8">
-          <div className="flex items-start gap-4">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary"><ShieldCheck className="size-6" /></div>
-            <div><p className="text-xs font-bold uppercase tracking-wide text-brand-muted">Controle de acesso</p><h1 className="mt-1 font-display text-2xl font-bold">Administração de contas</h1><p className="mt-2 max-w-2xl text-sm text-brand-muted">Defina quem acessa a área do aluno e quem pode lançar dados como professor.</p></div>
-          </div>
-        </section>
+                <div className={adminTab === "visao-geral" ? "space-y-6" : "hidden"}>
+          <section className="overflow-hidden rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm sm:p-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div className="min-w-0"><p className="text-xs font-bold uppercase tracking-[0.16em] text-brand-muted">Central administrativa</p><h2 className="mt-2 max-w-3xl font-display text-3xl font-bold tracking-tight sm:text-4xl">Tenha uma visão clara da escola e aja rápido.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-brand-muted">Acompanhe pessoas, estrutura acadêmica, pendências e desempenho da instituição ativa em um único painel.</p></div>
+              <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setAdminTab("pessoas")} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm"><Users className="size-4"/>Gerenciar pessoas</button><button type="button" onClick={() => setAdminTab("academico")} className="inline-flex items-center gap-2 rounded-xl border border-brand-border bg-transparent px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand-panel"><BookOpen className="size-4"/>Organizar acadêmico</button></div>
+            </div>
+          </section>
 
-        <section className="rounded-2xl border border-primary/15 bg-primary/5 p-5">
-          <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Precisa da sua atenção</p><h2 className="mt-1 font-semibold">Pendências administrativas</h2></div><ShieldCheck className="size-5 text-primary"/></div>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <a href="#aprovacoes" className="rounded-xl border border-border bg-card p-4 transition hover:border-primary/40"><p className="text-xs font-bold uppercase text-muted-foreground">Aprovações</p><p className="mt-1 text-2xl font-semibold">{roleRequests.data?.filter(item=>item.status==="pending").length??0}</p><p className="mt-1 text-xs text-muted-foreground">Solicitações aguardando análise.</p></a>
-            <a href="#alunos-turmas" className="rounded-xl border border-border bg-card p-4 transition hover:border-primary/40"><p className="text-xs font-bold uppercase text-muted-foreground">Alunos sem vínculo completo</p><p className="mt-1 text-2xl font-semibold">{unassignedStudents}</p><p className="mt-1 text-xs text-muted-foreground">Escola ou turma ainda não definida.</p></a>
-            <a href="#autorizacao" className="rounded-xl border border-border bg-card p-4 transition hover:border-primary/40"><p className="text-xs font-bold uppercase text-muted-foreground">Contas suspensas</p><p className="mt-1 text-2xl font-semibold">{accounts.data?.filter(account=>account.account_status==="suspended").length??0}</p><p className="mt-1 text-xs text-muted-foreground">Revise acessos quando necessário.</p></a>
-          </div>
-        </section>
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              {label:"Alunos",value:studentCount,caption:unassignedStudents ? (unassignedStudents+" com vínculo incompleto") : "Com vínculo acadêmico",Icon:GraduationCap,tab:"academico"},
+              {label:"Professores",value:teacherCount,caption:activeTeacherLinks+" com instituição",Icon:ShieldCheck,tab:"pessoas"},
+              {label:"Turmas",value:classroomCount,caption:currentTerm,Icon:LayoutDashboard,tab:"academico"},
+              {label:"Aprovações",value:roleRequests.data?.filter(item=>item.status==="pending").length??0,caption:"Solicitações aguardando análise",Icon:UserRoundCheck,tab:"pessoas"},
+            ].map(({label,value,caption,Icon,tab})=><button key={label} type="button" onClick={()=>setAdminTab(tab as AdminTab)} className="sina-card group p-5 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between gap-3"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><span className="text-xs font-semibold text-primary opacity-0 transition group-hover:opacity-100">Abrir →</span></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p><p className="mt-1 text-xs text-muted-foreground">{caption}</p></button>) }
+          </section>
 
-        <section className="sina-card p-6">
+          <section className="rounded-2xl border border-primary/15 bg-primary/5 p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Central de pendências</p><h3 className="mt-1 font-semibold">O que merece atenção agora?</h3></div><span className="text-xs font-semibold text-muted-foreground">Dados da instituição ativa</span></div>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <button type="button" onClick={()=>setAdminTab("pessoas")} className="rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/40"><p className="text-xs font-bold uppercase text-muted-foreground">Aprovações</p><p className="mt-1 text-2xl font-semibold">{roleRequests.data?.filter(item=>item.status==="pending").length??0}</p><p className="mt-1 text-xs text-muted-foreground">Novos cadastros aguardando análise.</p></button>
+              <button type="button" onClick={()=>setAdminTab("academico")} className="rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/40"><p className="text-xs font-bold uppercase text-muted-foreground">Vínculos incompletos</p><p className="mt-1 text-2xl font-semibold">{unassignedStudents}</p><p className="mt-1 text-xs text-muted-foreground">Alunos ainda sem escola ou turma.</p></button>
+              <button type="button" onClick={()=>setAdminTab("pessoas")} className="rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/40"><p className="text-xs font-bold uppercase text-muted-foreground">Contas suspensas</p><p className="mt-1 text-2xl font-semibold">{accounts.data?.filter(account=>account.account_status==="suspended").length??0}</p><p className="mt-1 text-xs text-muted-foreground">Revise permissões e acessos quando necessário.</p></button>
+            </div>
+          </section>
+
+<section className="sina-card p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Panorama acadêmico</p><h2 className="mt-1 font-semibold">Como está a instituição?</h2><p className="mt-1 text-sm text-muted-foreground">Indicadores calculados somente sobre os dados acadêmicos da instituição ativa.</p></div>
             <span className="text-xs text-muted-foreground">Atualização automática</span>
@@ -530,40 +540,12 @@ ${institutionNameValue}`);
             </div>}
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {([
-            { label: "Contas", value: accounts.data?.length ?? 0, caption: "Usuários cadastrados", Icon: Users },
-            { label: "Alunos", value: studentCount, caption: unassignedStudents ? `${unassignedStudents} sem vínculo completo` : "Com vínculo acadêmico", Icon: GraduationCap },
-            { label: "Professores", value: teacherCount, caption: `${activeTeacherLinks} com instituição`, Icon: ShieldCheck },
-            { label: "Aprovações", value: roleRequests.data?.filter(item => item.status === "pending").length ?? 0, caption: "Solicitações aguardando análise", Icon: UserRoundCheck },
-            { label: "Turmas", value: classroomCount, caption: "Estrutura da instituição ativa", Icon: LayoutDashboard },
-            { label: "Disciplinas", value: subjectCount, caption: currentTerm, Icon: BookOpen },
-          ] as Array<{ label: string; value: number; caption: string; Icon: LucideIcon }>).map(({ label, value, caption, Icon }) => (
-            <div key={label} className="sina-card sina-card-hover p-5">
-              <Icon className="size-5 text-primary" />
-              <p className="mt-3 text-xs font-bold uppercase text-muted-foreground">{label}</p>
-              <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
-            </div>
-          ))}
-        </section>
-
-        <section className="rounded-2xl border border-primary/15 bg-primary/5 p-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-primary">Leitura dos indicadores</p>
-          <p className="mt-1 text-sm text-muted-foreground">Os números são contagens dos registros da instituição ativa. Não representam estimativas ou dados demonstrativos.</p>
-        </section>
-
-        <section aria-label="Acesso rápido administrativo" className="rounded-2xl border border-primary/15 bg-primary/5 p-4 sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Acesso rápido</p><p className="mt-1 text-sm text-muted-foreground">Escolha uma área sem precisar percorrer todo o painel.</p></div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[["escolas","Escolas"],["pessoas","Pessoas"],["academico","Acadêmico"],["historico","Histórico"]].map(([id,label])=><button key={id} type="button" onClick={()=>setAdminTab(id as AdminTab)} className="rounded-xl border border-border bg-background px-3 py-2.5 text-xs font-semibold hover:border-primary/40 hover:bg-primary/5">{label}</button>)}
-            </div>
-          </div>
-        </section>
-
+          <section className="sina-card p-5 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Acesso rápido</p><h3 className="mt-1 font-semibold">Vá direto para a operação que precisa executar</h3></div><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[["escolas","Escolas",Building2],["pessoas","Pessoas",Users],["academico","Acadêmico",BookOpen],["historico","Histórico",ShieldCheck]].map(([id,label,Icon])=><button key={String(id)} type="button" onClick={()=>setAdminTab(id as AdminTab)} className="flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 text-xs font-semibold transition hover:border-primary/40 hover:bg-primary/5"><span>{Icon && <Icon className="size-4 text-primary"/>}</span>{label}</button>)}
+            </div></div>
+          </section>
         </div>
-
         <div className={adminTab === "escolas" ? "space-y-6" : "hidden"}>
           <section className="rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm sm:p-7">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
