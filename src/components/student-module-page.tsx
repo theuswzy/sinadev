@@ -293,10 +293,17 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(studentSubjects.data ?? []).map((item) => {
               const performance = subjects.find((s) => s.subject === item.name);
-              return <article key={item.id + item.classroom_id} className="sina-card p-5">
+              const subjectKey = item.id + "::" + item.teacher_id;
+              const isSelected = selectedSubjectKey === subjectKey;
+              const relatedTasks = (tasks.data ?? []).filter((task) =>
+                (task.subject_id && task.subject_id === item.id) ||
+                (!task.subject_id && (task.subject_name || task.subject) === item.name),
+              );
+              return <button key={subjectKey} type="button" onClick={() => setSelectedSubjectKey(isSelected ? null : subjectKey)}
+                className={isSelected ? "sina-card border-primary/50 bg-primary/5 p-5 text-left shadow-md" : "sina-card p-5 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><BookOpen className="size-5"/></div>
-                  <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold">Professor</span>
+                  <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold">${relatedTasks.filter(t => !t.completed).length} pend.</span>
                 </div>
                 <h2 className="mt-4 font-semibold">{item.name}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">{item.classroom_name}</p>
@@ -304,16 +311,66 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                   <p className="text-[11px] font-bold uppercase tracking-wide text-primary">Professor responsável</p>
                   <p className="mt-1 text-sm font-semibold">{item.teacher_name || "Professor não informado"}</p>
                 </div>
-                <p className="mt-3 text-xs text-muted-foreground">{performance ? `${performance.periods} lançamento(s) · ${performance.absences} falta(s)` : "Nenhuma nota lançada ainda."}</p>
-                {performance && performance.average != null && <div className="mt-4 rounded-xl border border-border/70 bg-secondary/30 p-3">
-                  <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-semibold">Média dos lançamentos</p><p className="mt-1 text-[11px] text-muted-foreground">Média descritiva das notas registradas por período.</p></div><strong className="text-2xl">{formatScore(performance.average)}</strong></div>
-                  <div className="mt-3 h-2 rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{width: `${Math.min(100, performance.average * 10)}%`}}/></div>
-                  <div className="mt-3 flex flex-wrap gap-2">{performance.periodScores.map((item) => <span key={item.period} className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px]">Período {item.period}: <b>{formatScore(item.score)}</b></span>)}</div>
-                </div>}
-              </article>;
+                <p className="mt-3 text-xs text-muted-foreground">${performance ? ' + 'performance.periods + " lançamento(s) · " + performance.absences + " falta(s)"' + ' : "Nenhuma nota lançada ainda."}</p>
+                <p className="mt-4 text-xs font-semibold text-primary">{isSelected ? "Fechar detalhes" : "Abrir detalhes da disciplina"} →</p>
+              </button>;
             })}
           </div>
-          {!studentSubjects.isPending && !studentSubjects.data?.length && <div className="sina-card p-8 text-sm text-muted-foreground">Nenhuma disciplina vinculada ainda. Assim que a escola ou o professor fizer o vínculo, ela aparecerá aqui.</div>}
+          {!studentSubjects.isPending && !studentSubjects.data?.length && <div className="sina-card p-8 text-sm text-muted-foreground">Nenhuma disciplina vinculada ainda. Assim que a escola ou o professor fizer o vínculo, ela aparecerá aqui.</div>}          {selectedSubjectKey && (() => {
+            const selected = (studentSubjects.data ?? []).find((item) => item.id + "::" + item.teacher_id === selectedSubjectKey);
+            if (!selected) return null;
+            const performance = subjects.find((s) => s.subject === selected.name);
+            const selectedTasks = (tasks.data ?? []).filter((task) =>
+              (task.subject_id && task.subject_id === selected.id) ||
+              (!task.subject_id && (task.subject_name || task.subject) === selected.name),
+            );
+            const selectedAssessments = (assessments.data ?? []).filter((item) =>
+              item.subject_id === selected.id && item.teacher_id === selected.teacher_id,
+            );
+            const selectedAttendance = (attendance.data ?? []).filter((row) =>
+              row.subject_id === selected.id && row.teacher_id === selected.teacher_id,
+            );
+            return <section className="mt-5 sina-card overflow-hidden border-primary/20">
+              <div className="bg-primary/5 p-5 sm:p-6">
+                <p className="text-xs font-bold uppercase tracking-wide text-primary">Detalhes da disciplina</p>
+                <h3 className="mt-1 font-display text-2xl font-bold">{selected.name}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Turma {selected.classroom_name} · Professor {selected.teacher_name || "não informado"}</p>
+              </div>
+              <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-2xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Média</p><p className="mt-1 text-2xl font-semibold">${performance?.average == null ? "—" : formatScore(performance.average)}</p></div>
+                <div className="rounded-2xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Notas</p><p className="mt-1 text-2xl font-semibold">${performance?.periods ?? 0}</p></div>
+                <div className="rounded-2xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Atividades</p><p className="mt-1 text-2xl font-semibold">${selectedTasks.length}</p></div>
+                <div className="rounded-2xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Frequência</p><p className="mt-1 text-2xl font-semibold">${selectedAttendance.length}</p></div>
+              </div>
+              <div className="grid gap-5 border-t border-border p-5 lg:grid-cols-3">
+                <div>
+                  <h4 className="font-semibold">Notas recentes</h4>
+                  <div className="mt-3 space-y-2">
+                    {(grades.data ?? []).filter(g => g.subject === selected.name).slice(0,4).map(g =>
+                      <div key={g.id} className="rounded-xl border border-border p-3"><div className="flex justify-between text-sm"><span>${g.period}º período</span><b>${formatScore(g.score)}</b></div><p className="mt-1 text-xs text-muted-foreground">${g.absences} falta(s)</p></div>
+                    )}
+                    {!(grades.data ?? []).some(g => g.subject === selected.name) && <p className="text-sm text-muted-foreground">Sem notas lançadas.</p>}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Atividades</h4>
+                  <div className="mt-3 space-y-2">
+                    {selectedTasks.slice(0,4).map(task => <div key={task.id} className="rounded-xl border border-border p-3"><p className="truncate text-sm font-semibold">${task.title}</p><p className="mt-1 text-xs text-muted-foreground">${task.completed ? "Concluída" : "Pendente"} · ${task.due_at ? new Date(task.due_at).toLocaleDateString("pt-BR") : "Sem prazo"}</p></div>)}
+                    {!selectedTasks.length && <p className="text-sm text-muted-foreground">Nenhuma atividade nesta disciplina.</p>}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold">Frequência</h4>
+                  <div className="mt-3 space-y-2">
+                    {selectedAttendance.slice(0,4).map(row => <div key={row.attendance_date + row.teacher_id + row.status} className="rounded-xl border border-border p-3"><div className="flex justify-between gap-3 text-sm"><span>${new Date(row.attendance_date + "T12:00:00").toLocaleDateString("pt-BR")}</span><b>${row.status === "absent" ? "Falta" : row.status === "late" ? "Atrasado" : row.status === "excused" ? "Justificada" : "Presente"}</b></div>{row.note && <p className="mt-1 text-xs text-muted-foreground">${row.note}</p>}</div>)}
+                    {!selectedAttendance.length && <p className="text-sm text-muted-foreground">Sem registros de frequência nesta disciplina.</p>}
+                  </div>
+                </div>
+              </div>
+              {selectedAssessments.length > 0 && <div className="border-t border-border p-5"><h4 className="font-semibold">Avaliações</h4><div className="mt-3 grid gap-3 md:grid-cols-2">${selectedAssessments.slice(0,4).map(item => <div key={item.id} className="rounded-xl border border-border p-3"><div className="flex justify-between gap-3 text-sm"><span className="font-medium">}item.title${</span><b>}item.score == null ? "Sem nota" : item.score + " / " + item.max_score${</b></div><p className="mt-1 text-xs text-muted-foreground">Peso }item.weight${ · }item.teacher_name${</p></div>)}</div></div>}
+            </section>;
+          })()}
+
         </section>
       )}
 
