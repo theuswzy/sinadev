@@ -624,7 +624,7 @@ ${institutionNameValue}`);
           <AdminStudentClassroom />
         </section>
 
-        <div className={adminTab === "academico" ? "space-y-6" : "hidden"}><AdminTeacherSchool />
+        <div className={adminTab === "academico" ? "space-y-6" : "hidden"}><AdminTeacherSchool /></div>
 
         <section id="historico" className={adminTab === "historico" ? "sina-card sina-card-hover scroll-mt-28" : "hidden"}>
           <div className="flex items-center justify-between border-b border-border p-6">
@@ -653,4 +653,3 @@ ${institutionNameValue}`);
     </div>
   );
 }
-</div>
