@@ -137,7 +137,7 @@ export async function ensureAccountOnboardingForSchool(
 ): Promise<OnboardingState> {
   const { data, error } = await supabase.rpc("ensure_account_onboarding_v2", {
     _requested_role: requestedRole,
-    _school_directory_id: schoolDirectoryId,
+    _school_directory_id: schoolDirectoryId as string,
   });
   if (error) throw error;
   return data as OnboardingState;
