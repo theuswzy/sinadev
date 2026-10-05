@@ -43,7 +43,7 @@ function useData(section: Section){
   const needsClasses = true;
   const needsStudents = section==="inicio" || section==="notas" || section==="frequencia" || section==="avaliacoes";
   const needsSubjects = section==="inicio" || section==="disciplinas" || section==="notas" || section==="atividades";
-  const needsAssignments = section==="disciplinas" || section==="notas" || section==="avaliacoes" || section==="atividades" || section==="materiais";
+  const needsAssignments = section==="disciplinas" || section==="notas" || section==="frequencia" || section==="avaliacoes" || section==="atividades" || section==="materiais";
   const needsUnassignedClasses = section==="turmas" || section==="alunos" || section==="agenda" || section==="comunicacao";
   const classes=useQuery({queryKey:["teacher-new-classes"],queryFn:loadTeacherClassrooms,staleTime:30000,enabled:needsClasses});
   const students=useQuery({queryKey:["teacher-new-students"],queryFn:loadTeacherInstitutionStudents,staleTime:30000,enabled:needsStudents});
@@ -420,30 +420,77 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
 }
 
 function Attendance({d}:{d:ReturnType<typeof useData>}){
-  const [classroom,setClassroom]=useState("");const [date,setDate]=useState(new Date().toISOString().slice(0,10));const [rows,setRows]=useState<AttendanceRow[]>([]);const [busy,setBusy]=useState(false);
+  const [classroom,setClassroom]=useState("");
+  const [subject,setSubject]=useState("");
+  const [date,setDate]=useState(new Date().toISOString().slice(0,10));
+  const [rows,setRows]=useState<AttendanceRow[]>([]);
+  const [busy,setBusy]=useState(false);
   const [loading,setLoading]=useState(false);
+
+  const subjectOptions=(d.assignments.data??[]).filter(a=>a.classroom_id===classroom);
+  const selectedSubject=subjectOptions.find(a=>a.subject_id===subject);
+
   async function load(){
     if(!classroom){toast.error("Selecione uma turma.");return;}
+    if(!subject){toast.error("Selecione a disciplina.");return;}
     setLoading(true);
-    try{setRows(await loadAttendance(classroom,date));}
+    try{setRows(await loadAttendance(classroom,date,subject));}
     catch(e){setRows([]);toast.error(errorText(e))}
     finally{setLoading(false)}
   }
+
   async function save(){
-    if(!classroom||!rows.length){toast.error("Carregue o diário antes de salvar.");return;}
+    if(!classroom||!subject||!rows.length){toast.error("Carregue o diário antes de salvar.");return;}
     setBusy(true);
     try{
-      await saveAttendance(classroom,date,rows.map(r=>({student_id:r.student_id,status:r.status,note:r.note})));
+      await saveAttendance(classroom,date,subject,rows.map(r=>({student_id:r.student_id,status:r.status,note:r.note})));
       toast.success("Frequência salva.");
-    }catch(e){toast.error(errorText(e))}finally{setBusy(false)}
+    }catch(e){toast.error(errorText(e))}
+    finally{setBusy(false)}
   }
-  const present=rows.filter(r=>r.status==="present").length, absent=rows.filter(r=>r.status==="absent").length, late=rows.filter(r=>r.status==="late").length, excused=rows.filter(r=>r.status==="excused").length;
-  return <Card title="Frequência" description="Diário por turma e por data. O registro fica ligado à turma, data e aluno."><div className="grid gap-3 md:grid-cols-[1fr_180px_auto]"><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select><Field label="Data"><Input type="date" value={date} onChange={e=>setDate(e.target.value)}/></Field><div className="self-end"><Button disabled={!classroom||loading} onClick={()=>void load()}>{loading?"Carregando…":"Carregar diário"}</Button></div></div>
-    {rows.length>0&&<div className="mt-4 grid gap-2 grid-cols-2 sm:grid-cols-4"><div className="rounded-xl bg-primary/5 p-3"><p className="text-xs text-muted-foreground">Presentes</p><b>{present}</b></div><div className="rounded-xl bg-destructive/5 p-3"><p className="text-xs text-muted-foreground">Faltas</p><b>{absent}</b></div><div className="rounded-xl bg-secondary p-3"><p className="text-xs text-muted-foreground">Atrasados</p><b>{late}</b></div><div className="rounded-xl bg-secondary p-3"><p className="text-xs text-muted-foreground">Justificados</p><b>{excused}</b></div></div>}
-    <div className="mt-4 space-y-2">{rows.map((r,i)=><div key={r.student_id} className="grid gap-2 rounded-xl border border-border p-3 md:grid-cols-[1fr_160px_1fr]"><div><b>{r.full_name}</b><p className="text-xs text-muted-foreground">{r.enrollment} · Fonte: diário da turma</p></div><select value={r.status} onChange={e=>setRows(v=>v.map((x,j)=>j===i?{...x,status:e.target.value as AttendanceRow["status"]}:x))} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="present">Presente</option><option value="absent">Ausente</option><option value="late">Atrasado</option><option value="excused">Justificado</option></select><Input value={r.note} onChange={e=>setRows(v=>v.map((x,j)=>j===i?{...x,note:e.target.value}:x))} placeholder="Observação"/></div>)}{rows.length>0&&<Button disabled={busy} onClick={()=>void save()}>{busy?"Salvando…":"Salvar frequência"}</Button>}</div>
+
+  const present=rows.filter(r=>r.status==="present").length;
+  const absent=rows.filter(r=>r.status==="absent").length;
+  const late=rows.filter(r=>r.status==="late").length;
+  const excused=rows.filter(r=>r.status==="excused").length;
+
+  return <Card title="Frequência" description="Diário por turma, disciplina e data. Cada lançamento fica ligado ao professor responsável pela disciplina.">
+    <div className="grid gap-3 md:grid-cols-[1fr_1fr_180px_auto]">
+      <Select label="Turma" value={classroom} onChange={value=>{setClassroom(value);setSubject("");setRows([]);}}>
+        <option value="">Selecione</option>
+        {(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+      </Select>
+      <Select label="Disciplina" value={subject} onChange={value=>{setSubject(value);setRows([]);}}>
+        <option value="">Selecione</option>
+        {subjectOptions.map(a=><option key={a.id} value={a.subject_id}>{a.subject_name}</option>)}
+      </Select>
+      <Field label="Data"><Input type="date" value={date} onChange={e=>{setDate(e.target.value);setRows([]);}}/></Field>
+      <div className="self-end"><Button disabled={!classroom||!subject||loading} onClick={()=>void load()}>{loading?"Carregando…":"Carregar diário"}</Button></div>
+    </div>
+
+    {selectedSubject&&<div className="mt-4 rounded-xl border border-primary/15 bg-primary/5 p-3 text-sm">
+      <b>{selectedSubject.subject_name}</b><span className="text-muted-foreground"> · Professor responsável pelo registro: você</span>
+    </div>}
+
+    {rows.length>0&&<div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="rounded-xl bg-primary/5 p-3"><p className="text-xs text-muted-foreground">Presentes</p><b>{present}</b></div>
+      <div className="rounded-xl bg-destructive/5 p-3"><p className="text-xs text-muted-foreground">Faltas</p><b>{absent}</b></div>
+      <div className="rounded-xl bg-secondary p-3"><p className="text-xs text-muted-foreground">Atrasados</p><b>{late}</b></div>
+      <div className="rounded-xl bg-secondary p-3"><p className="text-xs text-muted-foreground">Justificados</p><b>{excused}</b></div>
+    </div>}
+
+    <div className="mt-4 space-y-2">
+      {rows.map((r,i)=><div key={r.student_id} className="grid gap-2 rounded-xl border border-border p-3 md:grid-cols-[1fr_160px_1fr]">
+        <div><b>{r.full_name}</b><p className="text-xs text-muted-foreground">{r.enrollment} · {selectedSubject?.subject_name||"Disciplina selecionada"}</p></div>
+        <select value={r.status} onChange={e=>setRows(v=>v.map((x,j)=>j===i?{...x,status:e.target.value as AttendanceRow["status"]}:x))} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+          <option value="present">Presente</option><option value="absent">Ausente</option><option value="late">Atrasado</option><option value="excused">Justificado</option>
+        </select>
+        <Input value={r.note} onChange={e=>setRows(v=>v.map((x,j)=>j===i?{...x,note:e.target.value}:x))} placeholder="Observação"/>
+      </div>)}
+      {rows.length>0&&<Button disabled={busy} onClick={()=>void save()}>{busy?"Salvando…":"Salvar frequência"}</Button>}
+    </div>
   </Card>;
 }
-
 function Assessments({d}:{d:ReturnType<typeof useData>}){
   const [classroom,setClassroom]=useState("");const [subject,setSubject]=useState("");const [term,setTerm]=useState("");const [title,setTitle]=useState("");const [type,setType]=useState("prova");const [weight,setWeight]=useState("1");const [max,setMax]=useState("10");const [due,setDue]=useState("");const [busy,setBusy]=useState(false);const [selectedAssessmentId,setSelectedAssessmentId]=useState("");const [scores,setScores]=useState<Record<string,string>>({});const [feedback,setFeedback]=useState<Record<string,string>>({});
   const options=useQuery({queryKey:["teacher-new-options"],queryFn:loadTeacherAcademicOptions,staleTime:30000});const list=useQuery({queryKey:["teacher-new-assessments",classroom],queryFn:()=>loadTeacherAssessments(classroom),enabled:!!classroom});
