@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { errorText, loadAccountRoleRequests, reviewAccountRoleRequest, searchSchoolDirectory, type SchoolDirectoryEntry, type AdminAcademicSetup as AdminAcademicSetupData } from "@/lib/sina-data";
 import { AdminAcademicSetup } from "@/components/admin-academic-setup";
+import { ConfirmTextActionDialog } from "@/components/confirm-text-action-dialog";
 import { AdminStudentClassroom } from "@/components/admin-student-classroom";
 import { AdminTeacherSchool } from "@/components/admin-teacher-school";
 
@@ -64,6 +65,8 @@ function AdminArea() {
   });
   const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmDeleteInstitution, setConfirmDeleteInstitution] = useState<{ id: string; name: string } | null>(null);
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState<{ id: string; email: string; displayName: string } | null>(null);
   const [adminTab, setAdminTab] = useState<AdminTab>("visao-geral");
   const [accountSearch, setAccountSearch] = useState("");
   const [accountRoleFilter, setAccountRoleFilter] = useState<"all" | "student" | "teacher">("all");
@@ -178,23 +181,23 @@ function AdminArea() {
     }
   }
 
-  async function deleteInstitution(institutionId: string, institutionNameValue: string) {
-    const confirmation = window.prompt(`Esta ação é IRREVERSÍVEL e apagará os dados acadêmicos desta escola.
-
-Digite exatamente o nome da escola para confirmar:
-
-${institutionNameValue}`);
-    if (confirmation !== institutionNameValue) {
-      if (confirmation !== null) toast.error("O nome digitado não corresponde. A escola não foi excluída.");
-      return;
-    }
+  async function deleteInstitution() {
+    if (!confirmDeleteInstitution) return;
+    const institutionId = confirmDeleteInstitution.id;
     setBusyId("delete-institution:" + institutionId);
     try {
       const { error } = await supabase.rpc("admin_delete_institution", { _institution_id: institutionId });
       if (error) throw error;
       toast.success("Escola excluída definitivamente.");
-      await queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
-      window.location.reload();
+      setConfirmDeleteInstitution(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["my-institutions"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-accounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-students"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-teachers"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-academic-setup"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-academic-overview"] }),
+      ]);
     } catch (error) {
       toast.error(errorText(error));
     } finally {
@@ -277,28 +280,17 @@ ${institutionNameValue}`);
     await queryClient.invalidateQueries({ queryKey: ["admin-accounts"] });
   }
 
-  async function deleteAccount(userId: string, email: string, displayName: string) {
-    const confirmation = window.prompt(
-      `Esta ação é IRREVERSÍVEL e excluirá a conta, o acesso e os dados acadêmicos vinculados a ela.\n\nDigite exatamente o e-mail da conta para confirmar:\n\n${email}`,
-    );
-
-    if (confirmation !== email) {
-      if (confirmation !== null) {
-        toast.error("O e-mail digitado não corresponde. A conta não foi excluída.");
-      }
-      return;
-    }
-
+  async function deleteAccount() {
+    if (!confirmDeleteAccount) return;
+    const { id: userId, email, displayName } = confirmDeleteAccount;
     setBusyId("delete-account:" + userId);
     setMessage("");
     try {
-      const { error } = await supabase.rpc("admin_delete_account", {
-        _user_id: userId,
-      });
+      const { error } = await supabase.rpc("admin_delete_account", { _user_id: userId });
       if (error) throw error;
-
-      toast.success(`${displayName || email} foi excluída.`);
+      toast.success((displayName || email) + " foi excluída.");
       setMessage("Conta excluída definitivamente.");
+      setConfirmDeleteAccount(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["admin-accounts"] }),
         queryClient.invalidateQueries({ queryKey: ["admin-role-requests"] }),
@@ -422,6 +414,29 @@ ${institutionNameValue}`);
           </div>
         </div>
      </header>
+
+      <ConfirmTextActionDialog
+        open={!!confirmDeleteInstitution}
+        onOpenChange={open => { if (!open && !busyId) setConfirmDeleteInstitution(null); }}
+        title="Excluir escola definitivamente?"
+        description={'Esta ação é irreversível e apagará os dados acadêmicos da escola "' + (confirmDeleteInstitution?.name ?? "") + '". Revise cuidadosamente antes de continuar.'}
+        confirmationLabel="Digite o nome exato da escola"
+        confirmationValue={confirmDeleteInstitution?.name ?? ""}
+        actionLabel="Excluir escola"
+        loading={busyId === "delete-institution:" + confirmDeleteInstitution?.id}
+        onConfirm={deleteInstitution}
+      />
+      <ConfirmTextActionDialog
+        open={!!confirmDeleteAccount}
+        onOpenChange={open => { if (!open && !busyId) setConfirmDeleteAccount(null); }}
+        title="Excluir conta definitivamente?"
+        description={'Esta ação remove o acesso e os dados acadêmicos vinculados à conta "' + (confirmDeleteAccount?.email ?? "") + '". Revise cuidadosamente antes de continuar.'}
+        confirmationLabel="Digite o e-mail exato da conta"
+        confirmationValue={confirmDeleteAccount?.email ?? ""}
+        actionLabel="Excluir conta"
+        loading={busyId === "delete-account:" + confirmDeleteAccount?.id}
+        onConfirm={deleteAccount}
+      />
 
       <main id="inicio" className="mx-auto max-w-6xl space-y-6 px-3 py-5 sm:px-5 sm:py-7 lg:px-8 lg:py-9">
         <nav aria-label="Seções administrativas" className="sina-card sticky top-[68px] z-30 -mx-1 overflow-x-auto p-2 sm:mx-0">
@@ -699,7 +714,7 @@ ${institutionNameValue}`);
                           <Button size="sm" variant="outline" disabled={busyId?.includes(institution.id)} onClick={() => void setInstitutionStatus(institution.id, "inactive")}>
                             <Power className="mr-2 size-4" />Suspender
                           </Button>
-                          <Button size="sm" variant="outline" className="text-destructive" disabled={busyId?.includes(institution.id)} onClick={() => void deleteInstitution(institution.id, institution.name)}>
+                          <Button size="sm" variant="outline" className="text-destructive" disabled={busyId?.includes(institution.id)} onClick={() => setConfirmDeleteInstitution({ id: institution.id, name: institution.name })}>
                             <Trash2 className="mr-2 size-4" />Apagar
                           </Button>
                         </div>
@@ -730,7 +745,7 @@ ${institutionNameValue}`);
                           <Button size="sm" onClick={() => void setInstitutionStatus(institution.id, "active")} disabled={busyId?.includes(institution.id)}>
                             <Power className="mr-2 size-4" />Ativar
                           </Button>
-                          <Button size="sm" variant="outline" className="text-destructive" disabled={busyId?.includes(institution.id)} onClick={() => void deleteInstitution(institution.id, institution.name)}>
+                          <Button size="sm" variant="outline" className="text-destructive" disabled={busyId?.includes(institution.id)} onClick={() => setConfirmDeleteInstitution({ id: institution.id, name: institution.name })}>
                             <Trash2 className="mr-2 size-4" />Apagar
                           </Button>
                         </div>
@@ -845,7 +860,7 @@ ${institutionNameValue}`);
                           variant="outline"
                           className="text-destructive hover:text-destructive"
                           disabled={busyId === account.user_id || busyId === "delete-account:" + account.user_id}
-                          onClick={() => void deleteAccount(account.user_id, account.email, account.display_name)}
+                          onClick={() => setConfirmDeleteAccount({ id: account.user_id, email: account.email, displayName: account.display_name })}
                         >
                           <Trash2 className="mr-2 size-4" />Excluir
                         </Button>
