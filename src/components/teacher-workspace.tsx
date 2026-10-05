@@ -127,15 +127,14 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
 
     <Card title="Fluxo recomendado" description="O SINA foi pensado para acompanhar o trabalho do professor na ordem em que ele acontece.">
       <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
-        {[
+        {([
           ["1","Turmas","Organize seus vínculos.","turmas",Users],
           ["2","Alunos","Confira matrículas.","alunos",GraduationCap],
           ["3","Notas","Lance resultados.","notas",BarChart3],
           ["4","Frequência","Registre presença.","frequencia",CheckCircle2],
           ["5","Avaliações","Crie e corrija.","avaliacoes",ClipboardCheck],
           ["6","Comunicação","Avise suas turmas.","comunicacao",Megaphone],
-        ].map(([step,title,desc,go,Icon])=>{
-          const StepIcon=Icon as LucideIcon;
+        ] as [string,string,string,Section,LucideIcon][]).map(([step,title,desc,go,StepIcon])=>{
           return <button key={String(step)} type="button" onClick={()=>onNavigate(go as Section)} className="rounded-2xl border border-border p-4 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5">
             <div className="flex items-center justify-between gap-2"><span className="text-[11px] font-bold text-primary">ETAPA {step}</span><StepIcon className="size-4 text-primary"/></div>
             <b className="mt-2 block">{title}</b>
@@ -190,8 +189,12 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
 
     <Card title="Atalhos operacionais" description="Ações que costumam acontecer todos os dias.">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {[["notas","Lançar notas","Atualize o diário de notas.",BarChart3],["frequencia","Frequência","Registre presença por data.",CheckCircle2],["avaliacoes","Avaliações","Crie instrumentos e acompanhe resultados.",ClipboardCheck],["comunicacao","Comunicação","Publique avisos para as turmas.",Megaphone]].map(([go,title,desc,Icon])=>{
-          const ActionIcon=Icon as LucideIcon;
+        {([
+          ["notas","Lançar notas","Atualize o diário de notas.",BarChart3],
+          ["frequencia","Frequência","Registre presença por data.",CheckCircle2],
+          ["avaliacoes","Avaliações","Crie instrumentos e acompanhe resultados.",ClipboardCheck],
+          ["comunicacao","Comunicação","Publique avisos para as turmas.",Megaphone],
+        ] as [Section,string,string,LucideIcon][]).map(([go,title,desc,ActionIcon])=>{
           return <button key={String(go)} type="button" onClick={()=>onNavigate(go as Section)} className="flex items-start gap-3 rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
             <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><ActionIcon className="size-5"/></span>
             <span><b>{title}</b><p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p></span>
