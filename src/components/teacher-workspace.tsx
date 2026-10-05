@@ -79,6 +79,8 @@ function DataError({d}:{d:ReturnType<typeof useData>}) {
 function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(section:Section)=>void}){
   const tasks=useQuery({queryKey:["teacher-overview-tasks"],queryFn:loadTeacherTasks,staleTime:15000,refetchOnWindowFocus:true,refetchInterval:30000});
   const materials=useQuery({queryKey:["teacher-overview-materials"],queryFn:loadTeacherAcademicMaterials,staleTime:15000,refetchOnWindowFocus:true,refetchInterval:30000});
+  const calendarRange={from:new Date().toISOString(),to:new Date(Date.now()+30*86400000).toISOString()};
+  const calendar=useQuery({queryKey:["teacher-overview-calendar",calendarRange.from.slice(0,10),calendarRange.to.slice(0,10)],queryFn:()=>loadTeacherCalendar(calendarRange.from,calendarRange.to),staleTime:15000,refetchOnWindowFocus:true,refetchInterval:30000});
   const classes=(d.classes.data??[]).filter(x=>x.status==="active");
   const students=(d.students.data??[]).filter(x=>x.class_status==="minha_turma");
   const subjects=(d.subjects.data??[]).filter(x=>x.status==="active");
@@ -126,6 +128,26 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
           <b>{t.title}</b><p className="mt-1 text-xs text-muted-foreground">{t.classroom} · {t.subject}</p><p className="mt-1 text-xs font-medium text-primary">{new Date(t.due_at!).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})}</p>
         </button>)}
         {!tasks.isPending&&!(tasks.data??[]).some(t=>t.due_at&&new Date(t.due_at).getTime()>=Date.now())&&<p className="text-sm text-muted-foreground">Nenhum prazo futuro cadastrado.</p>}
+      </div>
+    </Card>
+    <Card title="Agenda de trabalho" description="Tenha os próximos compromissos e prazos na mesma visão, sem precisar trocar de tela.">
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-primary">Próximos eventos</p>
+          <div className="mt-3 space-y-2">
+            {(calendar.data??[]).filter(e=>new Date(e.start_at).getTime()>=Date.now()).slice(0,4).map(e=><button key={e.id} type="button" onClick={()=>onNavigate("agenda")} className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition hover:border-primary/40 hover:bg-primary/5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><CalendarDays className="size-4"/></span>
+              <span className="min-w-0 flex-1"><b className="block truncate text-sm">{e.title}</b><span className="text-xs text-muted-foreground">{new Date(e.start_at).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})} · {e.classroom_name||"Todas as turmas"}</span></span>
+            </button>)}
+            {!calendar.isPending && !(calendar.data??[]).filter(e=>new Date(e.start_at).getTime()>=Date.now()).length && <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum evento próximo cadastrado.</p>}
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-primary">Prioridades</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {[["notas","Lançar notas","Atualize o diário de notas."],["frequencia","Frequência","Registre presença por data."],["avaliacoes","Avaliações","Acompanhe instrumentos e resultados."],["comunicacao","Comunicação","Publique avisos para as turmas."]].map(([go,title,desc])=><button key={go} type="button" onClick={()=>onNavigate(go as Section)} className="rounded-xl border border-border p-3 text-left transition hover:border-primary/40 hover:bg-primary/5"><b className="text-sm">{title}</b><p className="mt-1 text-xs text-muted-foreground">{desc}</p></button>)}
+          </div>
+        </div>
       </div>
     </Card>
     <Card title="Próximas ações" description="Use o menu para executar cada etapa. O SINA mantém o vínculo entre a ação e a turma.">
