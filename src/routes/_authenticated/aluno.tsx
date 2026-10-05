@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
-import { errorText, getRole, loadDashboardAnnouncements, loadDashboardTasks, loadGrades, loadMyStudent, loadStudentAttendance, loadStudentAcademicMaterials, loadStudentCalendar, loadStudentAssessments, loadNotifications } from "@/lib/sina-data";
+import { errorText, getRole, loadDashboardAnnouncements, loadDashboardTasks, loadGrades, loadMyStudent, loadStudentAttendance, loadStudentAcademicMaterials, loadStudentCalendar, loadStudentAssessments, loadStudentSubjects, loadNotifications } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({ meta: [{ title: "Dashboard do aluno — SINA" }, { name: "description", content: "Visão geral da vida acadêmica do aluno." }] }),
@@ -17,6 +17,7 @@ function StudentDashboard() {
   const tasks = useQuery({ queryKey: ["dashboard-tasks"], queryFn: loadDashboardTasks, enabled: !!student.data, ...liveOptions });
   const grades = useQuery({ queryKey: ["dashboard-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id, ...liveOptions });
   const assessments = useQuery({ queryKey: ["dashboard-assessments"], queryFn: loadStudentAssessments, enabled: !!student.data, ...liveOptions });
+  const studentSubjects = useQuery({ queryKey: ["dashboard-student-subjects"], queryFn: loadStudentSubjects, enabled: !!student.data, ...liveOptions });
   const announcements = useQuery({ queryKey: ["dashboard-announcements"], queryFn: loadDashboardAnnouncements, enabled: !!student.data, ...liveOptions });
   const attendance = useQuery({ queryKey: ["dashboard-attendance"], queryFn: loadStudentAttendance, enabled: !!student.data, ...liveOptions });
   const materials = useQuery({ queryKey: ["dashboard-materials"], queryFn: loadStudentAcademicMaterials, enabled: !!student.data, ...liveOptions });
@@ -83,7 +84,7 @@ function StudentDashboard() {
           {to:"/aluno/notas",icon:BarChart3,label:"Média geral",value:grades.isPending ? "—" : overallAverage == null ? "—" : overallAverage.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2}),desc:weightedAverage != null ? "Média ponderada das avaliações" : "Notas registradas"},
           {to:"/aluno/frequencia",icon:CheckCircle2,label:"Frequência",value:attendance.isPending ? "—" : attendancePercent == null ? "—" : attendancePercent.toLocaleString("pt-BR",{maximumFractionDigits:0})+"%",desc:attendanceTotal ? (presentCount+" presença(s) em "+attendanceTotal+".") : "Sem registros ainda"},
           {to:"/aluno/tarefas",icon:ClipboardList,label:"Pendências",value:tasks.isPending ? "—" : pending.length,desc:pending.length?"Atividade(s) aguardando você":"Tudo em dia"},
-          {to:"/aluno/disciplinas",icon:BookOpen,label:"Disciplinas",value:grades.isPending ? "—" : subjects.length,desc:"Com lançamentos acadêmicos"},
+          {to:"/aluno/disciplinas",icon:BookOpen,label:"Disciplinas",value:studentSubjects.isPending ? "—" : (studentSubjects.data?.length ?? 0),desc:"Disciplinas vinculadas à sua turma"},
         ].map(({to,icon:Icon,label,value,desc})=><Link key={label} to={to} className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary"/></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></Link>)}
       </section>
 
