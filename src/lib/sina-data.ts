@@ -694,7 +694,18 @@ export async function adminUnassignTeacherFromClassroom(teacherId: string, class
 }
 
 export type AdminAcademicSetup = {
-  classrooms: { id: string; name: string; code: string | null; status: string }[];
+  classrooms: {
+    id: string;
+    name: string;
+    code: string | null;
+    status: string;
+    student_count: number;
+    teacher_count: number;
+    subject_count: number;
+    task_count: number;
+    assessment_count: number;
+    attendance_count: number;
+  }[];
   subjects: { id: string; name: string; code: string | null; status: string }[];
   terms: { id: string; name: string; starts_at: string | null; ends_at: string | null; is_current: boolean }[];
 };
@@ -1283,6 +1294,18 @@ export async function adminUpsertClassroom(id: string | null, name: string, code
 
 export async function adminArchiveClassroom(id: string) {
   const { data, error } = await supabase.rpc("admin_archive_classroom", { _id: id });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function adminRestoreClassroom(id: string) {
+  const { data, error } = await supabase.rpc("admin_restore_classroom", { _id: id });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function adminDeleteClassroom(id: string) {
+  const { data, error } = await supabase.rpc("admin_delete_classroom", { _id: id });
   if (error) throw error;
   return data ?? false;
 }
