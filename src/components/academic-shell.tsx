@@ -27,7 +27,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
 import { getRole, type UserRole } from "@/lib/sina-data";
 
-type AcademicNavPath = "/admin" | "/aluno" | "/aluno/tarefas" | "/aluno/disciplinas" | "/aluno/notas" | "/aluno/frequencia" | "/aluno/agenda" | "/aluno/avisos" | "/aluno/materiais" | "/professor" | "/professor/turmas" | "/professor/alunos" | "/professor/disciplinas" | "/professor/notas" | "/professor/frequencia" | "/professor/avaliacoes" | "/professor/atividades" | "/professor/materiais" | "/professor/agenda" | "/professor/comunicacao";
+type AcademicNavPath = "/admin" | "/aluno" | "/aluno/tarefas" | "/aluno/disciplinas" | "/aluno/notas" | "/aluno/frequencia" | "/aluno/agenda" | "/aluno/avisos" | "/aluno/materiais" | "/aluno/notificacoes" | "/professor" | "/professor/turmas" | "/professor/alunos" | "/professor/disciplinas" | "/professor/notas" | "/professor/frequencia" | "/professor/avaliacoes" | "/professor/atividades" | "/professor/materiais" | "/professor/agenda" | "/professor/comunicacao";
 
 type ShellErrorBoundaryProps = { children: ReactNode };
 type ShellErrorBoundaryState = { hasError: boolean; message: string };
@@ -230,6 +230,7 @@ export function AcademicShell({
             { href: "/aluno/agenda", label: "Agenda", Icon: CalendarDays, route: true },
             { href: "/aluno/avisos", label: "Avisos", Icon: Bell, route: true },
             { href: "/aluno/materiais", label: "Materiais", Icon: FileText, route: true },
+            { href: "/aluno/notificacoes", label: "Notificações", Icon: Bell, route: true },
           ]
         : role.data === "admin"
           ? [
