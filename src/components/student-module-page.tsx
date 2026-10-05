@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Megaphone, BookOpen, Clock3, CheckCircle2, AlertTriangle, UserRound, ClipboardCheck } from "lucide-react";
+import { CalendarDays, Megaphone, BookOpen, Clock3, CheckCircle2, AlertTriangle, UserRound, ClipboardCheck, BarChart3, ArrowRight } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
