@@ -2079,13 +2079,15 @@ export type Database = {
         Returns: boolean
       }
       teacher_get_attendance: {
-        Args: { _classroom_id: string; _date: string }
+        Args: { _classroom_id: string; _date: string; _subject_id: string }
         Returns: {
           enrollment: string
           full_name: string
           note: string
           status: string
           student_id: string
+          subject_id: string
+          subject_name: string
         }[]
       }
       teacher_get_class_report: {
@@ -2406,7 +2408,7 @@ export type Database = {
         Returns: boolean
       }
       teacher_save_attendance: {
-        Args: { _classroom_id: string; _date: string; _rows: Json }
+        Args: { _classroom_id: string; _date: string; _rows: Json; _subject_id: string }
         Returns: number
       }
       teacher_unassign_subject_from_class: {
