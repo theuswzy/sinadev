@@ -17,6 +17,7 @@ import {
   X,
   CheckCircle2,
   Building2,
+  FileText,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Component, type ErrorInfo, type ReactNode, useEffect, useState } from "react";
