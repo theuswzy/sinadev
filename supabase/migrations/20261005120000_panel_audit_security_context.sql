@@ -147,6 +147,107 @@ begin
 end;
 $function$;
 
+create or replace function public.ensure_student_profile()
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  uid uuid := auth.uid();
+  existing_role public.app_role;
+  display_name text;
+  v_institution uuid := sina_private.current_institution('student'::public.app_role);
+begin
+  if uid is null then raise exception 'Usuário não autenticado.'; end if;
+
+  select ur.role into existing_role
+  from public.user_roles ur
+  where ur.user_id=uid
+    and ur.role in ('admin'::public.app_role,'teacher'::public.app_role)
+  order by case when ur.role='admin'::public.app_role then 0 else 1 end
+  limit 1;
+
+  if existing_role is not null then return false; end if;
+
+  select coalesce(
+    nullif(p.display_name,''),
+    nullif(au.raw_user_meta_data->>'display_name',''),
+    split_part(coalesce(au.email,''),'@',1)
+  )
+  into display_name
+  from auth.users au
+  left join public.profiles p on p.user_id=au.id
+  where au.id=uid;
+
+  insert into public.students(user_id,full_name,enrollment,classroom,teacher_id,institution_id)
+  values(uid,coalesce(display_name,'Aluno'),'','',null,v_institution)
+  on conflict (user_id) where user_id is not null
+  do update set
+    full_name=coalesce(nullif(public.students.full_name,''),excluded.full_name),
+    institution_id=coalesce(public.students.institution_id,excluded.institution_id),
+    updated_at=now();
+
+  return true;
+end;
+$function$;
+
+create or replace function sina_private.set_academic_role(_user_id uuid,_role text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_institution uuid;
+begin
+  if not public.has_role(auth.uid(),'admin'::public.app_role) then
+    raise exception 'Acesso reservado a administradores.';
+  end if;
+  if _role not in ('student','teacher') or _role is null then
+    raise exception 'Função acadêmica inválida.';
+  end if;
+  if not exists(select 1 from auth.users where id=_user_id) then return false; end if;
+  if public.has_role(_user_id,'admin'::public.app_role) then
+    raise exception 'A função acadêmica de um administrador não pode ser alterada nesta tela.';
+  end if;
+
+  v_institution:=sina_private.current_institution('admin'::public.app_role);
+  if v_institution is null then
+    raise exception 'Nenhuma instituição administrativa ativa encontrada.';
+  end if;
+
+  delete from public.user_roles
+  where user_id=_user_id
+    and role in ('student'::public.app_role,'teacher'::public.app_role);
+
+  insert into public.user_roles(user_id,role)
+  values(_user_id,_role::public.app_role);
+
+  delete from public.institution_memberships
+  where user_id=_user_id
+    and role in ('student'::public.app_role,'teacher'::public.app_role)
+    and institution_id=v_institution;
+
+  insert into public.institution_memberships(institution_id,user_id,role,status)
+  values(
+    v_institution,
+    _user_id,
+    _role::public.app_role,
+    coalesce((select p.status from public.profiles p where p.user_id=_user_id limit 1),'active')
+  )
+  on conflict(institution_id,user_id,role)
+  do update set status=excluded.status,updated_at=now();
+
+  insert into public.user_institution_context(user_id,institution_id)
+  values(_user_id,v_institution)
+  on conflict(user_id)
+  do update set institution_id=excluded.institution_id,updated_at=now();
+
+  return true;
+end;
+$function$;
+
 create or replace function public.student_get_profile()
 returns setof public.students
 language sql
