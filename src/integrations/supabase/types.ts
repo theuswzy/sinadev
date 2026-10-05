@@ -14,6 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      academic_materials: {
+        Row: {
+          classroom_id: string
+          created_at: string
+          created_by: string
+          description: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          institution_id: string
+          status: string
+          subject_id: string | null
+          term_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          classroom_id: string
+          created_at?: string
+          created_by: string
+          description?: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id?: string
+          institution_id: string
+          status?: string
+          subject_id?: string | null
+          term_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          classroom_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          institution_id?: string
+          status?: string
+          subject_id?: string | null
+          term_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academic_materials_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academic_materials_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academic_materials_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "academic_materials_term_id_fkey"
+            columns: ["term_id"]
+            isOneToOne: false
+            referencedRelation: "academic_terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       academic_terms: {
         Row: {
           created_at: string
@@ -593,8 +676,8 @@ export type Database = {
           score: number
           student_id: string
           subject: string
-          teacher_id: string | null
           subject_id: string | null
+          teacher_id: string | null
           term_id: string | null
           updated_at: string
         }
@@ -607,8 +690,8 @@ export type Database = {
           score: number
           student_id: string
           subject: string
-          teacher_id?: string | null
           subject_id?: string | null
+          teacher_id?: string | null
           term_id?: string | null
           updated_at?: string
         }
@@ -621,8 +704,8 @@ export type Database = {
           score?: number
           student_id?: string
           subject?: string
-          teacher_id?: string | null
           subject_id?: string | null
+          teacher_id?: string | null
           term_id?: string | null
           updated_at?: string
         }
@@ -653,6 +736,66 @@ export type Database = {
             columns: ["term_id"]
             isOneToOne: false
             referencedRelation: "academic_terms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      institution_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          classroom_id: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          institution_id: string
+          invited_by: string
+          revoked_at: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          token_hash: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          classroom_id?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          institution_id: string
+          invited_by: string
+          revoked_at?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          token_hash: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          classroom_id?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          institution_id?: string
+          invited_by?: string
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_invitations_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "institution_invitations_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
             referencedColumns: ["id"]
           },
         ]
@@ -1196,6 +1339,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_institution_invitation: {
+        Args: { _token: string }
+        Returns: {
+          classroom_id: string
+          classroom_name: string
+          institution_id: string
+          institution_name: string
+          role: string
+        }[]
+      }
       account_get_onboarding_state: { Args: never; Returns: Json }
       account_list_institutions: {
         Args: never
@@ -1233,6 +1386,27 @@ export type Database = {
         Args: { _name: string; _school_directory_id?: string; _slug: string }
         Returns: string
       }
+      admin_create_institution_invitation: {
+        Args: {
+          _classroom_id?: string
+          _email: string
+          _expires_hours?: number
+          _role: string
+        }
+        Returns: {
+          expires_at: string
+          invitation_id: string
+          token: string
+        }[]
+      }
+      admin_delete_account: { Args: { _user_id: string }; Returns: boolean }
+      admin_delete_institution: {
+        Args: { _institution_id: string }
+        Returns: boolean
+      }
+      admin_delete_subject: { Args: { _id: string }; Returns: boolean }
+      admin_get_academic_overview: { Args: never; Returns: Json }
+      admin_import_academic_csv: { Args: { _rows: Json }; Returns: Json }
       admin_link_student_to_institution: {
         Args: { _institution_id: string; _student_id: string }
         Returns: boolean
@@ -1242,7 +1416,6 @@ export type Database = {
         Returns: boolean
       }
       admin_list_academic_setup: { Args: never; Returns: Json }
-      admin_get_academic_overview: { Args: never; Returns: Json }
       admin_list_accounts: {
         Args: never
         Returns: {
@@ -1272,6 +1445,20 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      admin_list_institution_invitations: {
+        Args: never
+        Returns: {
+          accepted_at: string
+          classroom_id: string
+          classroom_name: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          revoked_at: string
+          role: string
+        }[]
       }
       admin_list_institution_teachers: {
         Args: never
@@ -1322,10 +1509,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      admin_import_academic_csv: {
-        Args: { _rows: Json }
-        Returns: Json
-      }
       admin_list_student_school_links: {
         Args: never
         Returns: {
@@ -1340,15 +1523,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      admin_list_students_page: {
-        Args: {
-          _only_without_class?: boolean
-          _page?: number
-          _page_size?: number
-          _search?: string
-        }
-        Returns: Json
-      }
       admin_list_students: {
         Args: never
         Returns: {
@@ -1360,6 +1534,15 @@ export type Database = {
           status: string
           user_id: string
         }[]
+      }
+      admin_list_students_page: {
+        Args: {
+          _only_without_class?: boolean
+          _page?: number
+          _page_size?: number
+          _search?: string
+        }
+        Returns: Json
       }
       admin_list_teacher_classroom_assignments: {
         Args: never
@@ -1404,6 +1587,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_revoke_institution_invitation: {
+        Args: { _id: string }
+        Returns: boolean
+      }
       admin_set_academic_role: {
         Args: { _role: string; _user_id: string }
         Returns: boolean
@@ -1412,19 +1599,20 @@ export type Database = {
         Args: { _status: string; _user_id: string }
         Returns: boolean
       }
-      admin_delete_account: {
-        Args: { _user_id: string }
+      admin_set_institution_status: {
+        Args: { _institution_id: string; _status: string }
         Returns: boolean
       }
-      admin_set_institution_status: { Args: { _institution_id: string; _status: string }; Returns: boolean }
-      admin_update_institution: { Args: { _institution_id: string; _name: string; _slug: string }; Returns: boolean }
-      admin_delete_institution: { Args: { _institution_id: string }; Returns: boolean }
       admin_set_teacher_access: {
         Args: { _email: string; _enabled: boolean }
         Returns: boolean
       }
       admin_unassign_teacher_from_classroom: {
         Args: { _classroom_id: string; _teacher_id: string }
+        Returns: boolean
+      }
+      admin_update_institution: {
+        Args: { _institution_id: string; _name: string; _slug: string }
         Returns: boolean
       }
       admin_upsert_classroom: {
@@ -1435,7 +1623,6 @@ export type Database = {
         Args: { _code: string; _id: string; _name: string }
         Returns: string
       }
-      admin_delete_subject: { Args: { _id: string }; Returns: boolean }
       admin_upsert_term: {
         Args: {
           _ends_at: string
@@ -1489,6 +1676,12 @@ export type Database = {
           state: string
         }[]
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      student_can_read_academic_material: {
+        Args: { _path: string }
+        Returns: boolean
+      }
       student_get_profile: {
         Args: never
         Returns: {
@@ -1513,6 +1706,46 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      student_list_academic_materials: {
+        Args: never
+        Returns: {
+          classroom_id: string
+          classroom_name: string
+          created_at: string
+          description: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          subject_id: string
+          subject_name: string
+          term_id: string
+          term_name: string
+          title: string
+        }[]
+      }
+      student_list_academic_materials_detailed: {
+        Args: never
+        Returns: {
+          classroom_id: string
+          classroom_name: string
+          created_at: string
+          description: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          subject_id: string
+          subject_name: string
+          teacher_id: string
+          teacher_name: string
+          term_id: string
+          term_name: string
+          title: string
+        }[]
+      }
       student_list_announcements: {
         Args: never
         Returns: {
@@ -1532,10 +1765,10 @@ export type Database = {
       student_list_announcements_detailed: {
         Args: never
         Returns: {
-          attachment_name: string | null
-          attachment_path: string | null
-          attachment_size: number | null
-          attachment_type: string | null
+          attachment_name: string
+          attachment_path: string
+          attachment_size: number
+          attachment_type: string
           classroom_id: string
           classroom_name: string
           content: string
@@ -1569,33 +1802,19 @@ export type Database = {
           assessment_type: string
           classroom_id: string
           classroom_name: string
-          due_at: string | null
-          feedback: string | null
+          due_at: string
+          feedback: string
           id: string
           max_score: number
-          score: number | null
+          score: number
           status: string
-          subject_id: string | null
+          subject_id: string
           subject_name: string
           teacher_id: string
           teacher_name: string
           term_name: string
           title: string
           weight: number
-        }[]
-      }
-      student_list_attendance_detailed: {
-        Args: { _limit?: number }
-        Returns: {
-          attendance_date: string
-          classroom_id: string
-          classroom_name: string
-          note: string | null
-          status: string
-          subject_id: string | null
-          subject_name: string | null
-          teacher_id: string
-          teacher_name: string
         }[]
       }
       student_list_attendance: {
@@ -1605,6 +1824,20 @@ export type Database = {
           classroom: string
           note: string
           status: string
+        }[]
+      }
+      student_list_attendance_detailed: {
+        Args: { _limit?: number }
+        Returns: {
+          attendance_date: string
+          classroom_id: string
+          classroom_name: string
+          note: string
+          status: string
+          subject_id: string
+          subject_name: string
+          teacher_id: string
+          teacher_name: string
         }[]
       }
       student_list_calendar: {
@@ -1633,6 +1866,7 @@ export type Database = {
           student_id: string
           subject: string
           subject_id: string | null
+          teacher_id: string | null
           term_id: string | null
           updated_at: string
         }[]
@@ -1709,19 +1943,19 @@ export type Database = {
       student_list_tasks_detailed: {
         Args: never
         Returns: {
-          attachment_name: string | null
-          attachment_path: string | null
-          attachment_size: number | null
-          attachment_type: string | null
+          attachment_name: string
+          attachment_path: string
+          attachment_size: number
+          attachment_type: string
           classroom_id: string
           classroom_name: string
           completed: boolean
           created_at: string
           description: string
-          due_at: string | null
+          due_at: string
           id: string
-          subject_id: string | null
-          subject_name: string | null
+          subject_id: string
+          subject_name: string
           teacher_id: string
           teacher_name: string
           title: string
@@ -1764,7 +1998,6 @@ export type Database = {
         }
       }
       teacher_archive_subject: { Args: { _id: string }; Returns: boolean }
-      teacher_delete_subject: { Args: { _id: string }; Returns: boolean }
       teacher_assign_subject_to_class: {
         Args: { _classroom_id: string; _subject_id: string }
         Returns: string
@@ -1777,6 +2010,46 @@ export type Database = {
           _subject: string
         }
         Returns: number
+      }
+      teacher_claim_classroom: {
+        Args: { _classroom_id: string }
+        Returns: boolean
+      }
+      teacher_create_academic_material: {
+        Args: {
+          _classroom_id: string
+          _description: string
+          _file_name: string
+          _file_path: string
+          _file_size: number
+          _file_type: string
+          _subject_id: string
+          _term_id: string
+          _title: string
+        }
+        Returns: {
+          classroom_id: string
+          created_at: string
+          created_by: string
+          description: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          institution_id: string
+          status: string
+          subject_id: string | null
+          term_id: string | null
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "academic_materials"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       teacher_create_announcement: {
         Args: {
@@ -1810,97 +2083,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      teacher_create_academic_material: {
-        Args: {
-          _classroom_id: string
-          _description: string
-          _file_name: string
-          _file_path: string
-          _file_size: number
-          _file_type: string
-          _subject_id: string | null
-          _term_id: string | null
-          _title: string
-        }
-        Returns: {
-          id: string
-          institution_id: string
-          classroom_id: string
-          subject_id: string | null
-          term_id: string | null
-          created_by: string
-          title: string
-          description: string
-          file_path: string
-          file_name: string
-          file_size: number
-          file_type: string
-          status: string
-          created_at: string
-          updated_at: string
-        }
-      }
-      teacher_delete_academic_material: { Args: { _id: string }; Returns: boolean }
-      teacher_list_academic_materials: {
-        Args: never
-        Returns: {
-          id: string
-          classroom_id: string
-          classroom_name: string
-          subject_id: string | null
-          subject_name: string | null
-          term_id: string | null
-          term_name: string | null
-          title: string
-          description: string
-          file_path: string
-          file_name: string
-          file_size: number
-          file_type: string
-          created_at: string
-          updated_at: string
-        }[]
-      }
-      student_list_academic_materials: {
-        Args: never
-        Returns: {
-          id: string
-          classroom_id: string
-          classroom_name: string
-          subject_id: string | null
-          subject_name: string | null
-          term_id: string | null
-          term_name: string | null
-          title: string
-          description: string
-          file_path: string
-          file_name: string
-          file_size: number
-          file_type: string
-          created_at: string
-        }[]
-      }
-      student_list_academic_materials_detailed: {
-        Args: never
-        Returns: {
-          classroom_id: string
-          classroom_name: string
-          created_at: string
-          description: string
-          file_name: string
-          file_path: string
-          file_size: number
-          file_type: string
-          id: string
-          subject_id: string | null
-          subject_name: string | null
-          teacher_id: string
-          teacher_name: string
-          term_id: string | null
-          term_name: string | null
-          title: string
-        }[]
-      }
       teacher_create_assessment: {
         Args: {
           _classroom_id: string
@@ -1914,47 +2096,6 @@ export type Database = {
         }
         Returns: string
       }
-      accept_institution_invitation: {
-        Args: { _token: string }
-        Returns: {
-          classroom_id: string | null
-          classroom_name: string | null
-          institution_id: string
-          institution_name: string
-          role: string
-        }[]
-      }
-      admin_create_institution_invitation: {
-        Args: {
-          _classroom_id?: string
-          _email: string
-          _expires_hours?: number
-          _role: string
-        }
-        Returns: {
-          expires_at: string
-          invitation_id: string
-          token: string
-        }[]
-      }
-      admin_list_institution_invitations: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          accepted_at: string | null
-          classroom_id: string | null
-          classroom_name: string | null
-          created_at: string
-          email: string
-          expires_at: string
-          id: string
-          revoked_at: string | null
-          role: string
-        }[]
-      }
-      admin_revoke_institution_invitation: {
-        Args: { _id: string }
-        Returns: boolean
-      }
       teacher_create_calendar_event: {
         Args: {
           _classroom_id: string
@@ -1965,22 +2106,6 @@ export type Database = {
           _title: string
         }
         Returns: string
-      }
-      teacher_delete_calendar_event: {
-        Args: { _id: string }
-        Returns: boolean
-      }
-      teacher_update_calendar_event: {
-        Args: {
-          _classroom_id: string
-          _description: string
-          _end_at: string
-          _event_type: string
-          _id: string
-          _start_at: string
-          _title: string
-        }
-        Returns: Tables<"calendar_events">["Row"]
       }
       teacher_create_classroom: {
         Args: { _code: string; _name: string }
@@ -2028,6 +2153,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      teacher_delete_academic_material: {
+        Args: { _id: string }
+        Returns: boolean
+      }
       teacher_delete_announcement: {
         Args: { _id: string }
         Returns: {
@@ -2052,6 +2181,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      teacher_delete_calendar_event: { Args: { _id: string }; Returns: boolean }
+      teacher_delete_subject: { Args: { _id: string }; Returns: boolean }
       teacher_delete_task: {
         Args: { _id: string }
         Returns: {
@@ -2111,6 +2242,20 @@ export type Database = {
           student_name: string
         }[]
       }
+      teacher_get_student_academic_profile: {
+        Args: { _student_id: string }
+        Returns: {
+          assessments: Json
+          attendance: Json
+          classroom_id: string
+          classroom_name: string
+          enrollment: string
+          full_name: string
+          grades: Json
+          student_id: string
+          tasks: Json
+        }[]
+      }
       teacher_grade_submission: {
         Args: { _feedback: string; _score: number; _submission_id: string }
         Returns: boolean
@@ -2167,6 +2312,26 @@ export type Database = {
         Args: { _student_id: string }
         Returns: boolean
       }
+      teacher_list_academic_materials: {
+        Args: never
+        Returns: {
+          classroom_id: string
+          classroom_name: string
+          created_at: string
+          description: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          subject_id: string
+          subject_name: string
+          term_id: string
+          term_name: string
+          title: string
+          updated_at: string
+        }[]
+      }
       teacher_list_academic_options: { Args: never; Returns: Json }
       teacher_list_announcements: {
         Args: never
@@ -2192,6 +2357,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      teacher_list_assessment_scores: {
+        Args: { _assessment_id: string }
+        Returns: {
+          feedback: string
+          graded_at: string
+          score: number
+          student_id: string
+        }[]
+      }
       teacher_list_assessments: {
         Args: { _classroom_id: string }
         Returns: {
@@ -2206,15 +2380,6 @@ export type Database = {
           term_name: string
           title: string
           weight: number
-        }[]
-      }
-      teacher_list_assessment_scores: {
-        Args: { _assessment_id: string }
-        Returns: {
-          feedback: string | null
-          graded_at: string | null
-          score: number | null
-          student_id: string
         }[]
       }
       teacher_list_calendar: {
@@ -2253,6 +2418,7 @@ export type Database = {
           student_id: string
           subject: string
           subject_id: string | null
+          teacher_id: string | null
           term_id: string | null
           updated_at: string
         }[]
@@ -2262,15 +2428,6 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
-      }
-      teacher_list_institution_students_page: {
-        Args: {
-          _class_status?: string
-          _page?: number
-          _page_size?: number
-          _search?: string
-        }
-        Returns: Json
       }
       teacher_list_institution_students: {
         Args: never
@@ -2284,6 +2441,15 @@ export type Database = {
           id: string
           teacher_id: string
         }[]
+      }
+      teacher_list_institution_students_page: {
+        Args: {
+          _class_status?: string
+          _page?: number
+          _page_size?: number
+          _search?: string
+        }
+        Returns: Json
       }
       teacher_list_roster: {
         Args: never
@@ -2386,18 +2552,14 @@ export type Database = {
         }
       }
       teacher_list_unassigned_classrooms: {
-        Args: Record<string, never>
+        Args: never
         Returns: {
+          code: string
           id: string
           name: string
-          code: string | null
           status: string
           student_count: number
         }[]
-      }
-      teacher_claim_classroom: {
-        Args: { _classroom_id: string }
-        Returns: boolean
       }
       teacher_list_unassigned_students: {
         Args: never
@@ -2418,7 +2580,12 @@ export type Database = {
         Returns: boolean
       }
       teacher_save_attendance: {
-        Args: { _classroom_id: string; _date: string; _rows: Json; _subject_id: string }
+        Args: {
+          _classroom_id: string
+          _date: string
+          _rows: Json
+          _subject_id: string
+        }
         Returns: number
       }
       teacher_unassign_subject_from_class: {
@@ -2469,6 +2636,37 @@ export type Database = {
       teacher_update_attendance: {
         Args: { _attendance: number; _student_id: string }
         Returns: boolean
+      }
+      teacher_update_calendar_event: {
+        Args: {
+          _classroom_id: string
+          _description: string
+          _end_at: string
+          _event_type: string
+          _id: string
+          _start_at: string
+          _title: string
+        }
+        Returns: {
+          classroom_id: string | null
+          created_at: string
+          created_by: string
+          description: string
+          end_at: string | null
+          event_type: string
+          id: string
+          institution_id: string
+          start_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "calendar_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       teacher_update_subject: {
         Args: { _code: string; _id: string; _name: string }
@@ -2540,6 +2738,7 @@ export type Database = {
           student_id: string
           subject: string
           subject_id: string | null
+          teacher_id: string | null
           term_id: string | null
           updated_at: string
         }
