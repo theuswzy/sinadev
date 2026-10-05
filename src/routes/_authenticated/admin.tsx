@@ -277,6 +277,41 @@ ${institutionNameValue}`);
     await queryClient.invalidateQueries({ queryKey: ["admin-accounts"] });
   }
 
+  async function deleteAccount(userId: string, email: string, displayName: string) {
+    const confirmation = window.prompt(
+      `Esta ação é IRREVERSÍVEL e excluirá a conta, o acesso e os dados acadêmicos vinculados a ela.\n\nDigite exatamente o e-mail da conta para confirmar:\n\n${email}`,
+    );
+
+    if (confirmation !== email) {
+      if (confirmation !== null) {
+        toast.error("O e-mail digitado não corresponde. A conta não foi excluída.");
+      }
+      return;
+    }
+
+    setBusyId("delete-account:" + userId);
+    setMessage("");
+    try {
+      const { error } = await supabase.rpc("admin_delete_account", {
+        _user_id: userId,
+      });
+      if (error) throw error;
+
+      toast.success(`${displayName || email} foi excluída.`);
+      setMessage("Conta excluída definitivamente.");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-accounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-role-requests"] }),
+        queryClient.invalidateQueries({ queryKey: ["admin-audit"] }),
+      ]);
+    } catch (error) {
+      setMessage(errorText(error));
+      toast.error(errorText(error));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   const filteredAccounts = useMemo(() => accounts.data?.filter(account => {
     const matchesText = `${account.display_name} ${account.email}`.toLowerCase().includes(accountSearch.toLowerCase());
     const matchesRole = accountRoleFilter === "all" || account.academic_role === accountRoleFilter;
@@ -770,14 +805,25 @@ ${institutionNameValue}`);
                       <Button size="sm" variant={account.academic_role === "teacher" ? "default" : "ghost"} disabled={account.is_administrator || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "teacher")}>Professor</Button>
                     </div>
                     {!account.is_administrator && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busyId === account.user_id}
-                        onClick={() => void setAccountStatus(account.user_id, account.account_status === "suspended" ? "active" : "suspended")}
-                      >
-                        {account.account_status === "suspended" ? <><UserCheck className="mr-2 size-4" />Ativar</> : <><Ban className="mr-2 size-4" />Suspender</>}
-                      </Button>
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busyId === account.user_id || busyId === "delete-account:" + account.user_id}
+                          onClick={() => void setAccountStatus(account.user_id, account.account_status === "suspended" ? "active" : "suspended")}
+                        >
+                          {account.account_status === "suspended" ? <><UserCheck className="mr-2 size-4" />Ativar</> : <><Ban className="mr-2 size-4" />Suspender</>}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive hover:text-destructive"
+                          disabled={busyId === account.user_id || busyId === "delete-account:" + account.user_id}
+                          onClick={() => void deleteAccount(account.user_id, account.email, account.display_name)}
+                        >
+                          <Trash2 className="mr-2 size-4" />Excluir
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
