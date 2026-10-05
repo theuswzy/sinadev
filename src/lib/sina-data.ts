@@ -732,6 +732,18 @@ export async function archiveTeacherSubject(id: string) {
   return data ?? false;
 }
 
+export async function deleteTeacherSubject(id: string) {
+  const { data, error } = await supabase.rpc("teacher_delete_subject", { _id: id });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function deleteAdminSubject(id: string) {
+  const { data, error } = await supabase.rpc("admin_delete_subject", { _id: id });
+  if (error) throw error;
+  return data ?? false;
+}
+
 export async function loadTeacherAcademicOptions(): Promise<AcademicOptions> {
   const { data, error } = await supabase.rpc("teacher_list_academic_options");
   if (error) throw error;
