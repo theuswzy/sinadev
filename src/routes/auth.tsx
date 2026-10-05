@@ -10,6 +10,7 @@ import {
   acceptInstitutionInvitation,
   ensureAccountOnboarding,
   getAccountOnboardingState,
+  getRole,
   resubmitRoleRequest,
   searchSchoolDirectory,
   ensureAccountOnboardingForSchool,
@@ -98,12 +99,26 @@ function AuthPage() {
         throw error;
       }
     }
+
     const schoolId = explicitSchoolId || window.localStorage.getItem("sina-school-directory-id") || undefined;
     window.localStorage.removeItem("sina-school-directory-id");
 
-    const state = schoolId && explicitRole
+    // No login normal, contas já aprovadas não precisam passar novamente pelo
+    // fluxo de onboarding. Resolve a área diretamente pela função ativa.
+    // O onboarding continua sendo usado no cadastro, inclusive para Google.
+    if (!explicitRole) {
+      const role = await getRole();
+      await navigate({
+        to: role === "admin" ? "/admin" : role === "teacher" ? "/professor" : "/aluno",
+        replace: true,
+      });
+      return;
+    }
+
+    const state = schoolId
       ? await ensureAccountOnboardingForSchool(explicitRole, schoolId)
       : await ensureAccountOnboarding(explicitRole);
+
     if (state.status === "pending") {
       setPendingState(state);
       setMode("pending");
