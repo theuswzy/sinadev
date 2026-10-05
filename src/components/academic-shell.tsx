@@ -103,7 +103,7 @@ export function AcademicShell({
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let cancelled = false;
-    let refreshTimer: ReturnType<typeof window.setTimeout> | null = null;
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
     const refreshAcademicQueries = () => {
       if (cancelled) return;
@@ -116,7 +116,7 @@ export function AcademicShell({
         const prefixes = ["my-role", "my-institutions", "my-student", "dashboard-", "teacher-", "admin-"];
         void queryClient.invalidateQueries({
           predicate: (query) => {
-            const key = query.queryKey[0];
+            const key = (query.queryKey as readonly unknown[])[0];
             return typeof key === "string" && prefixes.some((prefix) => key === prefix || key.startsWith(prefix));
           },
         });
