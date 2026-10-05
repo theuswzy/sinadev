@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Megaphone, BookOpen, Clock3, CheckCircle2, AlertTriangle, UserRound, ClipboardCheck } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   errorText,
@@ -17,7 +16,6 @@ import {
   loadStudentTasksDetailed,
   loadStudentAnnouncementsDetailed,
   loadStudentSubjects,
-  loadGrades,
   submitTask,
 } from "@/lib/sina-data";
 
