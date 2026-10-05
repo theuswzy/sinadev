@@ -35,6 +35,9 @@ ALTER TABLE public.attendance_records
 CREATE UNIQUE INDEX IF NOT EXISTS attendance_records_student_date_subject_key
   ON public.attendance_records (student_id, attendance_date, subject_id);
 
+DROP FUNCTION IF EXISTS public.teacher_get_attendance(uuid,date);
+DROP FUNCTION IF EXISTS public.teacher_save_attendance(uuid,date,jsonb);
+
 CREATE OR REPLACE FUNCTION public.teacher_get_attendance(
   _classroom_id uuid,
   _date date,
