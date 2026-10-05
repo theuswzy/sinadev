@@ -178,3 +178,49 @@ set status='approved',
     updated_at=now()
 where rr.requested_role='student'::public.app_role
   and rr.status='pending';
+
+
+-- Keep the auth trigger aligned with the onboarding rule:
+-- students get the student role immediately; teachers do not get a role
+-- automatically and remain subject to administrative approval.
+create or replace function public.new_account()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  requested_role text := coalesce(new.raw_user_meta_data->>'requested_role','student');
+  display_name text := coalesce(new.raw_user_meta_data->>'display_name','');
+begin
+  insert into public.profiles (user_id, display_name, status)
+  values (
+    new.id,
+    display_name,
+    case when requested_role = 'teacher' then 'pending' else 'active' end
+  )
+  on conflict (user_id) do update set
+    display_name = case
+      when public.profiles.display_name = '' then excluded.display_name
+      else public.profiles.display_name
+    end,
+    status = case
+      when requested_role = 'teacher' then public.profiles.status
+      else 'active'
+    end,
+    updated_at = now();
+
+  if requested_role <> 'teacher' then
+    insert into public.user_roles (user_id, role)
+    values (new.id, 'student'::public.app_role)
+    on conflict (user_id, role) do nothing;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_sina_signup on auth.users;
+create trigger on_sina_signup
+after insert on auth.users
+for each row execute function public.new_account();
