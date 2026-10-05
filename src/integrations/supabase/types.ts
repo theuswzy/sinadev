@@ -316,6 +316,7 @@ export type Database = {
           note: string | null
           status: string
           student_id: string
+          subject_id: string | null
           teacher_id: string
           updated_at: string
         }
@@ -328,6 +329,7 @@ export type Database = {
           note?: string | null
           status: string
           student_id: string
+          subject_id?: string | null
           teacher_id: string
           updated_at?: string
         }
@@ -340,6 +342,7 @@ export type Database = {
           note?: string | null
           status?: string
           student_id?: string
+          subject_id?: string | null
           teacher_id?: string
           updated_at?: string
         }
@@ -363,6 +366,13 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
