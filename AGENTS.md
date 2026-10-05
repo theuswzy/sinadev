@@ -15,3 +15,4 @@
 - New accounts default to student; teacher access is granted administratively, never by selecting a role in the browser, to prevent self-promotion.
 - Academic roles are mutually exclusive and assigned by an administrator through a checked database function; admin roles are never editable from the role selector, preventing self-promotion.
 - Include the connected Cloud project's public URL and publishable key as build-time fallbacks in Vite; deployment builds may omit VITE_* variables, and browser auth must still initialize.
+- Keep Lovable auth email delivery on the scaffolded managed handler and shared SINA template frame; this preserves verified webhook behavior and consistent branding across every auth message.
