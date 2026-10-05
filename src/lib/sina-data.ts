@@ -545,6 +545,12 @@ export async function markNotificationRead(notificationId: string): Promise<bool
   return data ?? false;
 }
 
+export async function markAllNotificationsRead(): Promise<number> {
+  const { data, error } = await supabase.rpc("student_mark_all_notifications_read");
+  if (error) throw error;
+  return data ?? 0;
+}
+
 export type TeacherClassroom = {
   id: string;
   name: string;
