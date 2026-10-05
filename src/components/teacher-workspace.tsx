@@ -86,81 +86,115 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
   const students=(d.students.data??[]).filter(x=>x.class_status==="minha_turma");
   const subjects=(d.subjects.data??[]).filter(x=>x.status==="active");
   const pending=(d.students.data??[]).filter(x=>x.class_status==="sem_turma");
+  const overdueTasks=(tasks.data??[]).filter(t=>t.due_at&&new Date(t.due_at).getTime()<Date.now());
+  const upcomingTasks=(tasks.data??[]).filter(t=>t.due_at&&new Date(t.due_at).getTime()>=Date.now()).sort((a,b)=>new Date(a.due_at!).getTime()-new Date(b.due_at!).getTime()).slice(0,5);
+  const upcomingEvents=(calendar.data??[]).filter(e=>new Date(e.start_at).getTime()>=Date.now()).slice(0,5);
   const actions=[
-    {label:"Turmas",value:classes.length,desc:"Acesse alunos e desempenho",icon:Users,go:"turmas" as Section},
-    {label:"Alunos",value:students.length,desc:"Consulte sua turma",icon:GraduationCap,go:"alunos" as Section},
-    {label:"Disciplinas",value:subjects.length,desc:"Gerencie vínculos",icon:BookOpen,go:"disciplinas" as Section},
-    {label:"Sem turma",value:pending.length,desc:"Alunos aguardando vínculo",icon:School,go:"alunos" as Section},
+    {label:"Turmas",value:classes.length,desc:"Acompanhar desempenho e vínculos",icon:Users,go:"turmas" as Section},
+    {label:"Alunos",value:students.length,desc:"Consultar e organizar estudantes",icon:GraduationCap,go:"alunos" as Section},
+    {label:"Disciplinas",value:subjects.length,desc:"Gerenciar suas disciplinas",icon:BookOpen,go:"disciplinas" as Section},
+    {label:"Sem turma",value:pending.length,desc:"Resolver vínculos pendentes",icon:School,go:"alunos" as Section},
   ];
+
   return <div className="space-y-6">
-    <section className="overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div><p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Painel do professor</p><h1 className="mt-2 font-display text-3xl font-bold tracking-tight">Tudo que precisa para acompanhar suas turmas.</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Acompanhe alunos, notas, frequência, avaliações e atividades em um único fluxo.</p></div>
-        <div className="rounded-2xl bg-primary/10 px-4 py-3 text-sm"><b>Atalho rápido</b><p className="mt-1 text-muted-foreground">Comece por Turmas para ver o desempenho.</p></div>
+    <section className="overflow-hidden rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm sm:p-8">
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-bold uppercase tracking-[.16em] text-brand-muted">Central do professor</p>
+          <h1 className="mt-2 max-w-3xl font-display text-3xl font-bold tracking-tight sm:text-4xl">Seu trabalho acadêmico, organizado em um único fluxo.</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-brand-muted">Acompanhe turmas, lance notas e frequência, publique atividades e mantenha os alunos informados sem sair do contexto da turma.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:flex">
+          <Button type="button" onClick={()=>onNavigate("notas")} className="rounded-xl">Lançar notas</Button>
+          <Button type="button" variant="outline" onClick={()=>onNavigate("frequencia")} className="rounded-xl border-brand-border bg-transparent text-brand-foreground hover:bg-brand-panel">Registrar frequência</Button>
+        </div>
       </div>
     </section>
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {actions.map(({label,value,desc,icon:Icon,go})=><button key={label} type="button" onClick={()=>onNavigate(go)} className="sina-card group p-5 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><span className="text-xs font-semibold text-primary opacity-0 transition group-hover:opacity-100">Abrir →</span></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-semibold">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></button>)}
-    </div>
-    <Card title="O que precisa da sua atenção?" description="Indicadores rápidos para você saber onde agir primeiro.">
-      <div className="grid gap-3 md:grid-cols-3">
-        <button type="button" onClick={()=>onNavigate("alunos")} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Alunos sem turma</p>
-          <p className="mt-1 text-3xl font-semibold">{pending.length}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{pending.length?"Há alunos aguardando vínculo.":"Nenhum aluno aguardando vínculo."}</p>
-        </button>
-        <button type="button" onClick={()=>onNavigate("atividades")} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Atividades com prazo vencido</p>
-          <p className="mt-1 text-3xl font-semibold">{(tasks.data??[]).filter(t=>t.due_at&&new Date(t.due_at).getTime()<Date.now()).length}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Revise as atividades e acompanhe as entregas.</p>
-        </button>
-        <button type="button" onClick={()=>onNavigate("materiais")} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Materiais publicados</p>
-          <p className="mt-1 text-3xl font-semibold">{materials.data?.length??0}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Arquivos disponíveis para suas turmas.</p>
-        </button>
-      </div>
-      {tasks.isError&&<p className="mt-3 text-xs text-destructive">Não foi possível atualizar o indicador de atividades.</p>}
-      {materials.isError&&<p className="mt-1 text-xs text-destructive">Não foi possível atualizar o indicador de materiais.</p>}
-    </Card>
-    <Card title="Próximos prazos" description="Acompanhe rapidamente as atividades que estão chegando.">
-      <div className="grid gap-2 md:grid-cols-2">
-        {(tasks.data??[]).filter(t=>t.due_at&&new Date(t.due_at).getTime()>=Date.now()).sort((a,b)=>new Date(a.due_at!).getTime()-new Date(b.due_at!).getTime()).slice(0,6).map(t=><button key={t.id} type="button" onClick={()=>onNavigate("atividades")} className="rounded-xl border border-border p-3 text-left hover:border-primary/40 hover:bg-primary/5">
-          <b>{t.title}</b><p className="mt-1 text-xs text-muted-foreground">{t.classroom} · {t.subject}</p><p className="mt-1 text-xs font-medium text-primary">{new Date(t.due_at!).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})}</p>
-        </button>)}
-        {!tasks.isPending&&!(tasks.data??[]).some(t=>t.due_at&&new Date(t.due_at).getTime()>=Date.now())&&<p className="text-sm text-muted-foreground">Nenhum prazo futuro cadastrado.</p>}
-      </div>
-    </Card>
-    <Card title="Agenda de trabalho" description="Tenha os próximos compromissos e prazos na mesma visão, sem precisar trocar de tela.">
-      <div className="grid gap-3 lg:grid-cols-2">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-primary">Próximos eventos</p>
-          <div className="mt-3 space-y-2">
-            {(calendar.data??[]).filter(e=>new Date(e.start_at).getTime()>=Date.now()).slice(0,4).map(e=><button key={e.id} type="button" onClick={()=>onNavigate("agenda")} className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition hover:border-primary/40 hover:bg-primary/5">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><CalendarDays className="size-4"/></span>
-              <span className="min-w-0 flex-1"><b className="block truncate text-sm">{e.title}</b><span className="text-xs text-muted-foreground">{new Date(e.start_at).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})} · {e.classroom_name||"Todas as turmas"}</span></span>
-            </button>)}
-            {!calendar.isPending && !(calendar.data??[]).filter(e=>new Date(e.start_at).getTime()>=Date.now()).length && <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum evento próximo cadastrado.</p>}
-          </div>
+
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {actions.map(({label,value,desc,icon:Icon,go})=><button key={label} type="button" onClick={()=>onNavigate(go)} className="sina-card group p-5 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+        <div className="flex items-center justify-between gap-3">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span>
+          <span className="text-xs font-semibold text-primary opacity-0 transition group-hover:opacity-100">Abrir →</span>
         </div>
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-primary">Prioridades</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {[["notas","Lançar notas","Atualize o diário de notas."],["frequencia","Frequência","Registre presença por data."],["avaliacoes","Avaliações","Acompanhe instrumentos e resultados."],["comunicacao","Comunicação","Publique avisos para as turmas."]].map(([go,title,desc])=><button key={go} type="button" onClick={()=>onNavigate(go as Section)} className="rounded-xl border border-border p-3 text-left transition hover:border-primary/40 hover:bg-primary/5"><b className="text-sm">{title}</b><p className="mt-1 text-xs text-muted-foreground">{desc}</p></button>)}
-          </div>
-        </div>
-      </div>
-    </Card>
-    <Card title="Próximas ações" description="Use o menu para executar cada etapa. O SINA mantém o vínculo entre a ação e a turma.">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p>
+      </button>)}
+    </section>
+
+    <Card title="Fluxo recomendado" description="O SINA foi pensado para acompanhar o trabalho do professor na ordem em que ele acontece.">
+      <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
         {[
-          ["Notas","Lance e confira notas por aluno.","notas"],
-          ["Frequência","Registre o diário por data.","frequencia"],
-          ["Avaliações","Crie instrumentos e acompanhe resultados.","avaliacoes"],
-          ["Atividades","Publique e corrija entregas.","atividades"],
-          ["Materiais","Publique PDFs, documentos e outros arquivos.","materiais"],
-          ["Agenda","Registre aulas, provas e eventos.","agenda"],
-        ].map(([title,desc,go])=><button key={title} type="button" onClick={()=>onNavigate(go as Section)} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5"><b>{title}</b><p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p></button>)}
+          ["1","Turmas","Organize seus vínculos.","turmas",Users],
+          ["2","Alunos","Confira matrículas.","alunos",GraduationCap],
+          ["3","Notas","Lance resultados.","notas",BarChart3],
+          ["4","Frequência","Registre presença.","frequencia",CheckCircle2],
+          ["5","Avaliações","Crie e corrija.","avaliacoes",ClipboardCheck],
+          ["6","Comunicação","Avise suas turmas.","comunicacao",Megaphone],
+        ].map(([step,title,desc,go,Icon])=>{
+          const StepIcon=Icon as LucideIcon;
+          return <button key={String(step)} type="button" onClick={()=>onNavigate(go as Section)} className="rounded-2xl border border-border p-4 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5">
+            <div className="flex items-center justify-between gap-2"><span className="text-[11px] font-bold text-primary">ETAPA {step}</span><StepIcon className="size-4 text-primary"/></div>
+            <b className="mt-2 block">{title}</b>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p>
+          </button>;
+        })}
+      </div>
+    </Card>
+
+    <div className="grid gap-5 xl:grid-cols-[1.3fr_.7fr]">
+      <Card title="Prioridades de hoje" description="Veja primeiro aquilo que realmente pede uma ação.">
+        <div className="grid gap-3 md:grid-cols-2">
+          <button type="button" onClick={()=>onNavigate("alunos")} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Alunos sem turma</p>
+            <p className="mt-1 text-3xl font-semibold">{pending.length}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{pending.length?"Há alunos aguardando vínculo.":"Nenhum aluno aguardando vínculo."}</p>
+          </button>
+          <button type="button" onClick={()=>onNavigate("atividades")} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Atividades vencidas</p>
+            <p className="mt-1 text-3xl font-semibold">{overdueTasks.length}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{overdueTasks.length?"Confira entregas e correções pendentes.":"Nenhuma atividade com prazo vencido."}</p>
+          </button>
+          <button type="button" onClick={()=>onNavigate("materiais")} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Materiais publicados</p>
+            <p className="mt-1 text-3xl font-semibold">{materials.data?.length??0}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Arquivos disponíveis para suas turmas.</p>
+          </button>
+          <button type="button" onClick={()=>onNavigate("agenda")} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Próximos eventos</p>
+            <p className="mt-1 text-3xl font-semibold">{upcomingEvents.length}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Compromissos acadêmicos nos próximos dias.</p>
+          </button>
+        </div>
+        {tasks.isError&&<p className="mt-3 text-xs text-destructive">Não foi possível atualizar os indicadores de atividades.</p>}
+        {materials.isError&&<p className="mt-1 text-xs text-destructive">Não foi possível atualizar os indicadores de materiais.</p>}
+      </Card>
+
+      <Card title="Próximos compromissos" description="Atividades e eventos aparecem juntos aqui.">
+        <div className="space-y-2">
+          {upcomingTasks.map(t=><button key={"task-"+t.id} type="button" onClick={()=>onNavigate("atividades")} className="flex w-full items-start gap-3 rounded-xl border border-border p-3 text-left transition hover:border-primary/40 hover:bg-primary/5">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><ClipboardList className="size-4"/></span>
+            <span className="min-w-0 flex-1"><b className="block truncate text-sm">{t.title}</b><span className="text-xs text-muted-foreground">{t.classroom} · {new Date(t.due_at!).toLocaleDateString("pt-BR")}</span></span>
+          </button>)}
+          {upcomingEvents.map(e=><button key={"event-"+e.id} type="button" onClick={()=>onNavigate("agenda")} className="flex w-full items-start gap-3 rounded-xl border border-border p-3 text-left transition hover:border-primary/40 hover:bg-primary/5">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground"><CalendarDays className="size-4"/></span>
+            <span className="min-w-0 flex-1"><b className="block truncate text-sm">{e.title}</b><span className="text-xs text-muted-foreground">{e.classroom_name||"Todas as turmas"} · {new Date(e.start_at).toLocaleDateString("pt-BR")}</span></span>
+          </button>)}
+          {!tasks.isPending&&!calendar.isPending&&!upcomingTasks.length&&!upcomingEvents.length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhuma atividade ou evento próximo.</p>}
+        </div>
+      </Card>
+    </div>
+
+    <Card title="Atalhos operacionais" description="Ações que costumam acontecer todos os dias.">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {[["notas","Lançar notas","Atualize o diário de notas.",BarChart3],["frequencia","Frequência","Registre presença por data.",CheckCircle2],["avaliacoes","Avaliações","Crie instrumentos e acompanhe resultados.",ClipboardCheck],["comunicacao","Comunicação","Publique avisos para as turmas.",Megaphone]].map(([go,title,desc,Icon])=>{
+          const ActionIcon=Icon as LucideIcon;
+          return <button key={String(go)} type="button" onClick={()=>onNavigate(go as Section)} className="flex items-start gap-3 rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><ActionIcon className="size-5"/></span>
+            <span><b>{title}</b><p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p></span>
+          </button>;
+        })}
       </div>
     </Card>
   </div>;
@@ -194,7 +228,7 @@ function Classes({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(sectio
         {(d.unassignedClasses.data??[]).length===0&&<p className="text-sm text-muted-foreground">Não há turmas sem professor responsável nesta escola.</p>}
       </div>
     </Card>
-    {selected&&<Card title="Relatório da turma" description="Resumo acadêmico da turma selecionada. Cada indicador vem dos registros acadêmicos vinculados aos alunos."><div className="mb-4 grid gap-2 grid-cols-2 md:grid-cols-4"><div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Alunos</p><b>{report.data?.length??0}</b></div><div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Com nota</p><b>{(report.data??[]).filter(s=>s.grade_average!=null).length}</b></div><div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Média da turma</p><b>{report.data?.length?((report.data.reduce((a,s)=>a+(Number(s.grade_average)||0),0)/report.data.length).toFixed(1)):"—"}</b></div><div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Frequência média</p><b>{report.data?.length?((report.data.reduce((a,s)=>a+(Number(s.attendance_percent)||0),0)/report.data.length).toFixed(0)+"%"):"—"}</b></div></div><div className="mb-4 grid gap-2 grid-cols-2"><div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3"><p className="text-xs text-muted-foreground">Atenção nas notas</p><b>{(report.data??[]).filter(s=>s.grade_average!=null&&Number(s.grade_average)<6).length}</b><p className="mt-1 text-[11px] text-muted-foreground">Média abaixo de 6,0</p></div><div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3"><p className="text-xs text-muted-foreground">Atenção na frequência</p><b>{(report.data??[]).filter(s=>s.attendance_percent!=null&&Number(s.attendance_percent)<75).length}</b><p className="mt-1 text-[11px] text-muted-foreground">Registro abaixo de 75%</p></div></div><div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{[["Alunos","Veja a lista e ficha dos alunos.","alunos"],["Notas","Lance e acompanhe notas.","notas"],["Frequência","Registre presença e faltas.","frequencia"],["Atividades","Publique e corrija atividades.","atividades"],["Materiais","Publique PDFs e materiais.","materiais"],["Avaliações","Crie e acompanhe avaliações.","avaliacoes"],["Agenda","Organize aulas e eventos.","agenda"]].map(([title,desc,go])=><button key={title} type="button" onClick={()=>onNavigate(go as Section)} className="rounded-xl border border-border p-3 text-left transition hover:border-primary/40 hover:bg-primary/5"><b>{title}</b><p className="mt-1 text-xs text-muted-foreground">{desc}</p></button>)}</div><div className="space-y-2">{(report.data??[]).map(s=><div key={s.student_id} className="rounded-xl border border-border p-3"><div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"><div><b>{s.student_name}</b><p className="text-xs text-muted-foreground">{s.enrollment} · Nota: média dos lançamentos · Frequência: registros de presença</p></div><div className="text-sm"><b>{s.grade_average==null?"—":Number(s.grade_average).toFixed(1)}</b> · {s.attendance_percent==null?"—":s.attendance_percent+"%"}</div></div></div>)}</div><div className="mt-4 rounded-xl border border-border p-4"><p className="font-semibold">Alunos que precisam de atenção</p><p className="mt-1 text-xs text-muted-foreground">Use esta lista para priorizar acompanhamento pedagógico.</p><div className="mt-3 space-y-2">{(report.data??[]).filter(s=>(s.grade_average!=null&&Number(s.grade_average)<6)||(s.attendance_percent!=null&&Number(s.attendance_percent)<75)).map(s=><div key={s.student_id} className="flex flex-col gap-2 rounded-lg bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between"><div><b>{s.student_name}</b><p className="text-xs text-muted-foreground">{s.enrollment||"Sem matrícula"}</p></div><div className="flex flex-wrap gap-2 text-xs">{s.grade_average!=null&&Number(s.grade_average)<6&&<span className="rounded-full bg-amber-500/10 px-2 py-1">Nota {Number(s.grade_average).toFixed(1)}</span>}{s.attendance_percent!=null&&Number(s.attendance_percent)<75&&<span className="rounded-full bg-amber-500/10 px-2 py-1">Frequência {Number(s.attendance_percent).toFixed(0)}%</span>}</div></div>)}{!(report.data??[]).some(s=>(s.grade_average!=null&&Number(s.grade_average)<6)||(s.attendance_percent!=null&&Number(s.attendance_percent)<75))&&<p className="text-sm text-muted-foreground">Nenhum aluno sinalizado pelos critérios atuais. 🎉</p>}</div></div>{report.isLoading&&<p className="mt-3 text-sm text-muted-foreground">Carregando relatório…</p>}{report.error&&<div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar o relatório. <Button size="sm" variant="outline" onClick={()=>void report.refetch()}>Tentar novamente</Button></div>}</Card>}
+    {selected&&<Card title="Relatório da turma" description="Resumo acadêmico da turma selecionada. Cada indicador vem dos registros acadêmicos vinculados aos alunos."><div className="mb-4 grid gap-2 grid-cols-2 md:grid-cols-4"><div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Alunos</p><b>{report.data?.length??0}</b></div><div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Com nota</p><b>{(report.data??[]).filter(s=>s.grade_average!=null).length}</b></div><div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Média da turma</p><b>{(()=>{const values=(report.data??[]).map(s=>s.grade_average).filter((v):v is number=>v!=null&&Number.isFinite(Number(v))).map(Number);return values.length?(values.reduce((a,b)=>a+b,0)/values.length).toFixed(1):"—";})()}</b></div><div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Frequência média</p><b>{(()=>{const values=(report.data??[]).map(s=>s.attendance_percent).filter((v):v is number=>v!=null&&Number.isFinite(Number(v))).map(Number);return values.length?(values.reduce((a,b)=>a+b,0)/values.length).toFixed(0)+"%":"—";})()}</b></div></div><div className="mb-4 grid gap-2 grid-cols-2"><div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3"><p className="text-xs text-muted-foreground">Atenção nas notas</p><b>{(report.data??[]).filter(s=>s.grade_average!=null&&Number(s.grade_average)<6).length}</b><p className="mt-1 text-[11px] text-muted-foreground">Média abaixo de 6,0</p></div><div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3"><p className="text-xs text-muted-foreground">Atenção na frequência</p><b>{(report.data??[]).filter(s=>s.attendance_percent!=null&&Number(s.attendance_percent)<75).length}</b><p className="mt-1 text-[11px] text-muted-foreground">Registro abaixo de 75%</p></div></div><div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{[["Alunos","Veja a lista e ficha dos alunos.","alunos"],["Notas","Lance e acompanhe notas.","notas"],["Frequência","Registre presença e faltas.","frequencia"],["Atividades","Publique e corrija atividades.","atividades"],["Materiais","Publique PDFs e materiais.","materiais"],["Avaliações","Crie e acompanhe avaliações.","avaliacoes"],["Agenda","Organize aulas e eventos.","agenda"]].map(([title,desc,go])=><button key={title} type="button" onClick={()=>onNavigate(go as Section)} className="rounded-xl border border-border p-3 text-left transition hover:border-primary/40 hover:bg-primary/5"><b>{title}</b><p className="mt-1 text-xs text-muted-foreground">{desc}</p></button>)}</div><div className="space-y-2">{(report.data??[]).map(s=><div key={s.student_id} className="rounded-xl border border-border p-3"><div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"><div><b>{s.student_name}</b><p className="text-xs text-muted-foreground">{s.enrollment} · Nota: média dos lançamentos · Frequência: registros de presença</p></div><div className="text-sm"><b>{s.grade_average==null?"—":Number(s.grade_average).toFixed(1)}</b> · {s.attendance_percent==null?"—":s.attendance_percent+"%"}</div></div></div>)}</div><div className="mt-4 rounded-xl border border-border p-4"><p className="font-semibold">Alunos que precisam de atenção</p><p className="mt-1 text-xs text-muted-foreground">Use esta lista para priorizar acompanhamento pedagógico.</p><div className="mt-3 space-y-2">{(report.data??[]).filter(s=>(s.grade_average!=null&&Number(s.grade_average)<6)||(s.attendance_percent!=null&&Number(s.attendance_percent)<75)).map(s=><div key={s.student_id} className="flex flex-col gap-2 rounded-lg bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between"><div><b>{s.student_name}</b><p className="text-xs text-muted-foreground">{s.enrollment||"Sem matrícula"}</p></div><div className="flex flex-wrap gap-2 text-xs">{s.grade_average!=null&&Number(s.grade_average)<6&&<span className="rounded-full bg-amber-500/10 px-2 py-1">Nota {Number(s.grade_average).toFixed(1)}</span>}{s.attendance_percent!=null&&Number(s.attendance_percent)<75&&<span className="rounded-full bg-amber-500/10 px-2 py-1">Frequência {Number(s.attendance_percent).toFixed(0)}%</span>}</div></div>)}{!(report.data??[]).some(s=>(s.grade_average!=null&&Number(s.grade_average)<6)||(s.attendance_percent!=null&&Number(s.attendance_percent)<75))&&<p className="text-sm text-muted-foreground">Nenhum aluno sinalizado pelos critérios atuais. 🎉</p>}</div></div>{report.isLoading&&<p className="mt-3 text-sm text-muted-foreground">Carregando relatório…</p>}{report.error&&<div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar o relatório. <Button size="sm" variant="outline" onClick={()=>void report.refetch()}>Tentar novamente</Button></div>}</Card>}
   </div>;
 }
 
