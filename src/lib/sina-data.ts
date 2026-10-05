@@ -190,7 +190,9 @@ export async function reviewAccountRoleRequest(
   approvedRole: "student" | "teacher",
   note: string,
 ): Promise<boolean> {
-  const { data, error } = await supabase.rpc("admin_review_role_request", {
+  // Use the institution-aware approval flow so the selected school is
+  // respected. The legacy RPC could approve into the default SINA tenant.
+  const { data, error } = await supabase.rpc("admin_review_role_request_v2", {
     _request_id: requestId,
     _decision: decision,
     _approved_role: approvedRole,
