@@ -2028,6 +2028,15 @@ export type Database = {
         }
         Returns: number
       }
+      teacher_bulk_upsert_grades_v2: {
+        Args: {
+          _classroom_id: string
+          _period: number
+          _rows: Json
+          _subject_id: string
+        }
+        Returns: number
+      }
       teacher_claim_classroom: {
         Args: { _classroom_id: string }
         Returns: boolean
@@ -2246,6 +2255,17 @@ export type Database = {
           student_id: string
           subject_id: string
           subject_name: string
+        }[]
+      }
+      teacher_get_gradebook: {
+        Args: { _classroom_id: string; _period: number; _subject_id: string }
+        Returns: {
+          absences: number
+          enrollment: string
+          full_name: string
+          score: number | null
+          student_id: string
+          updated_at: string
         }[]
       }
       teacher_get_class_report: {
