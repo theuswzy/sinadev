@@ -337,6 +337,45 @@ export async function loadTeacherGrades(studentId: string): Promise<Grade[]> {
   if (error) throw error;
   return (data ?? []) as Grade[];
 }
+
+export type TeacherGradebookRow = {
+  student_id: string;
+  full_name: string;
+  enrollment: string;
+  score: number | null;
+  absences: number;
+  updated_at: string;
+};
+
+export async function loadTeacherGradebook(
+  classroomId: string,
+  subjectId: string,
+  period: number,
+): Promise<TeacherGradebookRow[]> {
+  const { data, error } = await supabase.rpc("teacher_get_gradebook", {
+    _classroom_id: classroomId,
+    _subject_id: subjectId,
+    _period: period,
+  });
+  if (error) throw error;
+  return (data ?? []) as TeacherGradebookRow[];
+}
+
+export async function saveTeacherGradebook(args: {
+  classroomId: string;
+  subjectId: string;
+  period: number;
+  rows: Array<{ student_id: string; score: number; absences: number }>;
+}): Promise<number> {
+  const { data, error } = await supabase.rpc("teacher_bulk_upsert_grades_v2", {
+    _classroom_id: args.classroomId,
+    _subject_id: args.subjectId,
+    _period: args.period,
+    _rows: args.rows,
+  });
+  if (error) throw error;
+  return data ?? 0;
+}
 export const formatScore = (n: number) => n.toFixed(1).replace(".", ",");
 export const errorText = (err: unknown) => err instanceof Error ? err.message : "Não foi possível concluir. Tente novamente.";
 
