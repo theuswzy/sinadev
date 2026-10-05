@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
-import { errorText, getRole, loadDashboardAnnouncements, loadDashboardTasks, loadGrades, loadMyStudent, loadStudentAttendance, loadStudentAcademicMaterials, loadStudentCalendar, loadNotifications } from "@/lib/sina-data";
+import { errorText, getRole, loadDashboardAnnouncements, loadDashboardTasks, loadGrades, loadMyStudent, loadStudentAttendance, loadStudentAcademicMaterials, loadStudentCalendar, loadStudentAssessments, loadNotifications } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({ meta: [{ title: "Dashboard do aluno — SINA" }, { name: "description", content: "Visão geral da vida acadêmica do aluno." }] }),
@@ -16,6 +16,7 @@ function StudentDashboard() {
   const liveOptions = { refetchOnWindowFocus: true, refetchInterval: 30000 };
   const tasks = useQuery({ queryKey: ["dashboard-tasks"], queryFn: loadDashboardTasks, enabled: !!student.data, ...liveOptions });
   const grades = useQuery({ queryKey: ["dashboard-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id, ...liveOptions });
+  const assessments = useQuery({ queryKey: ["dashboard-assessments"], queryFn: loadStudentAssessments, enabled: !!student.data, ...liveOptions });
   const announcements = useQuery({ queryKey: ["dashboard-announcements"], queryFn: loadDashboardAnnouncements, enabled: !!student.data, ...liveOptions });
   const attendance = useQuery({ queryKey: ["dashboard-attendance"], queryFn: loadStudentAttendance, enabled: !!student.data, ...liveOptions });
   const materials = useQuery({ queryKey: ["dashboard-materials"], queryFn: loadStudentAcademicMaterials, enabled: !!student.data, ...liveOptions });
@@ -39,7 +40,10 @@ function StudentDashboard() {
 
   const pending = (tasks.data ?? []).filter(t => !t.completed);
   const scoredGrades = (grades.data ?? []).filter(g => Number.isFinite(Number(g.score)));
-  const overallAverage = scoredGrades.length ? scoredGrades.reduce((sum, g) => sum + Number(g.score), 0) / scoredGrades.length : null;
+  const gradedAssessments = (assessments.data ?? []).filter(item => item.score != null && Number(item.max_score) > 0 && Number(item.weight) > 0);
+  const totalAssessmentWeight = gradedAssessments.reduce((sum, item) => sum + Number(item.weight), 0);
+  const weightedAverage = totalAssessmentWeight > 0 ? gradedAssessments.reduce((sum, item) => sum + ((Number(item.score) / Number(item.max_score)) * 10 * Number(item.weight)), 0) / totalAssessmentWeight : null;
+  const overallAverage = weightedAverage ?? (scoredGrades.length ? scoredGrades.reduce((sum, g) => sum + Number(g.score), 0) / scoredGrades.length : null);
   const presentCount = attendance.data?.filter(item => item.status === "present").length ?? 0;
   const absentCount = attendance.data?.filter(item => item.status === "absent").length ?? 0;
   const attendanceTotal = presentCount + absentCount;
@@ -76,7 +80,7 @@ function StudentDashboard() {
 
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          {to:"/aluno/notas",icon:BarChart3,label:"Média geral",value:grades.isPending ? "—" : overallAverage == null ? "—" : overallAverage.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2}),desc:"Notas registradas"},
+          {to:"/aluno/notas",icon:BarChart3,label:"Média geral",value:grades.isPending ? "—" : overallAverage == null ? "—" : overallAverage.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2}),desc:weightedAverage != null ? "Média ponderada das avaliações" : "Notas registradas"},
           {to:"/aluno/frequencia",icon:CheckCircle2,label:"Frequência",value:attendance.isPending ? "—" : attendancePercent == null ? "—" : attendancePercent.toLocaleString("pt-BR",{maximumFractionDigits:0})+"%",desc:attendanceTotal ? (presentCount+" presença(s) em "+attendanceTotal+".") : "Sem registros ainda"},
           {to:"/aluno/tarefas",icon:ClipboardList,label:"Pendências",value:tasks.isPending ? "—" : pending.length,desc:pending.length?"Atividade(s) aguardando você":"Tudo em dia"},
           {to:"/aluno/disciplinas",icon:BookOpen,label:"Disciplinas",value:grades.isPending ? "—" : subjects.length,desc:"Com lançamentos acadêmicos"},
