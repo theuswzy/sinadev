@@ -36,7 +36,46 @@ function StudentDashboard() {
     return <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico"><div className="sina-card mt-8 p-6">Esta conta possui outra área de acesso. <Link to={destination} className="text-primary underline">Abrir minha área</Link>.</div></AcademicShell>;
   }
   if (!student.data) {
-    return <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico"><div className="sina-card mt-8 p-6"><p className="font-semibold">Perfil acadêmico ainda não encontrado.</p><Button className="mt-4" onClick={() => void student.refetch()}>Tentar novamente</Button></div></AcademicShell>;
+    return (
+      <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico">
+        <section className="mt-6 overflow-hidden rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm sm:p-8">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-brand-panel ring-1 ring-brand-border">
+              <UserRound className="size-7 text-brand-muted" />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-muted">Área do aluno</p>
+              <h2 className="mt-1 font-display text-2xl font-bold md:text-3xl">Seu acesso está liberado! 👋</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
+                Sua conta de aluno já está ativa. Agora falta apenas o vínculo acadêmico com uma escola e turma.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-5 sina-card p-6 sm:p-8">
+          <div className="flex flex-col items-center text-center">
+            <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <BookOpen className="size-7" />
+            </span>
+            <h2 className="mt-4 text-xl font-semibold">Aguardando vínculo acadêmico</h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+              Você não precisa aguardar aprovação para entrar no SINA. Um administrador ou professor autorizado
+              poderá vincular sua conta à escola e à turma. Depois disso, suas disciplinas, notas, frequência,
+              atividades, avisos e agenda aparecerão automaticamente.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-3">
+              <Link to="/perfil" className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
+                Ver meu perfil
+              </Link>
+              <Button variant="outline" onClick={() => void student.refetch()}>
+                Atualizar vínculo
+              </Button>
+            </div>
+          </div>
+        </section>
+      </AcademicShell>
+    );
   }
 
   const pending = (tasks.data ?? []).filter(t => !t.completed);
