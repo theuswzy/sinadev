@@ -10,13 +10,14 @@ import {
   formatScore,
   loadGrades,
   loadMyStudent,
-  loadStudentAssessments,
+  loadStudentAssessmentsDetailed,
   loadStudentAttendance,
   loadStudentCalendar,
   loadStudentTaskSubmissions,
-  loadTasks,
-  loadAnnouncements,
+  loadStudentTasksDetailed,
+  loadStudentAnnouncementsDetailed,
   loadStudentSubjects,
+  loadGrades,
   submitTask,
 } from "@/lib/sina-data";
 
@@ -33,12 +34,12 @@ const meta: Record<StudentModule, { title: string; subtitle: string }> = {
 
 export function StudentModulePage({ module }: { module: StudentModule }) {
   const student = useQuery({ queryKey: ["my-student"], queryFn: loadMyStudent });
-  const tasks = useQuery({ queryKey: ["student-module-tasks"], queryFn: loadTasks, enabled: module === "tarefas" });
-  const studentSubjects = useQuery({ queryKey: ["student-module-subjects"], queryFn: loadStudentSubjects, enabled: module === "disciplinas" });
+  const tasks = useQuery({ queryKey: ["student-module-tasks"], queryFn: loadStudentTasksDetailed, enabled: module === "tarefas" });
+  const studentSubjects = useQuery({ queryKey: ["student-module-subjects"], queryFn: loadStudentSubjects, enabled: module === "disciplinas" || module === "tarefas" || module === "notas" });
   const grades = useQuery({ queryKey: ["student-module-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id && (module === "disciplinas" || module === "notas") });
-  const assessments = useQuery({ queryKey: ["student-module-assessments"], queryFn: loadStudentAssessments, enabled: module === "notas" });
+  const assessments = useQuery({ queryKey: ["student-module-assessments"], queryFn: loadStudentAssessmentsDetailed, enabled: module === "notas" });
   const attendance = useQuery({ queryKey: ["student-module-attendance"], queryFn: loadStudentAttendance, enabled: module === "frequencia" });
-  const announcements = useQuery({ queryKey: ["student-module-announcements"], queryFn: loadAnnouncements, enabled: module === "avisos" });
+  const announcements = useQuery({ queryKey: ["student-module-announcements"], queryFn: loadStudentAnnouncementsDetailed, enabled: module === "avisos" });
   const submissions = useQuery({ queryKey: ["student-module-submissions"], queryFn: loadStudentTaskSubmissions, enabled: module === "tarefas" });
   const calendar = useQuery({
     queryKey: ["student-module-calendar"],
@@ -52,6 +53,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
   });
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
+  const [subjectFilter, setSubjectFilter] = useState("all");
 
   const subjects = useMemo(() => {
     const rows = grades.data ?? [];
@@ -84,6 +86,69 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
   }
 
   const pendingTasks = (tasks.data ?? []).filter((task) => !task.completed);
+  const taskGroups = useMemo(() => {
+    const filtered = subjectFilter === "all"
+      ? (tasks.data ?? [])
+      : (tasks.data ?? []).filter((task) => task.subject_name === subjectFilter);
+    const groups = new Map<string, {
+      subject: string;
+      teacherId: string;
+      teacher: string;
+      classroom: string;
+      tasks: typeof filtered;
+    }>();
+    for (const task of filtered) {
+      const subject = task.subject_name || task.subject || "Sem disciplina";
+      const key = `${task.subject_id ?? subject}::${task.teacher_id}`;
+      const current = groups.get(key);
+      if (current) current.tasks.push(task);
+      else groups.set(key, {
+        subject,
+        teacherId: task.teacher_id,
+        teacher: task.teacher_name || "Professor não identificado",
+        classroom: task.classroom_name || task.classroom,
+        tasks: [task],
+      });
+    }
+    return Array.from(groups.values()).sort((a, b) =>
+      a.subject.localeCompare(b.subject, "pt-BR") || a.teacher.localeCompare(b.teacher, "pt-BR")
+    );
+  }, [tasks.data, subjectFilter]);
+
+  const assessmentGroups = useMemo(() => {
+    const groups = new Map<string, {
+      subject: string;
+      teacher: string;
+      classroom: string;
+      items: typeof (assessments.data ?? []);
+    }>();
+    for (const item of assessments.data ?? []) {
+      const subject = item.subject_name || "Sem disciplina";
+      const key = `${item.subject_id ?? subject}::${item.teacher_id}`;
+      const current = groups.get(key);
+      if (current) current.items.push(item);
+      else groups.set(key, {
+        subject,
+        teacher: item.teacher_name || "Professor não identificado",
+        classroom: item.classroom_name,
+        items: [item],
+      });
+    }
+    return Array.from(groups.values()).sort((a, b) =>
+      a.subject.localeCompare(b.subject, "pt-BR") || a.teacher.localeCompare(b.teacher, "pt-BR")
+    );
+  }, [assessments.data]);
+
+  const teacherNamesBySubject = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const item of studentSubjects.data ?? []) {
+      const list = map.get(item.name) ?? [];
+      if (item.teacher_name && !list.includes(item.teacher_name)) list.push(item.teacher_name);
+      map.set(item.name, list);
+    }
+    return map;
+  }, [studentSubjects.data]);
+
   const now = Date.now();
   const overdueTasks = pendingTasks.filter((task) => task.due_at && new Date(task.due_at).getTime() < now);
   const attendanceSummary = useMemo(() => {
@@ -128,52 +193,105 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
 
       {module === "tarefas" && (
-        <section className="mt-6 space-y-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Atividades</p><h2 className="mt-1 text-xl font-semibold">Suas tarefas e entregas</h2><p className="mt-1 text-sm text-muted-foreground">Fonte: tarefas publicadas pelos professores para sua turma. Aqui você acompanha publicação, prazo, envio e correção.</p></div>
-            <div className="flex flex-wrap gap-2">
+        <section className="mt-6 space-y-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-primary">Atividades</p>
+              <h2 className="mt-1 text-xl font-semibold">Tarefas organizadas por disciplina e professor</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Você sempre consegue identificar quem publicou a atividade e a qual matéria ela pertence.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold">{pendingTasks.length} pendente{pendingTasks.length === 1 ? "" : "s"}</span>
               {overdueTasks.length > 0 && <span className="rounded-full bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive">{overdueTasks.length} atrasada{overdueTasks.length === 1 ? "" : "s"}</span>}
             </div>
           </div>
-          {(tasks.data ?? []).length ? (tasks.data ?? []).map((task) => {
-            const submission = submissions.data?.find((item) => item.task_id === task.id);
-            return (
-              <article key={task.id} className="sina-card p-5">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div><p className="font-semibold">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject} · {task.due_at ? new Date(task.due_at).toLocaleString("pt-BR") : "Sem prazo"}</p>{task.description && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>}</div>
-                  <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">{submission?.status === "graded" ? "Corrigida" : task.completed ? "Concluída" : "Pendente"}</span>
+
+          <div className="sina-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Filtrar por matéria</p>
+              <p className="mt-1 text-xs text-muted-foreground">A lista continua separada por professor.</p>
+            </div>
+            <select
+              value={subjectFilter}
+              onChange={(event) => setSubjectFilter(event.target.value)}
+              className="h-10 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring sm:min-w-64"
+            >
+              <option value="all">Todas as matérias</option>
+              {Array.from(new Set((tasks.data ?? []).map((task) => task.subject_name || task.subject).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR")).map((subject) => (
+                <option key={subject} value={subject}>{subject}</option>
+              ))}
+            </select>
+          </div>
+
+          {taskGroups.length ? taskGroups.map((group) => (
+            <section key={group.subject + group.teacherId} className="space-y-3">
+              <div className="flex flex-col gap-2 rounded-2xl border border-primary/15 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-base font-semibold">{group.subject}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Turma {group.classroom} · Professor {group.teacher}</p>
                 </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-xl border border-border bg-muted/30 p-3"><p className="text-[11px] font-semibold uppercase text-muted-foreground">Publicada</p><p className="mt-1 text-xs">Professor · {new Date(task.created_at).toLocaleString("pt-BR")}</p></div>
-                  <div className="rounded-xl border border-border bg-muted/30 p-3"><p className="text-[11px] font-semibold uppercase text-muted-foreground">Prazo</p><p className="mt-1 text-xs">{task.due_at ? new Date(task.due_at).toLocaleString("pt-BR") : "Sem prazo"}</p></div>
-                  <div className="rounded-xl border border-border bg-muted/30 p-3"><p className="text-[11px] font-semibold uppercase text-muted-foreground">Resultado</p><p className="mt-1 text-xs">{submission?.status === "graded" ? (submission.score == null ? "Corrigida" : `Nota: ${formatScore(submission.score)}`) : submission ? "Enviada · aguardando correção" : "Ainda não enviada"}</p></div>
-                </div>
-                {task.attachment_url && <a href={task.attachment_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><ClipboardCheck className="size-4" />{task.attachment_name || "Abrir anexo da atividade"}</a>}
-                <div className="mt-4 space-y-2">
-                  <textarea value={drafts[task.id] ?? submission?.content ?? ""} onChange={(e) => setDrafts((v) => ({...v, [task.id]: e.target.value}))} placeholder="Digite sua resposta ou observação..." className="min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"/>
-                  <Button onClick={() => void sendTask(task.id)} disabled={sending === task.id}>{sending === task.id ? "Enviando..." : submission ? "Atualizar entrega" : "Enviar entrega"}</Button>
-                  {submission?.feedback && <p className="text-sm text-muted-foreground">Feedback: {submission.feedback}</p>}
-                </div>
-              </article>
-            );
-          }) : <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhuma atividade cadastrada ainda. Quando um professor publicar uma atividade para sua turma, ela aparecerá aqui.</div>}
+                <span className="rounded-full bg-background px-3 py-1.5 text-xs font-semibold">{group.tasks.filter((task) => !task.completed).length} pendente{group.tasks.filter((task) => !task.completed).length === 1 ? "" : "s"}</span>
+              </div>
+              {group.tasks.map((task) => {
+                const submission = submissions.data?.find((item) => item.task_id === task.id);
+                return (
+                  <article key={task.id} className="sina-card p-5">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0">
+                        <p className="font-semibold">{task.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Professor {task.teacher_name || "não identificado"} · {task.due_at ? new Date(task.due_at).toLocaleString("pt-BR") : "Sem prazo"}</p>
+                        {task.description && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>}
+                      </div>
+                      <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">{submission?.status === "graded" ? "Corrigida" : task.completed ? "Concluída" : "Pendente"}</span>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-xl border border-border bg-muted/30 p-3"><p className="text-[11px] font-semibold uppercase text-muted-foreground">Disciplina</p><p className="mt-1 text-xs">{group.subject}</p></div>
+                      <div className="rounded-xl border border-border bg-muted/30 p-3"><p className="text-[11px] font-semibold uppercase text-muted-foreground">Professor</p><p className="mt-1 text-xs">{group.teacher}</p></div>
+                      <div className="rounded-xl border border-border bg-muted/30 p-3"><p className="text-[11px] font-semibold uppercase text-muted-foreground">Prazo</p><p className="mt-1 text-xs">{task.due_at ? new Date(task.due_at).toLocaleString("pt-BR") : "Sem prazo"}</p></div>
+                    </div>
+                    {task.attachment_url && <a href={task.attachment_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><ClipboardCheck className="size-4" />{task.attachment_name || "Abrir anexo da atividade"}</a>}
+                    <div className="mt-4 space-y-2">
+                      <textarea value={drafts[task.id] ?? submission?.content ?? ""} onChange={(e) => setDrafts((v) => ({...v, [task.id]: e.target.value}))} placeholder="Digite sua resposta ou observação..." className="min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"/>
+                      <Button onClick={() => void sendTask(task.id)} disabled={sending === task.id}>{sending === task.id ? "Enviando..." : submission ? "Atualizar entrega" : "Enviar entrega"}</Button>
+                      {submission?.feedback && <p className="text-sm text-muted-foreground">Feedback: {submission.feedback}</p>}
+                    </div>
+                  </article>
+                );
+              })}
+            </section>
+          )) : <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhuma atividade cadastrada ainda. Quando um professor publicar uma atividade para sua turma, ela aparecerá aqui.</div>}
         </section>
       )}
 
       {module === "disciplinas" && (
         <section className="mt-6">
-          <div className="mb-4"><p className="text-xs font-bold uppercase tracking-wide text-primary">Grade acadêmica</p><h2 className="mt-1 text-xl font-semibold">Suas disciplinas</h2><p className="mt-1 text-sm text-muted-foreground">Veja as disciplinas, turmas e professores vinculados a você.</p></div>
+          <div className="mb-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">Grade acadêmica</p>
+            <h2 className="mt-1 text-xl font-semibold">Suas disciplinas</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Cada matéria aparece junto do professor responsável. Uma turma pode ter vários professores e todos ficam separados aqui.</p>
+          </div>
+          <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="sina-card p-4"><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Matérias</p><p className="mt-1 text-2xl font-semibold">{studentSubjects.data?.length ?? 0}</p></div>
+            <div className="sina-card p-4"><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Professores</p><p className="mt-1 text-2xl font-semibold">{new Set((studentSubjects.data ?? []).map((item) => item.teacher_id)).size}</p></div>
+            <div className="sina-card p-4"><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Turma</p><p className="mt-1 text-2xl font-semibold">{student.data.classroom || "—"}</p></div>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(studentSubjects.data ?? []).map((item) => {
               const performance = subjects.find((s) => s.subject === item.name);
               return <article key={item.id + item.classroom_id} className="sina-card p-5">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><BookOpen className="size-5"/></div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><BookOpen className="size-5"/></div>
+                  <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold">Professor</span>
+                </div>
                 <h2 className="mt-4 font-semibold">{item.name}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">{item.classroom_name} · {item.teacher_name || "Professor não informado"}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{item.classroom_name}</p>
+                <div className="mt-3 rounded-xl border border-primary/10 bg-primary/5 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-primary">Professor responsável</p>
+                  <p className="mt-1 text-sm font-semibold">{item.teacher_name || "Professor não informado"}</p>
+                </div>
                 <p className="mt-3 text-xs text-muted-foreground">{performance ? `${performance.periods} lançamento(s) · ${performance.absences} falta(s)` : "Nenhuma nota lançada ainda."}</p>
                 {performance && performance.average != null && <div className="mt-4 rounded-xl border border-border/70 bg-secondary/30 p-3">
-                  <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-semibold">Média dos lançamentos</p><p className="mt-1 text-[11px] text-muted-foreground">Média descritiva das notas registradas por período. Não representa automaticamente a média final oficial.</p></div><strong className="text-2xl">{formatScore(performance.average)}</strong></div>
+                  <div className="flex items-end justify-between gap-3"><div><p className="text-xs font-semibold">Média dos lançamentos</p><p className="mt-1 text-[11px] text-muted-foreground">Média descritiva das notas registradas por período.</p></div><strong className="text-2xl">{formatScore(performance.average)}</strong></div>
                   <div className="mt-3 h-2 rounded-full bg-secondary"><div className="h-full rounded-full bg-primary" style={{width: `${Math.min(100, performance.average * 10)}%`}}/></div>
                   <div className="mt-3 flex flex-wrap gap-2">{performance.periodScores.map((item) => <span key={item.period} className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px]">Período {item.period}: <b>{formatScore(item.score)}</b></span>)}</div>
                 </div>}
@@ -183,25 +301,47 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
           {!studentSubjects.isPending && !studentSubjects.data?.length && <div className="sina-card p-8 text-sm text-muted-foreground">Nenhuma disciplina vinculada ainda. Assim que a escola ou o professor fizer o vínculo, ela aparecerá aqui.</div>}
         </section>
       )}
+
       {module === "notas" && (
         <section className="mt-6 space-y-5">
-          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-xl font-semibold">Notas e avaliações</h2><p className="mt-1 text-sm text-muted-foreground">Fonte: lançamentos acadêmicos e resultados de avaliações disponibilizados pelos professores. O SINA não transforma esses registros em uma média oficial quando a regra da escola não está configurada.</p></div>
+          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-xl font-semibold">Notas separadas por matéria e professor</h2><p className="mt-1 text-sm text-muted-foreground">Os lançamentos e as avaliações ficam agrupados por disciplina. Assim você sempre sabe de qual professor veio cada registro.</p></div>
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Lançamentos</p><p className="mt-1 text-2xl font-semibold">{grades.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">notas registradas por período</p></div>
-            <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Avaliações</p><p className="mt-1 text-2xl font-semibold">{assessments.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">provas, trabalhos e outras avaliações</p></div>
-            <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Com nota</p><p className="mt-1 text-2xl font-semibold">{(assessments.data ?? []).filter(item => item.score != null).length}</p><p className="mt-1 text-xs text-muted-foreground">avaliações já corrigidas</p></div>
+            <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Lançamentos</p><p className="mt-1 text-2xl font-semibold">{grades.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">notas por período</p></div>
+            <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Avaliações</p><p className="mt-1 text-2xl font-semibold">{assessments.data?.length ?? 0}</p><p className="mt-1 text-xs text-muted-foreground">provas e trabalhos</p></div>
+            <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Com nota</p><p className="mt-1 text-2xl font-semibold">{(assessments.data ?? []).filter(item => item.score != null).length}</p><p className="mt-1 text-xs text-muted-foreground">avaliações corrigidas</p></div>
           </div>
-          <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4 text-sm"><p className="font-semibold">Como suas notas são formadas</p><p className="mt-1 text-muted-foreground">“Lançamentos” são registros de nota por período feitos pelo professor. “Avaliações” são provas, trabalhos ou atividades cadastradas separadamente, com peso e nota própria. Assim você consegue identificar de onde cada resultado veio.</p></div>
+
           <div className="sina-card overflow-hidden">
-            <div className="border-b border-border p-5"><h3 className="font-semibold">Lançamentos por período</h3><p className="mt-1 text-xs text-muted-foreground">Fonte: registro acadêmico do professor.</p></div>
-            <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-4 text-left">Disciplina</th><th className="p-4 text-left">Período</th><th className="p-4 text-left">Nota</th><th className="p-4 text-left">Faltas</th><th className="p-4 text-left">Origem</th></tr></thead><tbody>
-              {(grades.data ?? []).map((g) => <tr key={g.id} className="border-t border-border"><td className="p-4 font-medium">{g.subject}</td><td className="p-4">{g.period}º</td><td className="p-4 font-semibold">{formatScore(g.score)}</td><td className="p-4">{g.absences}</td><td className="p-4 text-xs text-muted-foreground">Professor · lançamento do período</td></tr>)}
+            <div className="border-b border-border p-5"><h3 className="font-semibold">Lançamentos por disciplina</h3><p className="mt-1 text-xs text-muted-foreground">O professor da matéria fica identificado na mesma linha.</p></div>
+            <div className="overflow-x-auto"><table className="w-full min-w-[880px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-4 text-left">Disciplina</th><th className="p-4 text-left">Professor</th><th className="p-4 text-left">Período</th><th className="p-4 text-left">Nota</th><th className="p-4 text-left">Faltas</th></tr></thead><tbody>
+              {(grades.data ?? []).map((g) => {
+                const teachers = teacherNamesBySubject.get(g.subject) ?? [];
+                return <tr key={g.id} className="border-t border-border">
+                  <td className="p-4 font-medium">{g.subject}</td>
+                  <td className="p-4 text-xs text-muted-foreground">{teachers.length ? teachers.join(", ") : "Professor não informado"}</td>
+                  <td className="p-4">{g.period}º</td>
+                  <td className="p-4 font-semibold">{formatScore(g.score)}</td>
+                  <td className="p-4">{g.absences}</td>
+                </tr>;
+              })}
             </tbody></table>{!grades.data?.length && <p className="p-6 text-sm text-muted-foreground">Nenhum lançamento de período ainda.</p>}</div>
           </div>
-          <div><div className="mb-3"><h3 className="font-semibold">Avaliações que explicam o desempenho</h3><p className="mt-1 text-xs text-muted-foreground">Cada item mostra disciplina, período, tipo, peso, prazo e nota recebida.</p></div>
-            <div className="grid gap-3 md:grid-cols-2">
-              {(assessments.data ?? []).map((item) => <article key={item.id} className="sina-card p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.subject_name} · {item.term_name || "Período não informado"}</p></div><strong className="shrink-0">{item.score == null ? "Sem nota" : item.score + " / " + item.max_score}</strong></div><div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground"><span>Tipo: <b className="text-foreground">{item.assessment_type || "Avaliação"}</b></span><span>Peso: <b className="text-foreground">{item.weight}</b></span><span>Prazo: <b className="text-foreground">{item.due_at ? new Date(item.due_at).toLocaleString("pt-BR") : "Não definido"}</b></span><span>Status: <b className="text-foreground">{item.score == null ? "Aguardando correção" : "Corrigida"}</b></span></div>{item.feedback && <div className="mt-3 rounded-lg bg-muted/50 p-3 text-sm"><b>Feedback:</b> {item.feedback}</div>}</article>)}
-              {!assessments.data?.length && <div className="sina-card p-6 text-sm text-muted-foreground">Nenhuma avaliação cadastrada para você ainda.</div>}
+
+          <div>
+            <div className="mb-3"><h3 className="font-semibold">Avaliações por disciplina e professor</h3><p className="mt-1 text-xs text-muted-foreground">Cada grupo identifica a matéria, o professor e os resultados das avaliações.</p></div>
+            <div className="space-y-4">
+              {assessmentGroups.map((group) => (
+                <section key={group.subject + group.teacher} className="sina-card overflow-hidden">
+                  <div className="flex flex-col gap-2 border-b border-border bg-muted/20 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div><h4 className="font-semibold">{group.subject}</h4><p className="mt-1 text-xs text-muted-foreground">Professor {group.teacher} · {group.classroom}</p></div>
+                    <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">{group.items.length} avaliação{group.items.length === 1 ? "" : "ões"}</span>
+                  </div>
+                  <div className="grid gap-3 p-4 md:grid-cols-2">
+                    {group.items.map((item) => <article key={item.id} className="rounded-2xl border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.term_name || "Período não informado"} · {item.assessment_type || "Avaliação"}</p></div><strong className="shrink-0">{item.score == null ? "Sem nota" : item.score + " / " + item.max_score}</strong></div><div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground"><span>Peso: <b className="text-foreground">{item.weight}</b></span><span>Prazo: <b className="text-foreground">{item.due_at ? new Date(item.due_at).toLocaleString("pt-BR") : "Não definido"}</b></span><span>Status: <b className="text-foreground">{item.score == null ? "Aguardando correção" : "Corrigida"}</b></span><span>Professor: <b className="text-foreground">{item.teacher_name}</b></span></div>{item.feedback && <div className="mt-3 rounded-lg bg-muted/50 p-3 text-sm"><b>Feedback:</b> {item.feedback}</div>}</article>)}
+                  </div>
+                </section>
+              ))}
+              {!assessmentGroups.length && <div className="sina-card p-6 text-sm text-muted-foreground">Nenhuma avaliação cadastrada para você ainda.</div>}
             </div>
           </div>
         </section>
@@ -233,11 +373,24 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
       {module === "avisos" && (
         <section className="mt-6 space-y-4">
-          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Comunicação</p><h2 className="mt-1 text-xl font-semibold">Avisos</h2><p className="mt-1 text-sm text-muted-foreground">Comunicados recebidos, identificando a turma e a data de publicação.</p></div>
-          {(announcements.data ?? []).map((item) => <article key={item.id} className="sina-card p-5"><div className="flex items-start gap-4"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Megaphone className="size-5"/></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-start justify-between gap-2"><p className="font-semibold">{item.title}</p><span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">{item.classroom || "Institucional"}</span></div><p className="mt-1 text-xs text-muted-foreground">Publicado em {new Date(item.created_at).toLocaleString("pt-BR")} · Fonte: comunicação acadêmica</p><p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{item.content}</p>{item.attachment_url && <a href={item.attachment_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-semibold text-primary underline">Abrir anexo</a>}</div></div></article>)}
-          {!announcements.data?.length && <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhum aviso novo. Os comunicados da escola e dos professores aparecerão aqui.</div>}
+          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Comunicação</p><h2 className="mt-1 text-xl font-semibold">Avisos por professor</h2><p className="mt-1 text-sm text-muted-foreground">Cada comunicado mostra claramente quem publicou e para qual turma.</p></div>
+          {(announcements.data ?? []).length ? (announcements.data ?? []).map((item) => <article key={item.id} className="sina-card p-5">
+            <div className="flex items-start gap-4">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Megaphone className="size-5"/></div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div><p className="font-semibold">{item.title}</p><p className="mt-1 text-xs font-semibold text-primary">Professor {item.teacher_name}</p></div>
+                  <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">{item.classroom_name || "Institucional"}</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Publicado em {new Date(item.created_at).toLocaleString("pt-BR")}</p>
+                <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{item.content}</p>
+                {item.attachment_url && <a href={item.attachment_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-sm font-semibold text-primary underline">Abrir anexo</a>}
+              </div>
+            </div>
+          </article>) : <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhum aviso novo. Os comunicados da escola e dos professores aparecerão aqui.</div>}
         </section>
       )}
+
     </AcademicShell>
   );
 }
