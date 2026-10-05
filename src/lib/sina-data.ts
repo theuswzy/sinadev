@@ -20,19 +20,11 @@ export async function getRole(): Promise<UserRole> {
     throw new Error("Finalize seu cadastro para acessar o SINA.");
   }
   if (profile.status === "pending") {
-    // Alunos podem acessar a própria conta imediatamente após confirmar o
-    // e-mail. O vínculo acadêmico (escola/turma/disciplina) continua sendo
-    // controlado separadamente por usuários autorizados.
-    const { data: studentRole, error: studentRoleError } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", auth.user.id)
-      .eq("role", "student")
-      .maybeSingle();
-
-    if (studentRoleError) throw studentRoleError;
-
-    if (studentRole?.role === "student") {
+    // Student registration is never subject to approval. The requested role
+    // is stored in auth metadata during signup, so a confirmed student can be
+    // activated even if the role row was not persisted during onboarding.
+    const requestedRole = auth.user.user_metadata?.["requested_role"];
+    if (requestedRole === "student") {
       await supabase
         .from("profiles")
         .update({ status: "active" })
