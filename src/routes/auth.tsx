@@ -255,8 +255,8 @@ function AuthPage() {
           setSignupStep(1);
           return;
         }
-        if (!selectedSchool) {
-          setMessage("Selecione sua instituição antes de criar a conta.");
+        if (requestedRole === "teacher" && !selectedSchool) {
+          setMessage("Selecione a instituição onde você leciona.");
           setSignupStep(2);
           return;
         }
@@ -284,7 +284,7 @@ function AuthPage() {
             data: {
               display_name: name.trim(),
               requested_role: requestedRole,
-              school_directory_id: selectedSchool.id,
+              ...(selectedSchool ? { school_directory_id: selectedSchool.id } : {}),
             },
           },
         });
@@ -297,7 +297,7 @@ function AuthPage() {
         }
 
         if (data.session) {
-          await finishAuth(requestedRole, selectedSchool.id);
+          await finishAuth(requestedRole, selectedSchool?.id);
         } else {
           setSignupConfirmationEmail(email.trim());
           setSignupConfirmationOpen(true);
@@ -706,7 +706,9 @@ function AuthPage() {
                         )}
                         <div className="mt-4 grid grid-cols-2 gap-2">
                           <Button type="button" variant="outline" className="h-11" onClick={() => { setMessage(""); setSignupStep(1); }}>Voltar</Button>
-                          <Button type="button" className="h-11" disabled={!selectedSchool} onClick={() => { setMessage(""); setSignupStep(3); }}>Continuar <ArrowRight /></Button>
+                          <Button type="button" className="h-11" disabled={requestedRole === "teacher" && !selectedSchool} onClick={() => { setMessage(""); setSignupStep(3); }}>
+                            {requestedRole === "student" && !selectedSchool ? "Continuar sem escola" : "Continuar"} <ArrowRight />
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -720,8 +722,16 @@ function AuthPage() {
                           </div>
                           <div className="mt-3 border-t border-border pt-3">
                             <p className="text-xs text-muted-foreground">Instituição</p>
-                            <p className="mt-1 text-sm font-semibold">{selectedSchool?.name}</p>
-                            <Button type="button" variant="link" className="h-auto px-0 text-xs" onClick={() => setSignupStep(2)}>Trocar instituição</Button>
+                            {selectedSchool ? (
+                              <>
+                                <p className="mt-1 text-sm font-semibold">{selectedSchool.name}</p>
+                                <Button type="button" variant="link" className="h-auto px-0 text-xs" onClick={() => setSignupStep(2)}>Trocar instituição</Button>
+                              </>
+                            ) : (
+                              <p className="mt-1 text-sm text-muted-foreground">
+                                {requestedRole === "student" ? "Você poderá vincular uma escola depois." : "Selecione uma instituição."}
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -774,7 +784,11 @@ function AuthPage() {
                       <>
                         <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
                         <Button type="button" variant="outline" onClick={() => void google()} disabled={busy} className="h-11 w-full">Continuar com Google</Button>
-                        <p className="mt-2 text-center text-xs leading-5 text-muted-foreground">Sua função e instituição serão mantidas durante o cadastro com Google e também passarão por aprovação.</p>
+                        <p className="mt-2 text-center text-xs leading-5 text-muted-foreground">
+                          {requestedRole === "student"
+                            ? "Sua conta será criada como aluno. A escola e a turma podem ser vinculadas depois."
+                            : "Seu cadastro como professor ficará aguardando aprovação administrativa."}
+                        </p>
                       </>
                     )}
                   </div>
