@@ -16,7 +16,7 @@ import {
   loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
   loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherGrades, loadTeacherAcademicMaterials,
   saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
-  teacherRemoveStudentFromClassroom, unassignTeacherSubjectFromClass, type AttendanceRow
+  teacherRemoveStudentFromClassroom, unassignTeacherSubjectFromClass, updateTeacherCalendarEvent, deleteTeacherCalendarEvent, type AttendanceRow
 } from "@/lib/sina-data";
 
 type Section = "inicio"|"turmas"|"alunos"|"disciplinas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"materiais"|"agenda"|"comunicacao";
@@ -497,19 +497,63 @@ function Tasks({d}:{d:ReturnType<typeof useData>}){
 }
 
 function Agenda({d}:{d:ReturnType<typeof useData>}){
-  const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [description,setDescription]=useState("");const [start,setStart]=useState("");const [type,setType]=useState("aula");const [busy,setBusy]=useState(false);
+  const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [description,setDescription]=useState("");const [start,setStart]=useState("");const [type,setType]=useState("aula");const [busy,setBusy]=useState("");const [editing,setEditing]=useState<string|null>(null);
   const from=new Date(Date.now()-30*86400000).toISOString();const to=new Date(Date.now()+180*86400000).toISOString();const events=useQuery({queryKey:["teacher-new-calendar",from,to],queryFn:()=>loadTeacherCalendar(from,to),staleTime:30000});
-  async function create(){
+  function reset(){setClassroom("");setTitle("");setDescription("");setStart("");setType("aula");setEditing(null);}
+  function startEdit(event:NonNullable<typeof events.data>[number]){
+    setEditing(event.id);setClassroom(event.classroom_id??"");setTitle(event.title);setDescription(event.description??"");setStart(event.start_at?new Date(event.start_at).toISOString().slice(0,16):"");setType(event.event_type||"aula");window.scrollTo({top:0,behavior:"smooth"});
+  }
+  async function save(){
     if(!title.trim()){toast.error("Informe o título do evento.");return;}
     if(!start){toast.error("Informe a data e hora.");return;}
     const startDate=new Date(start);
     if(Number.isNaN(startDate.getTime())){toast.error("Data e hora inválidas.");return;}
-    setBusy(true);
-    try{await createTeacherCalendarEvent({classroomId:classroom||null,title:title.trim(),description:description.trim(),startAt:startDate.toISOString(),endAt:null,eventType:type});setTitle("");setDescription("");setStart("");await events.refetch();toast.success("Evento criado e salvo na agenda.");}catch(e){toast.error(errorText(e))}finally{setBusy(false)}
+    setBusy(editing?"update":"create");
+    try{
+      if(editing){
+        await updateTeacherCalendarEvent({id:editing,classroomId:classroom||null,title:title.trim(),description:description.trim(),startAt:startDate.toISOString(),endAt:null,eventType:type});
+        toast.success("Evento atualizado.");
+      } else {
+        await createTeacherCalendarEvent({classroomId:classroom||null,title:title.trim(),description:description.trim(),startAt:startDate.toISOString(),endAt:null,eventType:type});
+        toast.success("Evento criado e salvo na agenda.");
+      }
+      reset();await events.refetch();
+    }catch(e){toast.error(errorText(e))}finally{setBusy("")}
   }
-  return <Card title="Agenda" description="Organize aulas, provas, trabalhos, reuniões e outros eventos acadêmicos.">{events.isLoading&&<p className="mb-4 text-sm text-muted-foreground">Carregando agenda…</p>}{events.error&&<div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm"><b>Não foi possível carregar a agenda.</b><Button className="ml-3" size="sm" variant="outline" onClick={()=>void events.refetch()}>Tentar novamente</Button></div>}<div className="grid gap-3 md:grid-cols-2"><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Todas as turmas</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select><Select label="Tipo" value={type} onChange={setType}><option value="aula">Aula</option><option value="prova">Prova</option><option value="trabalho">Trabalho</option><option value="evento">Evento</option><option value="recesso">Recesso</option><option value="outro">Outro</option></Select><Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Ex.: Aula de revisão"/></Field><Field label="Quando"><Input type="datetime-local" value={start} onChange={e=>setStart(e.target.value)}/></Field><Field label="Descrição"><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Detalhes opcionais" className="min-h-20 rounded-md border border-input bg-background p-3 text-sm"/></Field><div className="self-end"><Button disabled={busy||!title.trim()||!start} onClick={()=>void create()}>{busy?"Salvando…":"Adicionar evento"}</Button></div></div><div className="mt-5 space-y-2">{!events.isLoading&&!events.data?.length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum evento encontrado nos últimos 30 dias ou próximos 180 dias.</p>}{(events.data??[]).map(e=><div key={e.id} className="rounded-xl border border-border p-3"><b>{e.title}</b><p className="text-xs text-muted-foreground">{new Date(e.start_at).toLocaleString("pt-BR")} · {e.classroom_name||"Todas as turmas"} · {e.event_type}</p>{e.description&&<p className="mt-1 text-sm text-muted-foreground">{e.description}</p>}</div>)}</div></Card>;
+  async function remove(id:string){
+    if(!window.confirm("Excluir este evento da agenda?"))return;
+    setBusy("delete:"+id);
+    try{await deleteTeacherCalendarEvent(id);if(editing===id)reset();await events.refetch();toast.success("Evento removido da agenda.");}
+    catch(e){toast.error(errorText(e))}finally{setBusy("")}
+  }
+  return <Card title="Agenda" description="Organize aulas, provas, trabalhos, reuniões e outros eventos acadêmicos.">
+    {events.isLoading&&<p className="mb-4 text-sm text-muted-foreground">Carregando agenda…</p>}
+    {events.error&&<div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm"><b>Não foi possível carregar a agenda.</b><Button className="ml-3" size="sm" variant="outline" onClick={()=>void events.refetch()}>Tentar novamente</Button></div>}
+    <div className="grid gap-3 md:grid-cols-2">
+      <Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Todas as turmas</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select>
+      <Select label="Tipo" value={type} onChange={setType}><option value="aula">Aula</option><option value="prova">Prova</option><option value="trabalho">Trabalho</option><option value="evento">Evento</option><option value="recesso">Recesso</option><option value="outro">Outro</option></Select>
+      <Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Ex.: Aula de revisão"/></Field>
+      <Field label="Quando"><Input type="datetime-local" value={start} onChange={e=>setStart(e.target.value)}/></Field>
+      <Field label="Descrição"><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Detalhes opcionais" className="min-h-20 rounded-md border border-input bg-background p-3 text-sm"/></Field>
+      <div className="flex items-end gap-2">
+        <Button disabled={!!busy||!title.trim()||!start} onClick={()=>void save()}>{busy==="update"||busy==="create"?"Salvando…":editing?"Salvar alterações":"Adicionar evento"}</Button>
+        {editing&&<Button type="button" variant="outline" onClick={reset} disabled={!!busy}>Cancelar</Button>}
+      </div>
+    </div>
+    <div className="mt-5 space-y-2">
+      {!events.isLoading&&!events.data?.length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum evento encontrado nos últimos 30 dias ou próximos 180 dias.</p>}
+      {(events.data??[]).map(e=><article key={e.id} className="rounded-xl border border-border p-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0"><b>{e.title}</b><p className="text-xs text-muted-foreground">{new Date(e.start_at).toLocaleString("pt-BR")} · {e.classroom_name||"Todas as turmas"} · {e.event_type}</p>{e.description&&<p className="mt-1 text-sm text-muted-foreground">{e.description}</p>}</div>
+          <div className="flex shrink-0 gap-1">
+            <Button size="sm" variant="ghost" onClick={()=>startEdit(e)}>Editar</Button>
+            <Button size="sm" variant="ghost" className="text-destructive" disabled={busy!==""} onClick={()=>void remove(e.id)}>Excluir</Button>
+          </div>
+        </div>
+      </article>)}
+    </div>
+  </Card>;
 }
-
 function Materials({d}:{d:ReturnType<typeof useData>}) {
   const [classroom,setClassroom]=useState(""); const [subject,setSubject]=useState(""); const [term,setTerm]=useState("");
   const [title,setTitle]=useState(""); const [description,setDescription]=useState(""); const [file,setFile]=useState<File|null>(null); const [busy,setBusy]=useState("");
