@@ -10,7 +10,7 @@ import {
   loadGrades,
   loadMyStudent,
   loadStudentAssessmentsDetailed,
-  loadStudentAttendance,
+  loadStudentAttendanceDetailed,
   loadStudentCalendar,
   loadStudentTaskSubmissions,
   loadStudentTasksDetailed,
