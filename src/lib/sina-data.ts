@@ -79,6 +79,19 @@ export async function getRole(): Promise<UserRole> {
     return activeRole;
   }
 
+  // Student registration is intentionally independent from academic linkage.
+  // A student can have a valid student role before an institution/classroom
+  // membership exists. Teachers and admins still require institutional context.
+  const { data: globalStudentRole, error: globalStudentRoleError } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", auth.user.id)
+    .eq("role", "student")
+    .maybeSingle();
+
+  if (globalStudentRoleError) throw globalStudentRoleError;
+  if (globalStudentRole?.role === "student") return "student";
+
   throw new Error("Sua conta ainda não possui uma função acadêmica ativa.");
 }
 
@@ -247,6 +260,13 @@ export async function teacherRemoveStudentFromClassroom(studentId: string) {
 }
 
 export async function loadMyStudent(): Promise<Student | null> {
+  // Academic linkage is optional immediately after student registration.
+  // Do not call student RPCs that require an active institution until the
+  // account has at least one institutional membership.
+  const { data: institutions, error: institutionError } = await supabase.rpc("account_list_institutions");
+  if (institutionError) throw institutionError;
+  if (!(institutions ?? []).length) return null;
+
   const { data, error } = await supabase.rpc("student_get_profile");
   if (error) throw error;
 
