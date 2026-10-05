@@ -16,7 +16,7 @@ import {
   loadTeacherClassrooms, loadTeacherInstitutionStudents, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
   loadTeacherUnassignedClassrooms, teacherClaimClassroom, loadTeacherGrades, loadTeacherAcademicMaterials,
   saveAttendance, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
-  teacherRemoveStudentFromClassroom, unassignTeacherSubjectFromClass, updateTeacherCalendarEvent, deleteTeacherCalendarEvent, type AttendanceRow
+  teacherRemoveStudentFromClassroom, unassignTeacherSubjectFromClass, deleteTeacherSubject, updateTeacherCalendarEvent, deleteTeacherCalendarEvent, type AttendanceRow
 } from "@/lib/sina-data";
 
 type Section = "inicio"|"turmas"|"alunos"|"disciplinas"|"notas"|"frequencia"|"avaliacoes"|"atividades"|"materiais"|"agenda"|"comunicacao";
@@ -316,11 +316,17 @@ function Subjects({d}:{d:ReturnType<typeof useData>}){
   async function assign(){if(!subject||!classroom)return;setBusy("assign");try{await assignTeacherSubjectToClass(subject,classroom);setSubject("");setClassroom("");await d.refresh();toast.success("Disciplina vinculada à turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   async function removeAssignment(id:string){if(!window.confirm("Desvincular esta disciplina da turma?"))return;setBusy("remove:"+id);try{await unassignTeacherSubjectFromClass(id);await d.refresh();toast.success("Disciplina desvinculada.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   async function editSubject(id:string,currentName:string,currentCode:string){const nextName=window.prompt("Nome da disciplina",currentName);if(nextName===null)return;const nextCode=window.prompt("Código",currentCode);if(nextCode===null)return;try{await supabase.rpc("teacher_update_subject",{_id:id,_name:nextName.trim(),_code:nextCode.trim()});await d.refresh();toast.success("Disciplina atualizada.");}catch(e){toast.error(errorText(e))}}
-  async function archiveSubject(id:string){if(!window.confirm("Arquivar esta disciplina?"))return;try{await supabase.rpc("teacher_archive_subject",{_id:id});await d.refresh();toast.success("Disciplina arquivada.");}catch(e){toast.error(errorText(e))}}
+  async function deleteSubject(id:string,name:string){
+    if(!window.confirm('Excluir a disciplina "'+name+'"? Essa ação remove a disciplina e seus vínculos com as turmas.'))return;
+    setBusy("delete-subject:"+id);
+    try{await deleteTeacherSubject(id);await d.refresh();toast.success("Disciplina excluída.");}
+    catch(e){toast.error(errorText(e))}
+    finally{setBusy("")}
+  }
   return <div className="space-y-5">
     <Card title="Disciplinas" description="Cadastre e distribua as disciplinas que você administra.">
       <div className="grid gap-3 md:grid-cols-[1fr_160px_auto]"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome"/><Input value={code} onChange={e=>setCode(e.target.value)} placeholder="Código"/><Button disabled={!name.trim()||!!busy} onClick={()=>void create()}><Plus className="mr-2 size-4"/>Criar</Button></div>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">{(d.subjects.data??[]).map(s=><div key={s.id} className="rounded-xl border border-border p-3"><div className="flex items-start justify-between gap-3"><div><b>{s.name}</b><p className="text-xs text-muted-foreground">{s.code||"Sem código"} · {s.status}</p></div>{s.status==="active"&&<div className="flex gap-2"><Button size="sm" variant="outline" disabled={!!busy} onClick={()=>void editSubject(s.id,s.name,s.code||"")}>Editar</Button><Button size="sm" variant="ghost" disabled={!!busy} onClick={()=>void archiveSubject(s.id)}>Arquivar</Button></div>}</div></div>)}</div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">{(d.subjects.data??[]).map(s=><div key={s.id} className="rounded-xl border border-border p-3"><div className="flex items-start justify-between gap-3"><div><b>{s.name}</b><p className="text-xs text-muted-foreground">{s.code||"Sem código"} · {s.status}</p></div>{s.status==="active"&&<div className="flex gap-2"><Button size="sm" variant="outline" disabled={!!busy} onClick={()=>void editSubject(s.id,s.name,s.code||"")}>Editar</Button><Button size="sm" variant="ghost" className="text-destructive" disabled={!!busy} onClick={()=>void deleteSubject(s.id,s.name)}>{busy==="delete-subject:"+s.id?"Excluindo…":"Excluir"}</Button></div>}</div></div>)}</div>
     </Card>
     <Card title="Vincular disciplina à turma" description="Uma disciplina precisa estar vinculada à turma antes de receber atividades e materiais.">
       <div className="grid gap-3 md:grid-cols-3"><Select label="Disciplina" value={subject} onChange={setSubject}><option value="">Selecione</option>{(d.subjects.data??[]).filter(s=>s.status==="active").map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</Select><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select><div className="self-end"><Button disabled={!subject||!classroom||!!busy} onClick={()=>void assign()}>{busy==="assign"?"Vinculando…":"Vincular"}</Button></div></div>
