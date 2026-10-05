@@ -74,6 +74,7 @@ export function AdminAcademicSetup() {
   const [inviteClassroom, setInviteClassroom] = useState("");
   const [inviteBusy, setInviteBusy] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
 
   async function refresh() {
     await Promise.all([
@@ -85,29 +86,45 @@ export function AdminAcademicSetup() {
   }
   async function assignTeacher() {
     if (!teacherId || !teacherClassroomId) return;
+    setBusyAction("assign-teacher");
     try { await adminAssignTeacherToClassroom(teacherId, teacherClassroomId); setTeacherId(""); setTeacherClassroomId(""); await refresh(); toast.success("Professor vinculado à turma."); }
     catch (error) { toast.error(errorText(error)); }
+    finally { setBusyAction(null); }
   }
   async function unassignTeacher(teacher: string, classroom: string) {
+    setBusyAction("unassign:"+teacher+":"+classroom);
     try { await adminUnassignTeacherFromClassroom(teacher, classroom); await refresh(); toast.success("Professor desvinculado da turma."); }
     catch (error) { toast.error(errorText(error)); }
+    finally { setBusyAction(null); }
   }
 
   async function saveClassroom() {
+    if (!classroomName.trim()) { toast.error("Informe o nome da turma."); return; }
+    setBusyAction("classroom");
     try { await adminUpsertClassroom(null, classroomName.trim(), classroomCode.trim()); setClassroomName(""); setClassroomCode(""); await refresh(); toast.success("Turma criada."); }
     catch (error) { toast.error(errorText(error)); }
+    finally { setBusyAction(null); }
   }
   async function archiveClassroom(id: string) {
+    setBusyAction("archive:"+id);
     try { await adminArchiveClassroom(id); await refresh(); toast.success("Turma arquivada."); }
     catch (error) { toast.error(errorText(error)); }
+    finally { setBusyAction(null); }
   }
   async function saveSubject() {
+    if (!subjectName.trim()) { toast.error("Informe o nome da disciplina."); return; }
+    setBusyAction("subject");
     try { await adminUpsertSubject(null, subjectName.trim(), subjectCode.trim()); setSubjectName(""); setSubjectCode(""); await refresh(); toast.success("Disciplina criada."); }
     catch (error) { toast.error(errorText(error)); }
+    finally { setBusyAction(null); }
   }
   async function saveTerm() {
+    if (!termName.trim()) { toast.error("Informe o nome do período."); return; }
+    if (termStart && termEnd && termStart > termEnd) { toast.error("A data de início não pode ser posterior à data final."); return; }
+    setBusyAction("term");
     try { await adminUpsertTerm(null, termName.trim(), termStart || null, termEnd || null, termCurrent); setTermName(""); setTermStart(""); setTermEnd(""); await refresh(); toast.success("Período acadêmico salvo."); }
     catch (error) { toast.error(errorText(error)); }
+    finally { setBusyAction(null); }
   }
 
   return (
@@ -148,11 +165,11 @@ export function AdminAcademicSetup() {
 
 
           <div className="grid gap-5 lg:grid-cols-3">
-            <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><Layers3 className="size-4 text-primary" /><p className="font-semibold">Turmas</p></div><div className="mt-4 space-y-2"><Input placeholder="Nome da turma" value={classroomName} onChange={e => setClassroomName(e.target.value)} /><Input placeholder="Código (opcional)" value={classroomCode} onChange={e => setClassroomCode(e.target.value)} /><Button onClick={() => void saveClassroom()} disabled={!classroomName.trim()}><Save className="mr-2 size-4" />Criar turma</Button></div><div className="mt-4 space-y-2">{setup.data?.classrooms.map(c => <div key={c.id} className="flex items-center justify-between gap-2 rounded-xl bg-secondary/50 p-3 text-sm"><div><p className="font-medium">{c.name}</p><p className="text-xs text-muted-foreground">{c.code || "Sem código"} · {c.status === "active" ? "Ativa" : "Arquivada"}</p></div>{c.status === "active" && <Button size="sm" variant="ghost" onClick={() => void archiveClassroom(c.id)} aria-label={`Arquivar ${c.name}`}><Archive className="size-4" /></Button>}</div>)}</div></div>
+            <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><Layers3 className="size-4 text-primary" /><p className="font-semibold">Turmas</p></div><div className="mt-4 space-y-2"><Input placeholder="Nome da turma" value={classroomName} onChange={e => setClassroomName(e.target.value)} /><Input placeholder="Código (opcional)" value={classroomCode} onChange={e => setClassroomCode(e.target.value)} /><Button onClick={() => void saveClassroom()} disabled={busyAction !== null || !classroomName.trim()}><Save className="mr-2 size-4" />{busyAction === "classroom" ? "Salvando…" : "Criar turma"}</Button></div><div className="mt-4 space-y-2">{setup.data?.classrooms.map(c => <div key={c.id} className="flex items-center justify-between gap-2 rounded-xl bg-secondary/50 p-3 text-sm"><div><p className="font-medium">{c.name}</p><p className="text-xs text-muted-foreground">{c.code || "Sem código"} · {c.status === "active" ? "Ativa" : "Arquivada"}</p></div>{c.status === "active" && <Button size="sm" variant="ghost" disabled={busyAction !== null} onClick={() => void archiveClassroom(c.id)} aria-label={`Arquivar ${c.name}`}>{busyAction === "archive:"+c.id ? "…" : <Archive className="size-4" />}</Button>}</div>)}</div></div>
 
-            <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><BookOpen className="size-4 text-primary" /><p className="font-semibold">Disciplinas</p></div><div className="mt-4 space-y-2"><Input placeholder="Nome da disciplina" value={subjectName} onChange={e => setSubjectName(e.target.value)} /><Input placeholder="Código (opcional)" value={subjectCode} onChange={e => setSubjectCode(e.target.value)} /><Button onClick={() => void saveSubject()} disabled={!subjectName.trim()}><Save className="mr-2 size-4" />Criar disciplina</Button></div><div className="mt-4 space-y-2">{setup.data?.subjects.map(s => <div key={s.id} className="rounded-xl bg-secondary/50 p-3 text-sm"><p className="font-medium">{s.name}</p><p className="text-xs text-muted-foreground">{s.code || "Sem código"} · {s.status === "active" ? "Ativa" : "Inativa"}</p></div>)}</div></div>
+            <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><BookOpen className="size-4 text-primary" /><p className="font-semibold">Disciplinas</p></div><div className="mt-4 space-y-2"><Input placeholder="Nome da disciplina" value={subjectName} onChange={e => setSubjectName(e.target.value)} /><Input placeholder="Código (opcional)" value={subjectCode} onChange={e => setSubjectCode(e.target.value)} /><Button onClick={() => void saveSubject()} disabled={busyAction !== null || !subjectName.trim()}><Save className="mr-2 size-4" />{busyAction === "subject" ? "Salvando…" : "Criar disciplina"}</Button></div><div className="mt-4 space-y-2">{setup.data?.subjects.map(s => <div key={s.id} className="rounded-xl bg-secondary/50 p-3 text-sm"><p className="font-medium">{s.name}</p><p className="text-xs text-muted-foreground">{s.code || "Sem código"} · {s.status === "active" ? "Ativa" : "Inativa"}</p></div>)}</div></div>
 
-            <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><CalendarRange className="size-4 text-primary" /><p className="font-semibold">Períodos</p></div><div className="mt-4 space-y-2"><Input placeholder="Ex.: 1º Bimestre" value={termName} onChange={e => setTermName(e.target.value)} /><div className="grid grid-cols-2 gap-2"><Input type="date" value={termStart} onChange={e => setTermStart(e.target.value)} /><Input type="date" value={termEnd} onChange={e => setTermEnd(e.target.value)} /></div><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={termCurrent} onChange={e => setTermCurrent(e.target.checked)} /> Marcar como período atual</label><Button onClick={() => void saveTerm()} disabled={!termName.trim()}><Save className="mr-2 size-4" />Criar período</Button></div><div className="mt-4 space-y-2">{setup.data?.terms.map(t => <div key={t.id} className="rounded-xl bg-secondary/50 p-3 text-sm"><div className="flex items-center justify-between gap-2"><p className="font-medium">{t.name}</p>{t.is_current && <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">Atual</span>}</div><p className="text-xs text-muted-foreground">{t.starts_at || "Sem início"} · {t.ends_at || "Sem fim"}</p></div>)}</div></div>
+            <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><CalendarRange className="size-4 text-primary" /><p className="font-semibold">Períodos</p></div><div className="mt-4 space-y-2"><Input placeholder="Ex.: 1º Bimestre" value={termName} onChange={e => setTermName(e.target.value)} /><div className="grid grid-cols-2 gap-2"><Input type="date" value={termStart} onChange={e => setTermStart(e.target.value)} /><Input type="date" value={termEnd} onChange={e => setTermEnd(e.target.value)} /></div><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={termCurrent} onChange={e => setTermCurrent(e.target.checked)} /> Marcar como período atual</label><Button onClick={() => void saveTerm()} disabled={busyAction !== null || !termName.trim()}><Save className="mr-2 size-4" />{busyAction === "term" ? "Salvando…" : "Criar período"}</Button></div><div className="mt-4 space-y-2">{setup.data?.terms.map(t => <div key={t.id} className="rounded-xl bg-secondary/50 p-3 text-sm"><div className="flex items-center justify-between gap-2"><p className="font-medium">{t.name}</p>{t.is_current && <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">Atual</span>}</div><p className="text-xs text-muted-foreground">{t.starts_at || "Sem início"} · {t.ends_at || "Sem fim"}</p></div>)}</div></div>
           </div>
 
           <div className="rounded-2xl border border-border p-4">
@@ -190,10 +207,10 @@ export function AdminAcademicSetup() {
                 <option value="">Selecione a turma</option>
                 {(setup.data?.classrooms ?? []).filter(c => c.status === "active").map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              <Button onClick={() => void assignTeacher()} disabled={!teacherId || !teacherClassroomId}>Vincular</Button>
+              <Button onClick={() => void assignTeacher()} disabled={busyAction !== null || !teacherId || !teacherClassroomId}>{busyAction === "assign-teacher" ? "Vinculando…" : "Vincular"}</Button>
             </div>
             <div className="mt-4 space-y-2">
-              {(assignments.data ?? []).map(a => <div key={a.classroom_id + a.teacher_id} className="flex items-center justify-between gap-3 rounded-xl bg-secondary/50 p-3 text-sm"><div><p className="font-medium">{a.teacher_name || a.teacher_email}</p><p className="text-xs text-muted-foreground">{a.classroom_name}</p></div><Button size="sm" variant="ghost" onClick={() => void unassignTeacher(a.teacher_id, a.classroom_id)}>Remover</Button></div>)}
+              {(assignments.data ?? []).map(a => <div key={a.classroom_id + a.teacher_id} className="flex items-center justify-between gap-3 rounded-xl bg-secondary/50 p-3 text-sm"><div><p className="font-medium">{a.teacher_name || a.teacher_email}</p><p className="text-xs text-muted-foreground">{a.classroom_name}</p></div><Button size="sm" variant="ghost" disabled={busyAction !== null} onClick={() => void unassignTeacher(a.teacher_id, a.classroom_id)}>{busyAction === "unassign:"+a.teacher_id+":"+a.classroom_id ? "Removendo…" : "Remover"}</Button></div>)}
               {!assignments.isPending && !assignments.data?.length && <p className="text-sm text-muted-foreground">Nenhum professor vinculado a uma turma ainda.</p>}
             </div>
           </div>
