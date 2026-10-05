@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, BookOpen, UserCheck, Ban, UserRoundCheck, XCircle, Building2, Power, Trash2, Plus, Pencil } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -298,6 +299,9 @@ ${institutionNameValue}`);
         students:number; students_without_class:number; classrooms:number; teachers:number;
         grades_count:number; average:number|null; attendance_percent:number|null;
         students_below_average:number; students_low_attendance:number;
+        performance_by_period:Array<{period:number;average:number|null;launches:number}>;
+        attendance_breakdown:{present:number;absent:number};
+        classroom_performance:Array<{id:string;name:string;average:number|null;attendance_percent:number|null}>;
         classrooms_attention:Array<{id:string;name:string;average:number|null;attendance_percent:number|null}>;
       };
     },
@@ -413,8 +417,12 @@ ${institutionNameValue}`);
             <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Panorama acadêmico</p><h2 className="mt-1 font-semibold">Como está a instituição?</h2><p className="mt-1 text-sm text-muted-foreground">Indicadores calculados somente sobre os dados acadêmicos da instituição ativa.</p></div>
             <span className="text-xs text-muted-foreground">Atualização automática</span>
           </div>
-          {academicOverview.isPending ? <p className="mt-5 text-sm text-muted-foreground">Calculando indicadores…</p> :
-            academicOverview.error ? <div className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">Não foi possível carregar o panorama acadêmico. <Button size="sm" variant="outline" className="ml-2" onClick={()=>void academicOverview.refetch()}>Tentar novamente</Button></div> :
+          {academicOverview.isPending ? <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Array.from({length:4}).map((_,i)=><div key={i} className="sina-skeleton h-24 rounded-xl" />)}</div> :
+            academicOverview.error ? <div className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+              <p className="font-semibold">Não foi possível carregar os indicadores.</p>
+              <p className="mt-1 break-words text-xs">{errorText(academicOverview.error)}</p>
+              <Button size="sm" variant="outline" className="mt-3" onClick={()=>void academicOverview.refetch()}>Tentar novamente</Button>
+            </div> :
             <div className="mt-5 space-y-4">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {[
@@ -424,6 +432,59 @@ ${institutionNameValue}`);
                   ["Atenção na frequência", academicOverview.data?.students_low_attendance ?? 0, "Alunos com frequência abaixo de 75%."],
                 ].map(([label,value,desc])=><div key={label} className="rounded-xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p><p className="mt-1 text-[11px] text-muted-foreground">{desc}</p></div>)}
               </div>
+              <div className="grid gap-4 xl:grid-cols-2">
+                <div className="rounded-2xl border border-border p-4 sm:p-5">
+                  <div className="flex items-center justify-between gap-3"><div><p className="font-semibold">Evolução das notas</p><p className="mt-1 text-xs text-muted-foreground">Média dos lançamentos por período acadêmico.</p></div><BarChart3 className="size-4 text-primary"/></div>
+                  <div className="mt-4 h-[250px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={academicOverview.data?.performance_by_period ?? []} margin={{top:8,right:8,left:-18,bottom:0}}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="period" tickFormatter={(v) => `P${v}`} />
+                        <YAxis domain={[0,10]} />
+                        <Tooltip formatter={(value) => [Number(value).toLocaleString("pt-BR",{maximumFractionDigits:2}), "Média"]} labelFormatter={(label) => `Período ${label}`} />
+                        <Line type="monotone" dataKey="average" stroke="hsl(var(--primary))" strokeWidth={3} dot={{r:4}} activeDot={{r:6}} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {!(academicOverview.data?.performance_by_period ?? []).length && <p className="text-sm text-muted-foreground">Ainda não há notas suficientes para montar o gráfico.</p>}
+                </div>
+
+                <div className="rounded-2xl border border-border p-4 sm:p-5">
+                  <div className="flex items-center justify-between gap-3"><div><p className="font-semibold">Frequência</p><p className="mt-1 text-xs text-muted-foreground">Presenças e faltas registradas.</p></div><CheckCircle2 className="size-4 text-primary"/></div>
+                  <div className="mt-4 h-[250px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={[{name:"Presenças",value:academicOverview.data?.attendance_breakdown?.present ?? 0},{name:"Faltas",value:academicOverview.data?.attendance_breakdown?.absent ?? 0}]} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={78} innerRadius={48} paddingAngle={3} label>
+                          <Cell fill="hsl(var(--primary))" />
+                          <Cell fill="hsl(var(--destructive))" />
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-border p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-3"><div><p className="font-semibold">Desempenho por turma</p><p className="mt-1 text-xs text-muted-foreground">Compare média e frequência das turmas com registros.</p></div><Users className="size-4 text-primary"/></div>
+                <div className="mt-4 h-[280px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={(academicOverview.data?.classroom_performance ?? []).slice(0,10)} margin={{top:8,right:8,left:-18,bottom:50}}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} height={65} />
+                      <YAxis yAxisId="grade" domain={[0,10]} />
+                      <YAxis yAxisId="attendance" orientation="right" domain={[0,100]} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar yAxisId="grade" dataKey="average" name="Média" fill="hsl(var(--primary))" radius={[6,6,0,0]} />
+                      <Bar yAxisId="attendance" dataKey="attendance_percent" name="Frequência %" fill="hsl(var(--muted-foreground))" radius={[6,6,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                {!(academicOverview.data?.classroom_performance ?? []).length && <p className="text-sm text-muted-foreground">Ainda não há dados suficientes por turma.</p>}
+              </div>
+
               <div className="rounded-xl border border-border p-4">
                 <p className="font-semibold">Turmas que precisam de atenção</p>
                 <div className="mt-3 space-y-2">
