@@ -391,7 +391,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(studentSubjects.data ?? []).map((item) => {
               const performance = subjects.find((s) => s.subject === item.name);
-              return <Link key={item.id + item.teacher_id} to="/aluno/disciplinas" className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+              return <a key={item.id + item.teacher_id} href={"/aluno/disciplinas#" + item.id + "::" + item.teacher_id} className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
                 <div className="flex items-center justify-between gap-3">
                   <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><BarChart3 className="size-5"/></span>
                   <ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary"/>
@@ -401,7 +401,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                 <p className="mt-3 font-display text-3xl font-semibold">{performance?.average == null ? "—" : formatScore(performance.average)}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{performance ? performance.periods + " lançamento(s)" : "Ainda sem lançamento"}</p>
                 <p className="mt-3 text-xs font-semibold text-primary">Abrir detalhes →</p>
-              </Link>;
+              </a>;
             })}
             {!studentSubjects.data?.length && <div className="sina-card p-6 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Nenhuma disciplina vinculada ainda.</div>}
           </div>
