@@ -210,6 +210,22 @@ function AdminArea() {
   const classroomCount = academicSetup.data?.classrooms?.length ?? 0;
   const subjectCount = academicSetup.data?.subjects?.length ?? 0;
   const currentTerm = academicSetup.data?.terms?.find(term => term.is_current)?.name ?? "Nenhum período atual";
+  const academicOverview = useQuery({
+    queryKey: ["admin-academic-overview"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_get_academic_overview");
+      if (error) throw error;
+      return (data ?? {}) as {
+        students:number; students_without_class:number; classrooms:number; teachers:number;
+        grades_count:number; average:number|null; attendance_percent:number|null;
+        students_below_average:number; students_low_attendance:number;
+        classrooms_attention:Array<{id:string;name:string;average:number|null;attendance_percent:number|null}>;
+      };
+    },
+    enabled: role.data === true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
+  });
 
   async function logout() {
     await supabase.auth.signOut();
@@ -333,6 +349,32 @@ function AdminArea() {
             <a href="#alunos-turmas" className="rounded-xl border border-border bg-card p-4 transition hover:border-primary/40"><p className="text-xs font-bold uppercase text-muted-foreground">Alunos sem vínculo completo</p><p className="mt-1 text-2xl font-semibold">{unassignedStudents}</p><p className="mt-1 text-xs text-muted-foreground">Escola ou turma ainda não definida.</p></a>
             <a href="#autorizacao" className="rounded-xl border border-border bg-card p-4 transition hover:border-primary/40"><p className="text-xs font-bold uppercase text-muted-foreground">Contas suspensas</p><p className="mt-1 text-2xl font-semibold">{accounts.data?.filter(account=>account.account_status==="suspended").length??0}</p><p className="mt-1 text-xs text-muted-foreground">Revise acessos quando necessário.</p></a>
           </div>
+        </section>
+
+        <section className="sina-card p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Panorama acadêmico</p><h2 className="mt-1 font-semibold">Como está a instituição?</h2><p className="mt-1 text-sm text-muted-foreground">Indicadores calculados somente sobre os dados acadêmicos da instituição ativa.</p></div>
+            <span className="text-xs text-muted-foreground">Atualização automática</span>
+          </div>
+          {academicOverview.isPending ? <p className="mt-5 text-sm text-muted-foreground">Calculando indicadores…</p> :
+            academicOverview.error ? <div className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">Não foi possível carregar o panorama acadêmico. <Button size="sm" variant="outline" className="ml-2" onClick={()=>void academicOverview.refetch()}>Tentar novamente</Button></div> :
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ["Média institucional", academicOverview.data?.average == null ? "—" : Number(academicOverview.data.average).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2}), "Média simples das notas lançadas."],
+                  ["Frequência", academicOverview.data?.attendance_percent == null ? "—" : Number(academicOverview.data.attendance_percent).toLocaleString("pt-BR",{maximumFractionDigits:0})+"%", "Presenças sobre registros presentes/ausentes."],
+                  ["Atenção nas notas", academicOverview.data?.students_below_average ?? 0, "Alunos com média abaixo de 6,0."],
+                  ["Atenção na frequência", academicOverview.data?.students_low_attendance ?? 0, "Alunos com frequência abaixo de 75%."],
+                ].map(([label,value,desc])=><div key={label} className="rounded-xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p><p className="mt-1 text-[11px] text-muted-foreground">{desc}</p></div>)}
+              </div>
+              <div className="rounded-xl border border-border p-4">
+                <p className="font-semibold">Turmas que precisam de atenção</p>
+                <div className="mt-3 space-y-2">
+                  {(academicOverview.data?.classrooms_attention ?? []).map(item=><div key={item.id} className="flex flex-col gap-2 rounded-lg bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between"><div><b>{item.name}</b><p className="text-xs text-muted-foreground">Média: {item.average == null ? "—" : Number(item.average).toFixed(1)} · Frequência: {item.attendance_percent == null ? "—" : Number(item.attendance_percent).toFixed(0)+"%"}</p></div><span className="text-xs font-semibold text-primary">Revisar turma</span></div>)}
+                  {!(academicOverview.data?.classrooms_attention ?? []).length && <p className="text-sm text-muted-foreground">Nenhuma turma foi sinalizada pelos critérios atuais. 🎉</p>}
+                </div>
+              </div>
+            </div>}
         </section>
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
