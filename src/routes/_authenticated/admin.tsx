@@ -555,7 +555,7 @@ ${institutionNameValue}`);
 
           <section className="sina-card p-5 sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Acesso rápido</p><h3 className="mt-1 font-semibold">Vá direto para a operação que precisa executar</h3></div><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[["escolas","Escolas",Building2],["pessoas","Pessoas",Users],["academico","Acadêmico",BookOpen],["historico","Histórico",ShieldCheck]].map(([id,label,Icon])=><button key={String(id)} type="button" onClick={()=>setAdminTab(id as AdminTab)} className="flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 text-xs font-semibold transition hover:border-primary/40 hover:bg-primary/5"><span>{Icon && <Icon className="size-4 text-primary"/>}</span>{label}</button>)}
+              {[{id:"escolas",label:"Escolas",Icon:Building2},{id:"pessoas",label:"Pessoas",Icon:Users},{id:"academico",label:"Acadêmico",Icon:BookOpen},{id:"historico",label:"Histórico",Icon:ShieldCheck}].map(({id,label,Icon})=><button key={id} type="button" onClick={()=>setAdminTab(id as AdminTab)} className="flex items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 text-xs font-semibold transition hover:border-primary/40 hover:bg-primary/5"><Icon className="size-4 text-primary"/>{label}</button>)}
             </div></div>
           </section>
         </div>
