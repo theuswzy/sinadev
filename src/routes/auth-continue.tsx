@@ -1,7 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { useMemo, useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 const FALLBACK_SUPABASE_URL = "https://zwapwxbczezqfghenrgy.supabase.co";
 
@@ -22,15 +24,10 @@ function getAllowedSupabaseOrigins() {
 }
 
 /**
- * Supabase's ConfirmationURL contains its own query string. When it is
- * embedded directly in another query parameter, URLSearchParams sees pieces
- * such as "type" and "redirect_to" as outer parameters. Rebuild those pieces
- * before validating the one-time authentication URL.
- *
- * Supabase recommends this intermediary-page pattern specifically to protect
- * single-use auth links from email security scanners/prefetchers.
+ * Legacy compatibility: older emails may still contain the complete
+ * ConfirmationURL. New emails should use token_hash + verifyOtp below.
  */
-function readConfirmationUrl() {
+function readLegacyConfirmationUrl() {
   const params = new URLSearchParams(window.location.search);
   const embedded = params.get("confirmation_url") ?? params.get("url");
 
@@ -60,16 +57,14 @@ function readConfirmationUrl() {
   }
 }
 
-function validateConfirmationUrl(target: string | null) {
+function validateLegacyConfirmationUrl(target: string | null) {
   if (!target) return null;
 
   try {
     const url = new URL(target);
-    const allowedOrigins = getAllowedSupabaseOrigins();
-
     if (
       url.protocol !== "https:" ||
-      !allowedOrigins.has(url.origin) ||
+      !getAllowedSupabaseOrigins().has(url.origin) ||
       url.pathname !== "/auth/v1/verify"
     ) {
       return null;
@@ -96,21 +91,84 @@ export const Route = createFileRoute("/auth-continue")({
 });
 
 function AuthContinuePage() {
-  const [started, setStarted] = useState(false);
-
-  const safeTarget = useMemo(
-    () => validateConfirmationUrl(readConfirmationUrl()),
+  const navigate = useNavigate();
+  const params = useMemo(() => new URLSearchParams(window.location.search), []);
+  const tokenHash = params.get("token_hash");
+  const tokenType = params.get("type") as EmailOtpType | null;
+  const legacyTarget = useMemo(
+    () => validateLegacyConfirmationUrl(readLegacyConfirmationUrl()),
     [],
   );
 
-  function continueConfirmation() {
-    if (!safeTarget) return;
+  const [started, setStarted] = useState(false);
+  const [error, setError] = useState("");
 
-    // Do not expose the credential-bearing URL as an <a href>. Navigation
-    // happens only after a deliberate user click.
+  const hasSafeTokenHash = Boolean(tokenHash && tokenType === "email");
+  const hasSafeLegacyTarget = Boolean(legacyTarget);
+
+  async function continueConfirmation() {
+    if (started) return;
+
     setStarted(true);
-    window.location.assign(safeTarget);
+    setError("");
+
+    try {
+      if (hasSafeTokenHash && tokenHash) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: "email",
+        });
+
+        if (verifyError) throw verifyError;
+
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete("token_hash");
+        cleanUrl.searchParams.delete("type");
+        window.history.replaceState(
+          {},
+          document.title,
+          cleanUrl.pathname + cleanUrl.search + cleanUrl.hash,
+        );
+
+        // The /auth route already contains the centralized onboarding logic
+        // for students, teachers, invited users and administrators.
+        await navigate({ to: "/auth", replace: true });
+        return;
+      }
+
+      if (hasSafeLegacyTarget && legacyTarget) {
+        // Compatibility with already-issued confirmation emails. New emails
+        // should use token_hash so the credential-bearing Supabase URL is
+        // never followed by an email scanner.
+        window.location.assign(legacyTarget);
+        return;
+      }
+
+      throw new Error("Este link de confirmação não é válido.");
+    } catch (verificationError) {
+      const message =
+        verificationError instanceof Error
+          ? verificationError.message.toLowerCase()
+          : "";
+
+      if (
+        message.includes("expired") ||
+        message.includes("invalid") ||
+        message.includes("otp")
+      ) {
+        setError(
+          "Este link expirou ou já foi utilizado. Solicite um novo e-mail de confirmação no SINA.",
+        );
+      } else {
+        setError(
+          "Não foi possível confirmar seu e-mail agora. Solicite um novo e-mail de confirmação.",
+        );
+      }
+      setStarted(false);
+    }
   }
+
+  const usable = hasSafeTokenHash || hasSafeLegacyTarget;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
@@ -124,21 +182,30 @@ function AuthContinuePage() {
         </p>
 
         <h1 className="mt-2 font-display text-2xl font-semibold">
-          {safeTarget ? "Confirme seu e-mail" : "Link de confirmação inválido"}
+          {usable ? "Confirme seu e-mail" : "Link de confirmação inválido"}
         </h1>
 
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          {safeTarget
+          {usable
             ? "Seu cadastro está quase concluído. Clique no botão abaixo para confirmar seu endereço de e-mail."
             : "Este link não pôde ser validado. Solicite um novo e-mail de confirmação no SINA."}
         </p>
 
-        {safeTarget ? (
+        {error && (
+          <div
+            role="alert"
+            className="mt-5 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-left text-sm leading-6 text-destructive"
+          >
+            {error}
+          </div>
+        )}
+
+        {usable ? (
           <Button
             type="button"
             className="mt-7 h-11 w-full font-semibold"
             disabled={started}
-            onClick={continueConfirmation}
+            onClick={() => void continueConfirmation()}
           >
             {started ? "Confirmando…" : "Confirmar meu e-mail"}
             {!started && <ArrowRight />}
@@ -153,22 +220,19 @@ function AuthContinuePage() {
         )}
 
         <div className="mt-6 rounded-2xl border border-border bg-secondary/50 p-4 text-left">
-          <p className="text-sm font-semibold">Por que existe esta etapa?</p>
+          <p className="text-sm font-semibold">Proteção contra scanners</p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Alguns provedores de e-mail verificam links automaticamente por
-            segurança. O SINA só libera o link de uso único depois que você
-            solicita a confirmação.
+            Alguns provedores de e-mail verificam links automaticamente. O
+            SINA só confirma sua conta depois de uma ação explícita sua.
           </p>
         </div>
 
-        {safeTarget && (
-          <Link
-            to="/auth"
-            className="mt-5 inline-block text-sm font-semibold text-primary underline underline-offset-4"
-          >
-            Voltar para o acesso
-          </Link>
-        )}
+        <Link
+          to="/auth"
+          className="mt-5 inline-block text-sm font-semibold text-primary underline underline-offset-4"
+        >
+          Voltar para o acesso
+        </Link>
       </section>
     </main>
   );
