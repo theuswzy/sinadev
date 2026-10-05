@@ -324,6 +324,15 @@ function AdminArea() {
           </div>
         </section>
 
+        <section className="rounded-2xl border border-primary/15 bg-primary/5 p-5">
+          <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Precisa da sua atenção</p><h2 className="mt-1 font-semibold">Pendências administrativas</h2></div><ShieldCheck className="size-5 text-primary"/></div>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <a href="#aprovacoes" className="rounded-xl border border-border bg-card p-4 transition hover:border-primary/40"><p className="text-xs font-bold uppercase text-muted-foreground">Aprovações</p><p className="mt-1 text-2xl font-semibold">{roleRequests.data?.filter(item=>item.status==="pending").length??0}</p><p className="mt-1 text-xs text-muted-foreground">Solicitações aguardando análise.</p></a>
+            <a href="#alunos-turmas" className="rounded-xl border border-border bg-card p-4 transition hover:border-primary/40"><p className="text-xs font-bold uppercase text-muted-foreground">Alunos sem vínculo completo</p><p className="mt-1 text-2xl font-semibold">{unassignedStudents}</p><p className="mt-1 text-xs text-muted-foreground">Escola ou turma ainda não definida.</p></a>
+            <a href="#autorizacao" className="rounded-xl border border-border bg-card p-4 transition hover:border-primary/40"><p className="text-xs font-bold uppercase text-muted-foreground">Contas suspensas</p><p className="mt-1 text-2xl font-semibold">{accounts.data?.filter(account=>account.account_status==="suspended").length??0}</p><p className="mt-1 text-xs text-muted-foreground">Revise acessos quando necessário.</p></a>
+          </div>
+        </section>
+
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {([
             { label: "Contas", value: accounts.data?.length ?? 0, caption: "Usuários cadastrados", Icon: Users },
