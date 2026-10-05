@@ -535,3 +535,248 @@ using (
       )
   )
 );
+
+-- Academic integrity: tasks, assessments and grades must use a subject
+-- actually assigned to the teacher in the selected classroom.
+
+create or replace function public.teacher_create_task(
+  _classroom text,
+  _subject text,
+  _title text,
+  _description text,
+  _due_at timestamp with time zone default null,
+  _attachment_path text default null,
+  _attachment_name text default null,
+  _attachment_size bigint default null,
+  _attachment_type text default null
+)
+returns public.tasks
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  result_row public.tasks;
+  inst uuid;
+  classroom_id uuid;
+begin
+  if not public.has_role(auth.uid(),'teacher'::public.app_role) then raise exception 'Acesso restrito a professores.'; end if;
+  inst:=sina_private.current_institution('teacher'::public.app_role);
+  if inst is null then raise exception 'Professor sem instituição ativa.'; end if;
+  if nullif(trim(_classroom),'') is null then raise exception 'Selecione uma turma.'; end if;
+  if nullif(trim(_subject),'') is null then raise exception 'Informe a disciplina.'; end if;
+  if nullif(trim(_title),'') is null then raise exception 'Informe o título da atividade.'; end if;
+
+  select c.id into classroom_id
+  from public.classrooms c
+  join public.classroom_teachers ct on ct.classroom_id=c.id and ct.user_id=auth.uid()
+  where c.institution_id=inst and c.status='active'
+    and (c.id::text=trim(_classroom) or lower(c.name)=lower(trim(_classroom)))
+  order by case when c.id::text=trim(_classroom) then 0 else 1 end
+  limit 1;
+
+  if classroom_id is null then raise exception 'A turma selecionada não pertence a você.'; end if;
+
+  if not exists(
+    select 1
+    from public.classroom_subjects cs
+    join public.subjects s on s.id=cs.subject_id
+    where cs.classroom_id=classroom_id
+      and cs.institution_id=inst
+      and cs.teacher_id=auth.uid()
+      and s.institution_id=inst
+      and s.status='active'
+      and lower(s.name)=lower(trim(_subject))
+  ) then
+    raise exception 'A disciplina não está vinculada a esta turma para você.';
+  end if;
+
+  insert into public.tasks(
+    teacher_id,classroom,subject,title,description,due_at,
+    attachment_path,attachment_name,attachment_size,attachment_type,
+    institution_id,classroom_id
+  )
+  values(
+    auth.uid(),trim(_classroom),trim(_subject),trim(_title),coalesce(_description,''),
+    _due_at,nullif(trim(_attachment_path),''),nullif(trim(_attachment_name),''),
+    _attachment_size,nullif(trim(_attachment_type),''),inst,classroom_id
+  )
+  returning * into result_row;
+
+  perform sina_private.create_classroom_notifications(
+    auth.uid(),classroom_id,'task',
+    'Nova atividade: '||trim(_title),
+    coalesce(nullif(trim(_description),''),'Uma nova atividade foi publicada.'),
+    '/aluno/tarefas'
+  );
+
+  return result_row;
+end;
+$function$;
+
+create or replace function public.teacher_update_task(
+  _id uuid,
+  _classroom text,
+  _subject text,
+  _title text,
+  _description text,
+  _due_at timestamp with time zone default null,
+  _attachment_path text default null,
+  _attachment_name text default null,
+  _attachment_size bigint default null,
+  _attachment_type text default null
+)
+returns public.tasks
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  result_row public.tasks;
+  inst uuid;
+  classroom_id uuid;
+begin
+  if not public.has_role(auth.uid(),'teacher'::public.app_role) then raise exception 'Acesso reservado a professores autorizados.'; end if;
+  inst:=sina_private.current_institution('teacher'::public.app_role);
+  if inst is null then raise exception 'Professor sem instituição ativa.'; end if;
+  if nullif(trim(_subject),'') is null then raise exception 'Informe a disciplina.'; end if;
+  if nullif(trim(_title),'') is null then raise exception 'Informe o título da atividade.'; end if;
+
+  select c.id into classroom_id
+  from public.classrooms c
+  join public.classroom_teachers ct on ct.classroom_id=c.id and ct.user_id=auth.uid()
+  where c.institution_id=inst and c.status='active'
+    and (c.id::text=trim(_classroom) or lower(c.name)=lower(trim(_classroom)))
+  order by case when c.id::text=trim(_classroom) then 0 else 1 end
+  limit 1;
+
+  if classroom_id is null then raise exception 'A turma selecionada não pertence a você.'; end if;
+
+  if not exists(
+    select 1
+    from public.classroom_subjects cs
+    join public.subjects s on s.id=cs.subject_id
+    where cs.classroom_id=classroom_id
+      and cs.institution_id=inst
+      and cs.teacher_id=auth.uid()
+      and s.institution_id=inst
+      and s.status='active'
+      and lower(s.name)=lower(trim(_subject))
+  ) then
+    raise exception 'A disciplina não está vinculada a esta turma para você.';
+  end if;
+
+  update public.tasks
+  set classroom=trim(_classroom),classroom_id=classroom_id,institution_id=inst,
+      subject=trim(_subject),title=trim(_title),description=coalesce(trim(_description),''),
+      due_at=_due_at,attachment_path=nullif(trim(_attachment_path),''),
+      attachment_name=nullif(trim(_attachment_name),''),attachment_size=_attachment_size,
+      attachment_type=nullif(trim(_attachment_type),''),updated_at=now()
+  where id=_id and teacher_id=auth.uid() and institution_id=inst
+  returning * into result_row;
+
+  if result_row.id is null then raise exception 'Atividade não encontrada.'; end if;
+  return result_row;
+end;
+$function$;
+
+create or replace function public.teacher_create_assessment(
+  _classroom_id uuid,_subject_id uuid,_term_id uuid,_title text,_type text,
+  _weight numeric,_max_score numeric,_due_at timestamp with time zone
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare inst uuid; assessment_id uuid;
+begin
+  if not public.has_role(auth.uid(),'teacher'::public.app_role) then raise exception 'Acesso restrito ao professor'; end if;
+  inst:=sina_private.current_institution('teacher'::public.app_role);
+
+  if not exists(
+    select 1 from public.classroom_teachers ct
+    join public.classrooms c on c.id=ct.classroom_id
+    where ct.classroom_id=_classroom_id and ct.user_id=auth.uid()
+      and c.institution_id=inst and c.status='active'
+  ) then raise exception 'Você não está vinculado a esta turma'; end if;
+
+  if _subject_id is not null and not exists(
+    select 1 from public.classroom_subjects cs
+    join public.subjects su on su.id=cs.subject_id
+    where cs.classroom_id=_classroom_id and cs.subject_id=_subject_id
+      and cs.teacher_id=auth.uid() and cs.institution_id=inst
+      and su.institution_id=inst and su.status='active'
+  ) then raise exception 'Disciplina não está vinculada a esta turma para você'; end if;
+
+  if _term_id is not null and not exists(
+    select 1 from public.academic_terms t where t.id=_term_id and t.institution_id=inst
+  ) then raise exception 'Período acadêmico inválido'; end if;
+
+  if nullif(trim(_title),'') is null then raise exception 'Informe o título da avaliação'; end if;
+
+  insert into public.assessments(
+    institution_id,classroom_id,subject_id,term_id,teacher_id,title,assessment_type,
+    weight,max_score,due_at
+  )
+  values(
+    inst,_classroom_id,_subject_id,_term_id,auth.uid(),trim(_title),
+    coalesce(nullif(trim(_type),''),'prova'),greatest(.01,_weight),
+    greatest(.01,_max_score),_due_at
+  )
+  returning id into assessment_id;
+
+  return assessment_id;
+end;
+$function$;
+
+create or replace function public.teacher_upsert_grade(
+  _student_id uuid,_subject text,_period integer,_score numeric,_absences integer
+)
+returns public.grades
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare result_row public.grades; inst uuid; classroom_id uuid;
+begin
+  if not public.has_role(auth.uid(),'teacher'::public.app_role) then raise exception 'Acesso reservado a professores autorizados.'; end if;
+  inst:=sina_private.current_institution('teacher'::public.app_role);
+  if nullif(trim(_subject),'') is null then raise exception 'Informe a disciplina.'; end if;
+  if _period < 1 or _period > 4 or _score < 0 or _score > 10 or _absences < 0 then raise exception 'Dados da nota inválidos.'; end if;
+
+  select s.classroom_id into classroom_id
+  from public.students s
+  where s.id=_student_id and s.institution_id=inst
+    and exists(
+      select 1
+      from public.classroom_teachers ct
+      join public.classrooms c on c.id=ct.classroom_id
+      where ct.classroom_id=s.classroom_id and ct.user_id=auth.uid()
+        and c.institution_id=inst and c.status='active'
+    );
+
+  if classroom_id is null then raise exception 'Aluno não pertence a uma turma vinculada a este professor.'; end if;
+
+  if not exists(
+    select 1
+    from public.classroom_subjects cs
+    join public.subjects su on su.id=cs.subject_id
+    where cs.classroom_id=classroom_id
+      and cs.institution_id=inst
+      and cs.teacher_id=auth.uid()
+      and su.institution_id=inst
+      and su.status='active'
+      and lower(su.name)=lower(trim(_subject))
+  ) then raise exception 'A disciplina não está vinculada a esta turma para você.'; end if;
+
+  insert into public.grades(student_id,subject,period,score,absences,institution_id)
+  values(_student_id,trim(_subject),_period,_score,_absences,inst)
+  on conflict(student_id,subject,period)
+  do update set score=excluded.score,absences=excluded.absences,
+                institution_id=excluded.institution_id,updated_at=now()
+  returning * into result_row;
+
+  return result_row;
+end;
+$function$;
