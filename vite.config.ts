@@ -4,7 +4,7 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { loadEnv } from "vite";
 import path from "node:path";
 
-export default defineConfig((({ mode }) => {
+export default defineConfig((({ mode }: { mode: string }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
   const serverEnv = loadEnv(mode, process.cwd(), "");
   Object.assign(process.env, serverEnv);
