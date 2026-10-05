@@ -1982,6 +1982,10 @@ export type Database = {
         Args: { _id: string }
         Returns: boolean
       }
+      student_mark_all_notifications_read: {
+        Args: never
+        Returns: number
+      }
       student_set_task_completed: {
         Args: { _completed: boolean; _task_id: string }
         Returns: boolean
