@@ -308,6 +308,45 @@ export type StudentTask = {
   completed: boolean;
 };
 
+export type StudentTaskDetailed = StudentTask & {
+  classroom_id: string;
+  classroom_name: string;
+  subject_id: string | null;
+  subject_name: string | null;
+  teacher_id: string;
+  teacher_name: string;
+};
+
+export type StudentAssessmentDetailed = StudentAssessment & {
+  classroom_id: string;
+  classroom_name: string;
+  subject_id: string | null;
+  teacher_id: string;
+  teacher_name: string;
+};
+
+export type AcademicMaterialDetailed = AcademicMaterial & {
+  teacher_id: string;
+  teacher_name: string;
+};
+
+export type StudentAnnouncementDetailed = {
+  id: string;
+  teacher_id: string;
+  teacher_name: string;
+  classroom_id: string;
+  classroom_name: string;
+  title: string;
+  content: string;
+  attachment_path: string | null;
+  attachment_name: string | null;
+  attachment_size: number | null;
+  attachment_type: string | null;
+  attachment_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 async function addAttachmentUrls<T extends {
   attachment_path: string | null;
   attachment_name: string | null;
@@ -351,12 +390,28 @@ export async function loadAnnouncements(): Promise<StudentAnnouncement[]> {
   return addAttachmentUrls((data ?? []) as Tables<"announcements">[]);
 }
 
+export async function loadStudentAnnouncementsDetailed(): Promise<StudentAnnouncementDetailed[]> {
+  const { data, error } = await supabase.rpc("student_list_announcements_detailed");
+  if (error) throw error;
+  return addAttachmentUrls((data ?? []) as Omit<StudentAnnouncementDetailed, "attachment_url">[]);
+}
+
 export async function loadTasks(): Promise<StudentTask[]> {
   const { data, error } = await supabase.rpc("student_list_tasks");
   if (error) throw error;
   return addAttachmentUrls((data ?? []) as Omit<StudentTask, "attachment_url" | "completed">[]).then(
     (items) => items.map((item) => ({ ...item, completed: (data ?? []).find((task) => task.id === item.id)?.completed ?? false })),
   ) as Promise<StudentTask[]>;
+}
+
+export async function loadStudentTasksDetailed(): Promise<StudentTaskDetailed[]> {
+  const { data, error } = await supabase.rpc("student_list_tasks_detailed");
+  if (error) throw error;
+  return addAttachmentUrls((data ?? []).map((item) => ({
+    ...item,
+    classroom: item.classroom_name,
+    subject: item.subject_name ?? "",
+  })) as Omit<StudentTaskDetailed, "attachment_url">[]);
 }
 
 export async function setTaskCompleted(taskId: string, completed: boolean): Promise<boolean> {
@@ -786,6 +841,12 @@ export async function loadStudentAssessments(): Promise<StudentAssessment[]> {
   return (data ?? []) as StudentAssessment[];
 }
 
+export async function loadStudentAssessmentsDetailed(): Promise<StudentAssessmentDetailed[]> {
+  const { data, error } = await supabase.rpc("student_list_assessments_detailed");
+  if (error) throw error;
+  return (data ?? []) as StudentAssessmentDetailed[];
+}
+
 export async function submitTask(taskId: string, content: string) {
   const { data, error } = await supabase.rpc("student_submit_task", { _task_id: taskId, _content: content });
   if (error) throw error;
@@ -1051,6 +1112,16 @@ export async function loadStudentAcademicMaterials(): Promise<AcademicMaterial[]
   const { data, error } = await supabase.rpc("student_list_academic_materials");
   if (error) throw error;
   const items = (data ?? []) as AcademicMaterial[];
+  return Promise.all(items.map(async item => {
+    const { data: signed } = await supabase.storage.from(ACADEMIC_ATTACHMENT_BUCKET).createSignedUrl(item.file_path, 60 * 60);
+    return { ...item, file_url: signed?.signedUrl ?? null };
+  }));
+}
+
+export async function loadStudentAcademicMaterialsDetailed(): Promise<AcademicMaterialDetailed[]> {
+  const { data, error } = await supabase.rpc("student_list_academic_materials_detailed");
+  if (error) throw error;
+  const items = (data ?? []) as AcademicMaterialDetailed[];
   return Promise.all(items.map(async item => {
     const { data: signed } = await supabase.storage.from(ACADEMIC_ATTACHMENT_BUCKET).createSignedUrl(item.file_path, 60 * 60);
     return { ...item, file_url: signed?.signedUrl ?? null };
