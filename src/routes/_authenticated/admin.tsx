@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, BookOpen, UserCheck, Ban, UserRoundCheck, XCircle, Building2, Power, Trash2 } from "lucide-react";
+import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, BookOpen, UserCheck, Ban, UserRoundCheck, XCircle, Building2, Power, Trash2, Plus } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -361,89 +361,6 @@ ${institutionNameValue}`);
           </div>
         </section>
 
-        <section className={adminTab === "escolas" ? "sina-card p-6" : "hidden"}>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-primary">Multi-instituição</p>
-              <h2 className="mt-1 font-semibold">Cadastrar uma nova escola</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Cada instituição terá sua própria estrutura acadêmica, turmas, usuários e dados.</p>
-            </div>
-            <div className="grid w-full gap-3 sm:grid-cols-2 lg:max-w-2xl">
-              <Input
-                value={institutionSchoolSearch}
-                onChange={e => setInstitutionSchoolSearch(e.target.value)}
-                placeholder="Pesquisar escola real no catálogo"
-              />
-              <select
-                value={selectedInstitutionSchool?.id ?? ""}
-                onChange={e => {
-                  const school = institutionSchools.data?.find(item => item.id === e.target.value) ?? null;
-                  setSelectedInstitutionSchool(school);
-                }}
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                aria-label="Escola do catálogo"
-              >
-                <option value="">Selecione a escola</option>
-                {(institutionSchools.data ?? []).map(school => (
-                  <option key={school.id} value={school.id}>
-                    {school.name} — {school.network_type}
-                  </option>
-                ))}
-              </select>
-              <Input value={institutionName} onChange={e => setInstitutionName(e.target.value)} placeholder="Nome da instituição" />
-              <Input value={institutionSlug} onChange={e => setInstitutionSlug(e.target.value)} placeholder="Identificador, ex.: escola-centro" />
-              <Button className="sm:col-span-2 lg:col-span-2" onClick={() => void createInstitution()} disabled={creatingInstitution || !selectedInstitutionSchool || !institutionName.trim() || !institutionSlug.trim()}>
-                {creatingInstitution ? "Vinculando…" : "Vincular escola e criar instituição"}
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        <section className={adminTab === "escolas" ? "sina-card p-6" : "hidden"}>
-          <div className="flex items-start gap-3">
-            <Building2 className="mt-0.5 size-5 text-primary" />
-            <div>
-              <h2 className="font-semibold">Escolas e instituições</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Ative, desative ou exclua uma instituição. A exclusão definitiva só ocorre quando não existem dados vinculados.</p>
-            </div>
-          </div>
-          <div className="mt-5 space-y-2">
-            {(institutions.data ?? []).map((institution) => (
-              <div key={institution.id} className="flex flex-col gap-3 rounded-2xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="font-semibold">{institution.name}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span>{institution.slug}</span>
-                    <span className={institution.status === "active" ? "rounded-full bg-primary/10 px-2 py-1 font-semibold text-primary" : "rounded-full bg-muted px-2 py-1 font-semibold"}>{institution.status === "active" ? "Ativa" : "Inativa"}</span>
-                    {institution.is_active && <span className="rounded-full border border-border px-2 py-1">Atual</span>}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={busyId?.includes(institution.id)}
-                    onClick={() => void setInstitutionStatus(institution.id, institution.status === "active" ? "inactive" : "active")}
-                  >
-                    <Power className="mr-2 size-4" />
-                    {institution.status === "active" ? "Desativar" : "Ativar"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-destructive"
-                    disabled={busyId?.includes(institution.id)}
-                    onClick={() => void deleteInstitution(institution.id, institution.name)}
-                  >
-                    <Trash2 className="mr-2 size-4" />Excluir
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {!(institutions.data ?? []).length && <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhuma escola vinculada a esta conta administrativa.</p>}
-          </div>
-        </section>
-
         <section className="rounded-2xl border border-primary/15 bg-primary/5 p-5">
           <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Precisa da sua atenção</p><h2 className="mt-1 font-semibold">Pendências administrativas</h2></div><ShieldCheck className="size-5 text-primary"/></div>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -511,6 +428,141 @@ ${institutionNameValue}`);
           </div>
         </section>
 
+        </div>
+
+        <div className={adminTab === "escolas" ? "space-y-6" : "hidden"}>
+          <section className="rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm sm:p-7">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-muted">Gestão institucional</p>
+                <h2 className="mt-1 font-display text-2xl font-bold">Escolas</h2>
+                <p className="mt-2 max-w-2xl text-sm text-brand-muted">Crie e administre as instituições do SINA. Você pode ativar, suspender ou excluir uma escola quando necessário.</p>
+              </div>
+              <div className="rounded-2xl bg-brand-panel px-4 py-3 text-sm">
+                <p className="font-semibold">Exclusão definitiva</p>
+                <p className="mt-1 text-xs text-brand-muted">Ação destrutiva e irreversível. O nome da escola será exigido para confirmar.</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="sina-card p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+              <Plus className="mt-0.5 size-5 text-primary" />
+              <div>
+                <h3 className="font-semibold">Criar escola</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Pesquise o catálogo oficial e vincule a escola a uma nova instituição do SINA.</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              <label className="grid gap-1.5 text-sm">
+                <span className="font-medium">Pesquisar escola</span>
+                <Input value={institutionSchoolSearch} onChange={e => setInstitutionSchoolSearch(e.target.value)} placeholder="Ex.: Instituto Central..." />
+              </label>
+              <label className="grid gap-1.5 text-sm">
+                <span className="font-medium">Escola do catálogo</span>
+                <select
+                  value={selectedInstitutionSchool?.id ?? ""}
+                  onChange={e => {
+                    const school = institutionSchools.data?.find(item => item.id === e.target.value) ?? null;
+                    setSelectedInstitutionSchool(school);
+                  }}
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Selecione uma escola</option>
+                  {(institutionSchools.data ?? []).map(school => <option key={school.id} value={school.id}>{school.name} — {school.network_type}</option>)}
+                </select>
+              </label>
+              <label className="grid gap-1.5 text-sm">
+                <span className="font-medium">Nome da instituição</span>
+                <Input value={institutionName} onChange={e => setInstitutionName(e.target.value)} placeholder="Nome exibido no SINA" />
+              </label>
+              <label className="grid gap-1.5 text-sm">
+                <span className="font-medium">Identificador</span>
+                <Input value={institutionSlug} onChange={e => setInstitutionSlug(e.target.value)} placeholder="ex.: instituto-central" />
+              </label>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button onClick={() => void createInstitution()} disabled={creatingInstitution || !selectedInstitutionSchool || !institutionName.trim() || !institutionSlug.trim()}>
+                {creatingInstitution ? "Criando escola…" : "Criar escola"}
+              </Button>
+              <Button type="button" variant="outline" disabled={creatingInstitution} onClick={() => { setInstitutionName(""); setInstitutionSlug(""); setInstitutionSchoolSearch(""); setSelectedInstitutionSchool(null); }}>
+                Limpar
+              </Button>
+            </div>
+          </section>
+
+          <section className="sina-card p-5 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h3 className="font-semibold">Escolas cadastradas</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Gerencie as instituições ligadas à sua conta administrativa.</p>
+              </div>
+              <div className="flex gap-2 text-xs font-semibold">
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 text-primary">{(institutions.data ?? []).filter(i => i.status === "active").length} ativas</span>
+                <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">{(institutions.data ?? []).filter(i => i.status !== "active").length} suspensas</span>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-2xl border border-border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div><p className="font-semibold">Ativas</p><p className="text-xs text-muted-foreground">Disponíveis para operação.</p></div>
+                  <Power className="size-4 text-primary" />
+                </div>
+                <div className="mt-4 space-y-2">
+                  {(institutions.data ?? []).filter(i => i.status === "active").map(institution => (
+                    <div key={institution.id} className="rounded-xl border border-border bg-background p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="font-semibold">{institution.name}</p>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">{institution.slug}</p>
+                          {institution.is_active && <span className="mt-2 inline-flex rounded-full border border-border px-2 py-1 text-[11px] font-semibold">Instituição atual</span>}
+                        </div>
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          <Button size="sm" variant="outline" disabled={busyId?.includes(institution.id)} onClick={() => void setInstitutionStatus(institution.id, "inactive")}>
+                            <Power className="mr-2 size-4" />Suspender
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-destructive" disabled={busyId?.includes(institution.id)} onClick={() => void deleteInstitution(institution.id, institution.name)}>
+                            <Trash2 className="mr-2 size-4" />Apagar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {!(institutions.data ?? []).some(i => i.status === "active") && <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhuma escola ativa.</p>}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div><p className="font-semibold">Suspensas</p><p className="text-xs text-muted-foreground">Ficam preservadas e podem ser reativadas.</p></div>
+                  <Ban className="size-4 text-muted-foreground" />
+                </div>
+                <div className="mt-4 space-y-2">
+                  {(institutions.data ?? []).filter(i => i.status !== "active").map(institution => (
+                    <div key={institution.id} className="rounded-xl border border-border bg-muted/20 p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="font-semibold">{institution.name}</p>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">{institution.slug}</p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          <Button size="sm" onClick={() => void setInstitutionStatus(institution.id, "active")} disabled={busyId?.includes(institution.id)}>
+                            <Power className="mr-2 size-4" />Ativar
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-destructive" disabled={busyId?.includes(institution.id)} onClick={() => void deleteInstitution(institution.id, institution.name)}>
+                            <Trash2 className="mr-2 size-4" />Apagar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {!(institutions.data ?? []).some(i => i.status !== "active") && <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhuma escola suspensa.</p>}
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
 
         <section id="aprovacoes" className={adminTab === "pessoas" ? "sina-card sina-card-hover scroll-mt-28 p-6" : "hidden"}>
