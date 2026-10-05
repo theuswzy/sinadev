@@ -1595,6 +1595,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_review_role_request_v2: {
+        Args: {
+          _approved_role: string
+          _decision: string
+          _note: string
+          _request_id: string
+        }
+        Returns: boolean
+      }
       admin_revoke_institution_invitation: {
         Args: { _id: string }
         Returns: boolean
