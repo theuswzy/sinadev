@@ -23,7 +23,11 @@ function AuthContinuePage() {
     if (!target) return null;
     try {
       const url = new URL(target);
-      if (url.protocol !== "https:" || url.hostname !== "sinna.cloud") return null;
+      const allowedHosts = new Set([
+        "sinna.cloud",
+        "zwapwxbczezqfghenrgy.supabase.co",
+      ]);
+      if (url.protocol !== "https:" || !allowedHosts.has(url.hostname)) return null;
       return url.toString();
     } catch {
       return null;
