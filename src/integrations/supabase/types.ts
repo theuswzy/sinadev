@@ -583,6 +583,7 @@ export type Database = {
           score: number
           student_id: string
           subject: string
+          teacher_id: string | null
           subject_id: string | null
           term_id: string | null
           updated_at: string
@@ -596,6 +597,7 @@ export type Database = {
           score: number
           student_id: string
           subject: string
+          teacher_id?: string | null
           subject_id?: string | null
           term_id?: string | null
           updated_at?: string
@@ -609,6 +611,7 @@ export type Database = {
           score?: number
           student_id?: string
           subject?: string
+          teacher_id?: string | null
           subject_id?: string | null
           term_id?: string | null
           updated_at?: string
