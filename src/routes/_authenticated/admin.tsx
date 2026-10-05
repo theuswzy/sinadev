@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, BookOpen, UserCheck, Ban, UserRoundCheck, XCircle, Building2, Power, Trash2, Plus } from "lucide-react";
+import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, BookOpen, UserCheck, Ban, UserRoundCheck, XCircle, Building2, Power, Trash2, Plus, Pencil } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +80,7 @@ function AdminArea() {
   const [institutionName, setInstitutionName] = useState("");
   const [institutionSlug, setInstitutionSlug] = useState("");
   const [creatingInstitution, setCreatingInstitution] = useState(false);
+  const [editingInstitutionId, setEditingInstitutionId] = useState<string | null>(null);
   const [institutionSchoolSearch, setInstitutionSchoolSearch] = useState("");
   const [selectedInstitutionSchool, setSelectedInstitutionSchool] = useState<SchoolDirectoryEntry | null>(null);
 
@@ -122,6 +123,43 @@ function AdminArea() {
       toast.error(errorText(error));
     } finally {
       setCreatingInstitution(false);
+    }
+  }
+
+  function startEditInstitution(institution: { id: string; name: string; slug: string }) {
+    setEditingInstitutionId(institution.id);
+    setInstitutionName(institution.name);
+    setInstitutionSlug(institution.slug);
+    setSelectedInstitutionSchool(null);
+    setInstitutionSchoolSearch("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelEditInstitution() {
+    setEditingInstitutionId(null);
+    setInstitutionName("");
+    setInstitutionSlug("");
+    setInstitutionSchoolSearch("");
+    setSelectedInstitutionSchool(null);
+  }
+
+  async function saveInstitutionEdit() {
+    if (!editingInstitutionId || !institutionName.trim() || !institutionSlug.trim()) return;
+    setBusyId("edit-institution:" + editingInstitutionId);
+    try {
+      const { error } = await supabase.rpc("admin_update_institution", {
+        _institution_id: editingInstitutionId,
+        _name: institutionName.trim(),
+        _slug: institutionSlug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, ""),
+      });
+      if (error) throw error;
+      toast.success("Escola atualizada com sucesso.");
+      cancelEditInstitution();
+      await queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -449,17 +487,17 @@ ${institutionNameValue}`);
             <div className="flex items-start gap-3">
               <Plus className="mt-0.5 size-5 text-primary" />
               <div>
-                <h3 className="font-semibold">Criar escola</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Pesquise o catálogo oficial e vincule a escola a uma nova instituição do SINA.</p>
+                <h3 className="font-semibold">{editingInstitutionId ? "Editar escola" : "Criar escola"}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{editingInstitutionId ? "Atualize o nome e o identificador da instituição. O vínculo acadêmico permanece preservado." : "Pesquise o catálogo oficial e vincule a escola a uma nova instituição do SINA."}</p>
               </div>
             </div>
 
             <div className="mt-5 grid gap-3 md:grid-cols-2">
-              <label className="grid gap-1.5 text-sm">
+              {!editingInstitutionId && <label className="grid gap-1.5 text-sm">
                 <span className="font-medium">Pesquisar escola</span>
                 <Input value={institutionSchoolSearch} onChange={e => setInstitutionSchoolSearch(e.target.value)} placeholder="Ex.: Instituto Central..." />
-              </label>
-              <label className="grid gap-1.5 text-sm">
+              </label>}
+              {!editingInstitutionId && <label className="grid gap-1.5 text-sm">
                 <span className="font-medium">Escola do catálogo</span>
                 <select
                   value={selectedInstitutionSchool?.id ?? ""}
@@ -472,7 +510,7 @@ ${institutionNameValue}`);
                   <option value="">Selecione uma escola</option>
                   {(institutionSchools.data ?? []).map(school => <option key={school.id} value={school.id}>{school.name} — {school.network_type}</option>)}
                 </select>
-              </label>
+              </label>}
               <label className="grid gap-1.5 text-sm">
                 <span className="font-medium">Nome da instituição</span>
                 <Input value={institutionName} onChange={e => setInstitutionName(e.target.value)} placeholder="Nome exibido no SINA" />
@@ -483,12 +521,25 @@ ${institutionNameValue}`);
               </label>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={() => void createInstitution()} disabled={creatingInstitution || !selectedInstitutionSchool || !institutionName.trim() || !institutionSlug.trim()}>
-                {creatingInstitution ? "Criando escola…" : "Criar escola"}
-              </Button>
-              <Button type="button" variant="outline" disabled={creatingInstitution} onClick={() => { setInstitutionName(""); setInstitutionSlug(""); setInstitutionSchoolSearch(""); setSelectedInstitutionSchool(null); }}>
-                Limpar
-              </Button>
+              {editingInstitutionId ? (
+                <>
+                  <Button onClick={() => void saveInstitutionEdit()} disabled={busyId === "edit-institution:" + editingInstitutionId || !institutionName.trim() || !institutionSlug.trim()}>
+                    {busyId === "edit-institution:" + editingInstitutionId ? "Salvando…" : "Salvar alterações"}
+                  </Button>
+                  <Button type="button" variant="outline" disabled={busyId === "edit-institution:" + editingInstitutionId} onClick={cancelEditInstitution}>
+                    Cancelar
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button onClick={() => void createInstitution()} disabled={creatingInstitution || !selectedInstitutionSchool || !institutionName.trim() || !institutionSlug.trim()}>
+                    {creatingInstitution ? "Criando escola…" : "Criar escola"}
+                  </Button>
+                  <Button type="button" variant="outline" disabled={creatingInstitution} onClick={() => { setInstitutionName(""); setInstitutionSlug(""); setInstitutionSchoolSearch(""); setSelectedInstitutionSchool(null); }}>
+                    Limpar
+                  </Button>
+                </>
+              )}
             </div>
           </section>
 
@@ -520,6 +571,9 @@ ${institutionNameValue}`);
                           {institution.is_active && <span className="mt-2 inline-flex rounded-full border border-border px-2 py-1 text-[11px] font-semibold">Instituição atual</span>}
                         </div>
                         <div className="flex shrink-0 flex-wrap gap-2">
+                          <Button size="sm" variant="outline" disabled={busyId?.includes(institution.id)} onClick={() => startEditInstitution(institution)}>
+                            <Pencil className="mr-2 size-4" />Editar
+                          </Button>
                           <Button size="sm" variant="outline" disabled={busyId?.includes(institution.id)} onClick={() => void setInstitutionStatus(institution.id, "inactive")}>
                             <Power className="mr-2 size-4" />Suspender
                           </Button>
@@ -548,6 +602,9 @@ ${institutionNameValue}`);
                           <p className="mt-1 truncate text-xs text-muted-foreground">{institution.slug}</p>
                         </div>
                         <div className="flex shrink-0 flex-wrap gap-2">
+                          <Button size="sm" variant="outline" onClick={() => startEditInstitution(institution)} disabled={busyId?.includes(institution.id)}>
+                            <Pencil className="mr-2 size-4" />Editar
+                          </Button>
                           <Button size="sm" onClick={() => void setInstitutionStatus(institution.id, "active")} disabled={busyId?.includes(institution.id)}>
                             <Power className="mr-2 size-4" />Ativar
                           </Button>
