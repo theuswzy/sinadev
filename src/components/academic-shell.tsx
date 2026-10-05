@@ -103,34 +103,83 @@ export function AcademicShell({
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let cancelled = false;
+    let refreshTimer: ReturnType<typeof window.setTimeout> | null = null;
+
+    const refreshAcademicQueries = () => {
+      if (cancelled) return;
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => {
+        // Keep the three panels in sync after a change made by another panel.
+        // A teacher publishing an activity, for example, invalidates the
+        // student's dashboard; an admin changing a classroom invalidates the
+        // teacher/student academic context as well.
+        const prefixes = [
+          "my-role",
+          "my-institutions",
+          "my-student",
+          "dashboard-",
+          "teacher-",
+          "admin-",
+        ];
+        for (const prefix of prefixes) {
+          void queryClient.invalidateQueries({ queryKey: [prefix], exact: false });
+        }
+      }, 180);
+    };
 
     void supabase.auth.getUser().then(({ data }) => {
       const userId = data.user?.id;
       if (!userId || cancelled) return;
 
-      channel = supabase
-        .channel("institution-context-realtime-" + userId)
+      channel = supabase.channel("sina-academic-realtime-" + userId);
+
+      // Membership/context changes affect authorization and tenant selection.
+      channel
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "institution_memberships", filter: "user_id=eq." + userId },
-          () => {
-            void queryClient.invalidateQueries({ queryKey: ["my-role"] });
-            void queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
-          },
+          refreshAcademicQueries,
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "user_institution_context", filter: "user_id=eq." + userId },
-          () => {
-            void queryClient.invalidateQueries({ queryKey: ["my-role"] });
-            void queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
-          },
+          refreshAcademicQueries,
         )
-        .subscribe();
+        // Student linkage is user-specific, so this is the most important
+        // cross-panel signal for admin/teacher -> student changes.
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "students", filter: "user_id=eq." + userId },
+          refreshAcademicQueries,
+        );
+
+      // Academic records are protected by Supabase RLS. Realtime therefore
+      // only delivers rows the current account is allowed to receive.
+      for (const table of [
+        "grades",
+        "attendance_records",
+        "tasks",
+        "announcements",
+        "assessments",
+        "assessment_scores",
+        "academic_materials",
+        "classrooms",
+        "classroom_subjects",
+        "classroom_teachers",
+      ] as const) {
+        channel.on(
+          "postgres_changes",
+          { event: "*", schema: "public", table },
+          refreshAcademicQueries,
+        );
+      }
+
+      channel.subscribe();
     });
 
     return () => {
       cancelled = true;
+      if (refreshTimer) window.clearTimeout(refreshTimer);
       if (channel) void supabase.removeChannel(channel);
     };
   }, [queryClient]);
