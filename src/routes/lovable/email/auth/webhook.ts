@@ -18,7 +18,10 @@ const SITE_URL = `https://${ROOT_DOMAIN}`
 function protectAuthActionUrl(rawUrl: string): string {
   try {
     const target = new URL(rawUrl)
-    if (target.protocol !== 'https:' || target.hostname !== ROOT_DOMAIN) {
+    if (
+      target.protocol !== 'https:' ||
+      (target.hostname !== ROOT_DOMAIN && target.hostname !== 'zwapwxbczezqfghenrgy.supabase.co')
+    ) {
       return rawUrl
     }
 
