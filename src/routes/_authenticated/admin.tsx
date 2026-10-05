@@ -25,6 +25,8 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminArea,
 });
 
+type AdminTab = "visao-geral" | "escolas" | "pessoas" | "academico" | "historico";
+
 function AdminArea() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -61,6 +63,7 @@ function AdminArea() {
   });
   const [message, setMessage] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [adminTab, setAdminTab] = useState<AdminTab>("visao-geral");
   const [accountSearch, setAccountSearch] = useState("");
   const [accountRoleFilter, setAccountRoleFilter] = useState<"all" | "student" | "teacher">("all");
   const [accountStatusFilter, setAccountStatusFilter] = useState<"all" | "active" | "pending" | "suspended">("all");
@@ -137,7 +140,15 @@ function AdminArea() {
   }
 
   async function deleteInstitution(institutionId: string, institutionNameValue: string) {
-    if (!window.confirm(`Excluir definitivamente a escola "${institutionNameValue}"? Esta ação só será permitida quando não existirem dados acadêmicos ou usuários vinculados.`)) return;
+    const confirmation = window.prompt(`Esta ação é IRREVERSÍVEL e apagará os dados acadêmicos desta escola.
+
+Digite exatamente o nome da escola para confirmar:
+
+${institutionNameValue}`);
+    if (confirmation !== institutionNameValue) {
+      if (confirmation !== null) toast.error("O nome digitado não corresponde. A escola não foi excluída.");
+      return;
+    }
     setBusyId("delete-institution:" + institutionId);
     try {
       const { error } = await supabase.rpc("admin_delete_institution", { _institution_id: institutionId });
@@ -319,14 +330,30 @@ function AdminArea() {
             </Button>
           </div>
         </div>
-        <nav aria-label="Navegação administrativa móvel" className="flex gap-1 overflow-x-auto border-t border-brand-border/60 px-4 py-2 sm:hidden">
-          <a href="#inicio" className="flex shrink-0 items-center gap-2 rounded-lg bg-brand-panel px-3 py-2 text-xs font-semibold text-brand-foreground"><LayoutDashboard className="size-4 text-primary" /> Visão geral</a>
-          <a href="#aprovacoes" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><UserRoundCheck className="size-4" /> Aprovações</a><a href="#autorizacao" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><Users className="size-4" /> Contas</a><a href="#alunos-turmas" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><GraduationCap className="size-4" /> Matriculados</a>
-          <a href="#historico" className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-brand-muted hover:bg-brand-panel hover:text-brand-foreground"><ShieldCheck className="size-4" /> Histórico</a>
-        </nav>
-      </header>
+     </header>
 
-      <main id="inicio" className="mx-auto max-w-6xl scroll-mt-28 space-y-6 px-5 py-7 lg:px-8 lg:py-9">
+      <main id="inicio" className="mx-auto max-w-6xl space-y-6 px-3 py-5 sm:px-5 sm:py-7 lg:px-8 lg:py-9">
+        <nav aria-label="Seções administrativas" className="sina-card sticky top-[68px] z-30 -mx-1 overflow-x-auto p-2 sm:mx-0">
+          <div className="flex min-w-max gap-1">
+            {[
+              ["visao-geral","Visão geral",LayoutDashboard],
+              ["escolas","Escolas",Building2],
+              ["pessoas","Pessoas e acessos",Users],
+              ["academico","Acadêmico",BookOpen],
+              ["historico","Histórico",ShieldCheck],
+            ].map(([id,label,Icon]) => (
+              <button key={id as string} type="button" onClick={() => setAdminTab(id as AdminTab)} className={adminTab === id ? "inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm" : "inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"}>
+                <Icon className="size-4" />{label}
+              </button>
+            ))}
+          </div>
+        </nav>
+        <div className="flex items-center justify-between gap-3">
+          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">{adminTab === "visao-geral" ? "Visão geral" : adminTab === "escolas" ? "Escolas" : adminTab === "pessoas" ? "Pessoas e acessos" : adminTab === "academico" ? "Gestão acadêmica" : "Histórico"}</p><h1 className="mt-1 font-display text-2xl font-bold">{adminTab === "visao-geral" ? "Central administrativa" : adminTab === "escolas" ? "Escolas e instituições" : adminTab === "pessoas" ? "Pessoas, funções e acessos" : adminTab === "academico" ? "Estrutura e vínculos acadêmicos" : "Histórico de alterações"}</h1></div>
+          <span className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground sm:inline-flex">Instituição ativa</span>
+        </div>
+
+        <div className={adminTab === "visao-geral" ? "space-y-6" : "hidden"}>
         <section className="rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm md:p-8">
           <div className="flex items-start gap-4">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-primary"><ShieldCheck className="size-6" /></div>
@@ -334,7 +361,7 @@ function AdminArea() {
           </div>
         </section>
 
-        <section className="sina-card p-6">
+        <section className={adminTab === "escolas" ? "sina-card p-6" : "hidden"}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-primary">Multi-instituição</p>
@@ -372,7 +399,7 @@ function AdminArea() {
           </div>
         </section>
 
-        <section className="sina-card p-6">
+        <section className={adminTab === "escolas" ? "sina-card p-6" : "hidden"}>
           <div className="flex items-start gap-3">
             <Building2 className="mt-0.5 size-5 text-primary" />
             <div>
@@ -475,22 +502,18 @@ function AdminArea() {
           <p className="mt-1 text-sm text-muted-foreground">Os números são contagens dos registros da instituição ativa. Não representam estimativas ou dados demonstrativos.</p>
         </section>
 
-        <section aria-label="Atalhos administrativos" className="rounded-2xl border border-primary/15 bg-primary/5 p-4 sm:p-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-primary">Acesso rápido</p>
-              <p className="mt-1 text-sm text-muted-foreground">Entre diretamente na área que precisa administrar.</p>
-            </div>
+        <section aria-label="Acesso rápido administrativo" className="rounded-2xl border border-primary/15 bg-primary/5 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Acesso rápido</p><p className="mt-1 text-sm text-muted-foreground">Escolha uma área sem precisar percorrer todo o painel.</p></div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <a href="#aprovacoes" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Aprovar cadastros</a>
-              <a href="#autorizacao" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Gerenciar contas</a>
-              <a href="#configuracao-academica" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Estrutura acadêmica</a><a href="#professores-escolas" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Vincular professores</a>
-              <a href="#historico" className="rounded-xl border border-border bg-background px-3 py-2.5 text-center text-xs font-semibold transition-colors hover:border-primary/40 hover:bg-primary/5">Ver histórico</a>
+              {[["escolas","Escolas"],["pessoas","Pessoas"],["academico","Acadêmico"],["historico","Histórico"]].map(([id,label])=><button key={id} type="button" onClick={()=>setAdminTab(id as AdminTab)} className="rounded-xl border border-border bg-background px-3 py-2.5 text-xs font-semibold hover:border-primary/40 hover:bg-primary/5">{label}</button>)}
             </div>
           </div>
         </section>
 
-        <section id="aprovacoes" className="sina-card sina-card-hover scroll-mt-28 p-6">
+        </div>
+
+        <section id="aprovacoes" className={adminTab === "pessoas" ? "sina-card sina-card-hover scroll-mt-28 p-6" : "hidden"}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3"><UserRoundCheck className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Solicitações de acesso</h2><p className="mt-1 text-sm text-muted-foreground">Revise como a pessoa se identificou no cadastro e libere a função acadêmica somente depois da análise.</p></div></div>
             <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">{roleRequests.data?.filter(item => item.status === "pending").length ?? 0} pendentes</span>
@@ -547,7 +570,7 @@ function AdminArea() {
             )}
         </section>
 
-        <section id="autorizacao" className="sina-card sina-card-hover scroll-mt-28 p-6">
+        <section id="autorizacao" className={adminTab === "pessoas" ? "sina-card sina-card-hover scroll-mt-28 p-6" : "hidden"}>
           <div className="flex items-start gap-3"><Users className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Funções acadêmicas</h2><p className="mt-1 text-sm text-muted-foreground">Escolha aluno ou professor para cada conta cadastrada.</p></div></div>
           <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_180px]">
             <div className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar contas" placeholder="Buscar por nome ou e-mail" className="pl-9" value={accountSearch} onChange={(e) => setAccountSearch(e.target.value)} /></div>
@@ -593,17 +616,17 @@ function AdminArea() {
           ) : <p className="mt-5 text-sm text-muted-foreground">{accountSearch ? "Nenhuma conta encontrada." : "Nenhuma conta cadastrada."}</p>}
         </section>
 
-        <section id="configuracao-academica" className="scroll-mt-28">
+        <section id="configuracao-academica" className={adminTab === "academico" ? "scroll-mt-28" : "hidden"}>
           <AdminAcademicSetup />
         </section>
 
-        <section id="alunos-turmas" className="scroll-mt-28">
+        <section id="alunos-turmas" className={adminTab === "academico" ? "scroll-mt-28" : "hidden"}>
           <AdminStudentClassroom />
         </section>
 
-        <AdminTeacherSchool />
+        <div className={adminTab === "academico" ? "space-y-6" : "hidden"}><AdminTeacherSchool />
 
-        <section id="historico" className="sina-card sina-card-hover scroll-mt-28">
+        <section id="historico" className={adminTab === "historico" ? "sina-card sina-card-hover scroll-mt-28" : "hidden"}>
           <div className="flex items-center justify-between border-b border-border p-6">
             <div>
               <h2 className="font-semibold">Histórico de alterações</h2>
@@ -630,3 +653,4 @@ function AdminArea() {
     </div>
   );
 }
+</div>
