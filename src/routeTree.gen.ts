@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as ApresentacaoRouteImport } from './routes/apresentacao'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthContinueRouteImport } from './routes/auth-continue'
 import { Route as ConviteRouteImport } from './routes/convite'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -24,7 +25,9 @@ import { Route as AuthenticatedAlunoAgendaRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAlunoAvisosRouteImport } from './routes/_authenticated/aluno/avisos'
 import { Route as AuthenticatedAlunoDisciplinasRouteImport } from './routes/_authenticated/aluno/disciplinas'
 import { Route as AuthenticatedAlunoFrequenciaRouteImport } from './routes/_authenticated/aluno/frequencia'
+import { Route as AuthenticatedAlunoMateriaisRouteImport } from './routes/_authenticated/aluno/materiais'
 import { Route as AuthenticatedAlunoNotasRouteImport } from './routes/_authenticated/aluno/notas'
+import { Route as AuthenticatedAlunoNotificacoesRouteImport } from './routes/_authenticated/aluno/notificacoes'
 import { Route as AuthenticatedAlunoTarefasRouteImport } from './routes/_authenticated/aluno/tarefas'
 import { Route as AuthenticatedProfessorAgendaRouteImport } from './routes/_authenticated/professor/agenda'
 import { Route as AuthenticatedProfessorAlunosRouteImport } from './routes/_authenticated/professor/alunos'
@@ -56,6 +59,11 @@ const ApresentacaoRoute = ApresentacaoRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthContinueRoute = AuthContinueRouteImport.update({
+  id: '/auth-continue',
+  path: '/auth-continue',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConviteRoute = ConviteRouteImport.update({
@@ -117,11 +125,23 @@ const AuthenticatedAlunoFrequenciaRoute =
     path: '/frequencia',
     getParentRoute: () => AuthenticatedAlunoRoute,
   } as any)
+const AuthenticatedAlunoMateriaisRoute =
+  AuthenticatedAlunoMateriaisRouteImport.update({
+    id: '/materiais',
+    path: '/materiais',
+    getParentRoute: () => AuthenticatedAlunoRoute,
+  } as any)
 const AuthenticatedAlunoNotasRoute = AuthenticatedAlunoNotasRouteImport.update({
   id: '/notas',
   path: '/notas',
   getParentRoute: () => AuthenticatedAlunoRoute,
 } as any)
+const AuthenticatedAlunoNotificacoesRoute =
+  AuthenticatedAlunoNotificacoesRouteImport.update({
+    id: '/notificacoes',
+    path: '/notificacoes',
+    getParentRoute: () => AuthenticatedAlunoRoute,
+  } as any)
 const AuthenticatedAlunoTarefasRoute =
   AuthenticatedAlunoTarefasRouteImport.update({
     id: '/tarefas',
@@ -203,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/apresentacao': typeof ApresentacaoRoute
   '/auth': typeof AuthRoute
+  '/auth-continue': typeof AuthContinueRoute
   '/convite': typeof ConviteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -214,7 +235,9 @@ export interface FileRoutesByFullPath {
   '/aluno/avisos': typeof AuthenticatedAlunoAvisosRoute
   '/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
   '/aluno/frequencia': typeof AuthenticatedAlunoFrequenciaRoute
+  '/aluno/materiais': typeof AuthenticatedAlunoMateriaisRoute
   '/aluno/notas': typeof AuthenticatedAlunoNotasRoute
+  '/aluno/notificacoes': typeof AuthenticatedAlunoNotificacoesRoute
   '/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
   '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
   '/professor/alunos': typeof AuthenticatedProfessorAlunosRoute
@@ -233,6 +256,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/apresentacao': typeof ApresentacaoRoute
   '/auth': typeof AuthRoute
+  '/auth-continue': typeof AuthContinueRoute
   '/convite': typeof ConviteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -244,7 +268,9 @@ export interface FileRoutesByTo {
   '/aluno/avisos': typeof AuthenticatedAlunoAvisosRoute
   '/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
   '/aluno/frequencia': typeof AuthenticatedAlunoFrequenciaRoute
+  '/aluno/materiais': typeof AuthenticatedAlunoMateriaisRoute
   '/aluno/notas': typeof AuthenticatedAlunoNotasRoute
+  '/aluno/notificacoes': typeof AuthenticatedAlunoNotificacoesRoute
   '/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
   '/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
   '/professor/alunos': typeof AuthenticatedProfessorAlunosRoute
@@ -265,6 +291,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/apresentacao': typeof ApresentacaoRoute
   '/auth': typeof AuthRoute
+  '/auth-continue': typeof AuthContinueRoute
   '/convite': typeof ConviteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -276,7 +303,9 @@ export interface FileRoutesById {
   '/_authenticated/aluno/avisos': typeof AuthenticatedAlunoAvisosRoute
   '/_authenticated/aluno/disciplinas': typeof AuthenticatedAlunoDisciplinasRoute
   '/_authenticated/aluno/frequencia': typeof AuthenticatedAlunoFrequenciaRoute
+  '/_authenticated/aluno/materiais': typeof AuthenticatedAlunoMateriaisRoute
   '/_authenticated/aluno/notas': typeof AuthenticatedAlunoNotasRoute
+  '/_authenticated/aluno/notificacoes': typeof AuthenticatedAlunoNotificacoesRoute
   '/_authenticated/aluno/tarefas': typeof AuthenticatedAlunoTarefasRoute
   '/_authenticated/professor/agenda': typeof AuthenticatedProfessorAgendaRoute
   '/_authenticated/professor/alunos': typeof AuthenticatedProfessorAlunosRoute
@@ -297,6 +326,7 @@ export interface FileRouteTypes {
     | '/'
     | '/apresentacao'
     | '/auth'
+    | '/auth-continue'
     | '/convite'
     | '/reset-password'
     | '/admin'
@@ -308,7 +338,9 @@ export interface FileRouteTypes {
     | '/aluno/avisos'
     | '/aluno/disciplinas'
     | '/aluno/frequencia'
+    | '/aluno/materiais'
     | '/aluno/notas'
+    | '/aluno/notificacoes'
     | '/aluno/tarefas'
     | '/professor/agenda'
     | '/professor/alunos'
@@ -327,6 +359,7 @@ export interface FileRouteTypes {
     | '/'
     | '/apresentacao'
     | '/auth'
+    | '/auth-continue'
     | '/convite'
     | '/reset-password'
     | '/admin'
@@ -338,7 +371,9 @@ export interface FileRouteTypes {
     | '/aluno/avisos'
     | '/aluno/disciplinas'
     | '/aluno/frequencia'
+    | '/aluno/materiais'
     | '/aluno/notas'
+    | '/aluno/notificacoes'
     | '/aluno/tarefas'
     | '/professor/agenda'
     | '/professor/alunos'
@@ -358,6 +393,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/apresentacao'
     | '/auth'
+    | '/auth-continue'
     | '/convite'
     | '/reset-password'
     | '/_authenticated/admin'
@@ -369,7 +405,9 @@ export interface FileRouteTypes {
     | '/_authenticated/aluno/avisos'
     | '/_authenticated/aluno/disciplinas'
     | '/_authenticated/aluno/frequencia'
+    | '/_authenticated/aluno/materiais'
     | '/_authenticated/aluno/notas'
+    | '/_authenticated/aluno/notificacoes'
     | '/_authenticated/aluno/tarefas'
     | '/_authenticated/professor/agenda'
     | '/_authenticated/professor/alunos'
@@ -390,6 +428,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   ApresentacaoRoute: typeof ApresentacaoRoute
   AuthRoute: typeof AuthRoute
+  AuthContinueRoute: typeof AuthContinueRoute
   ConviteRoute: typeof ConviteRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -424,6 +463,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth-continue': {
+      id: '/auth-continue'
+      path: '/auth-continue'
+      fullPath: '/auth-continue'
+      preLoaderRoute: typeof AuthContinueRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/convite': {
@@ -503,11 +549,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlunoFrequenciaRouteImport
       parentRoute: typeof AuthenticatedAlunoRoute
     }
+    '/_authenticated/aluno/materiais': {
+      id: '/_authenticated/aluno/materiais'
+      path: '/materiais'
+      fullPath: '/aluno/materiais'
+      preLoaderRoute: typeof AuthenticatedAlunoMateriaisRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
     '/_authenticated/aluno/notas': {
       id: '/_authenticated/aluno/notas'
       path: '/notas'
       fullPath: '/aluno/notas'
       preLoaderRoute: typeof AuthenticatedAlunoNotasRouteImport
+      parentRoute: typeof AuthenticatedAlunoRoute
+    }
+    '/_authenticated/aluno/notificacoes': {
+      id: '/_authenticated/aluno/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/aluno/notificacoes'
+      preLoaderRoute: typeof AuthenticatedAlunoNotificacoesRouteImport
       parentRoute: typeof AuthenticatedAlunoRoute
     }
     '/_authenticated/aluno/tarefas': {
@@ -609,7 +669,9 @@ interface AuthenticatedAlunoRouteChildren {
   AuthenticatedAlunoAvisosRoute: typeof AuthenticatedAlunoAvisosRoute
   AuthenticatedAlunoDisciplinasRoute: typeof AuthenticatedAlunoDisciplinasRoute
   AuthenticatedAlunoFrequenciaRoute: typeof AuthenticatedAlunoFrequenciaRoute
+  AuthenticatedAlunoMateriaisRoute: typeof AuthenticatedAlunoMateriaisRoute
   AuthenticatedAlunoNotasRoute: typeof AuthenticatedAlunoNotasRoute
+  AuthenticatedAlunoNotificacoesRoute: typeof AuthenticatedAlunoNotificacoesRoute
   AuthenticatedAlunoTarefasRoute: typeof AuthenticatedAlunoTarefasRoute
 }
 
@@ -618,7 +680,9 @@ const AuthenticatedAlunoRouteChildren: AuthenticatedAlunoRouteChildren = {
   AuthenticatedAlunoAvisosRoute: AuthenticatedAlunoAvisosRoute,
   AuthenticatedAlunoDisciplinasRoute: AuthenticatedAlunoDisciplinasRoute,
   AuthenticatedAlunoFrequenciaRoute: AuthenticatedAlunoFrequenciaRoute,
+  AuthenticatedAlunoMateriaisRoute: AuthenticatedAlunoMateriaisRoute,
   AuthenticatedAlunoNotasRoute: AuthenticatedAlunoNotasRoute,
+  AuthenticatedAlunoNotificacoesRoute: AuthenticatedAlunoNotificacoesRoute,
   AuthenticatedAlunoTarefasRoute: AuthenticatedAlunoTarefasRoute,
 }
 
@@ -686,6 +750,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   ApresentacaoRoute: ApresentacaoRoute,
   AuthRoute: AuthRoute,
+  AuthContinueRoute: AuthContinueRoute,
   ConviteRoute: ConviteRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
