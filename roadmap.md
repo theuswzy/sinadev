@@ -1,11 +1,5 @@
 # SINA — Roadmap
 
-## Auditoria de qualidade — 6 de outubro de 2026
-- [ ] Revisar rotas, navegação e estados dos três painéis sem redesenhar.
-- [ ] Conferir contratos RPC, permissões por instituição e Storage sem alterar dados reais para testes.
-- [ ] Corrigir defeitos confirmados e validar lint, compilação automática e navegação no navegador.
-- [ ] Registrar cobertura, correções e bloqueios em relatório de auditoria.
-
 ## Fundação da plataforma
 - [x] Preservar a identidade visual institucional do SINA.
 - [x] Autenticação, recuperação de senha e áreas protegidas por função.
