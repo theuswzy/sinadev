@@ -72,12 +72,14 @@ function AdminArea() {
   const [accountRoleFilter, setAccountRoleFilter] = useState<"all" | "student" | "teacher">("all");
   const [accountStatusFilter, setAccountStatusFilter] = useState<"all" | "active" | "pending" | "suspended">("all");
   const adminStudents = useQuery({ queryKey: ["admin-students"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_student_school_links"); if (error) throw error; return data ?? []; }, enabled: role.data === true, refetchOnWindowFocus: true, refetchInterval: 30000 });
-  const adminTeachers = useQuery({ queryKey: ["admin-teachers"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_teacher_school_links"); if (error) throw error; return data ?? []; }, enabled: role.data === true });
-  const academicSetup = useQuery<AdminAcademicSetupData>({ queryKey: ["admin-academic-setup"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_academic_setup"); if (error) throw error; return (data ?? { classrooms: [], subjects: [], terms: [] }) as AdminAcademicSetupData; }, enabled: role.data === true });
+  const adminTeachers = useQuery({ queryKey: ["admin-teachers"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_teacher_school_links"); if (error) throw error; return data ?? []; }, enabled: role.data === true, refetchOnWindowFocus: true, refetchInterval: 30000 });
+  const academicSetup = useQuery<AdminAcademicSetupData>({ queryKey: ["admin-academic-setup"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_academic_setup"); if (error) throw error; return (data ?? { classrooms: [], subjects: [], terms: [] }) as AdminAcademicSetupData; }, enabled: role.data === true, refetchOnWindowFocus: true, refetchInterval: 30000 });
   const roleRequests = useQuery({
     queryKey: ["admin-role-requests"],
     queryFn: loadAccountRoleRequests,
     enabled: role.data === true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
   });
   const [approvalRoles, setApprovalRoles] = useState<Record<string, "student" | "teacher">>({});
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
@@ -235,6 +237,8 @@ function AdminArea() {
       return data ?? [];
     },
     enabled: role.data === true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
   });
 
   async function setAcademicRole(userId: string, nextRole: "student" | "teacher") {
