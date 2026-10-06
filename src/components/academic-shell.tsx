@@ -153,16 +153,28 @@ export function AcademicShell({
       // Academic records are protected by Supabase RLS. Realtime therefore
       // only delivers rows the current account is allowed to receive.
       for (const table of [
+        "profiles",
+        "user_roles",
+        "account_role_requests",
+        "institution_invitations",
         "grades",
         "attendance_records",
         "tasks",
+        "task_submissions",
+        "task_completions",
         "announcements",
         "assessments",
         "assessment_scores",
         "academic_materials",
+        "calendar_events",
+        "notifications",
         "classrooms",
+        "subjects",
+        "academic_terms",
         "classroom_subjects",
         "classroom_teachers",
+        "students",
+        "audit_logs",
       ] as const) {
         channel.on(
           "postgres_changes",
