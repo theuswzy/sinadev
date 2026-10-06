@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarDays, CheckCircle2, ClipboardCheck, Clock3, FileText, Download } from "lucide-react";
+import { CalendarDays, CheckCircle2, ClipboardCheck, Clock3, FileText, Download, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -60,9 +60,15 @@ export function StudentAcademicCenter() {
   return (
     <section id="academico" className="mt-6 scroll-mt-28 space-y-5">
       <div className="rounded-3xl border border-primary/15 bg-primary/5 p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Minha vida acadêmica</p>
         <h2 className="mt-1 font-display text-2xl font-bold">Atividades, avaliações, frequência e agenda</h2>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Tudo que você precisa acompanhar fica reunido em uma única área.</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => void Promise.all([tasks.refetch(), assessments.refetch(), attendance.refetch(), calendar.refetch(), submissions.refetch(), materials.refetch()])} disabled={tasks.isFetching || assessments.isFetching || attendance.isFetching || calendar.isFetching || submissions.isFetching || materials.isFetching}>
+            <RefreshCw className={"mr-2 size-4 " + ((tasks.isFetching || assessments.isFetching || attendance.isFetching || calendar.isFetching || submissions.isFetching || materials.isFetching) ? "animate-spin" : "")} />
+            {tasks.isFetching || assessments.isFetching || attendance.isFetching || calendar.isFetching || submissions.isFetching || materials.isFetching ? "Atualizando…" : "Atualizar dados"}
+          </Button>
+        </div>
       </div>
 
       <div className="sina-card p-6">
