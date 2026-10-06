@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "audit:static": "node scripts/sina-static-audit.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"
