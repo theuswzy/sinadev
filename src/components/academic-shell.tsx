@@ -23,6 +23,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Component, type ErrorInfo, type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
 import { getRole, type UserRole } from "@/lib/sina-data";
@@ -351,6 +352,7 @@ export function AcademicShell({
                       const { error } = await supabase.rpc("account_set_institution", { _institution_id: event.target.value });
                       if (error) {
                         console.error("[SINA] Não foi possível trocar a instituição:", error);
+                        toast.error("Não foi possível trocar de instituição.");
                         return;
                       }
                       await Promise.all([
@@ -363,6 +365,7 @@ export function AcademicShell({
                           },
                         }),
                       ]);
+                      toast.success("Instituição ativa atualizada.");
                     }}
                     className="max-w-[120px] bg-transparent text-xs font-semibold outline-none sm:max-w-48"
                   >
