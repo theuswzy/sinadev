@@ -1,14 +1,35 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
+import { StudentModulePage, type StudentModule } from "@/components/student-module-page";
+import { StudentNotifications } from "@/routes/_authenticated/aluno/notificacoes";
 import { Button } from "@/components/ui/button";
 import { errorText, getRole, loadGrades, loadMyStudent, loadStudentAcademicMaterialsDetailed, loadStudentCalendar, loadStudentAssessmentsDetailed, loadStudentSubjects, loadStudentTasksDetailed, loadStudentAnnouncementsDetailed, loadStudentAttendanceDetailed, loadNotifications } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({ meta: [{ title: "Dashboard do aluno — SINA" }, { name: "description", content: "Visão geral da vida acadêmica do aluno." }] }),
-  component: StudentDashboard,
+  component: StudentArea,
 });
+
+const studentModuleByPath: Record<string, StudentModule> = {
+  "/aluno/tarefas": "tarefas",
+  "/aluno/disciplinas": "disciplinas",
+  "/aluno/notas": "notas",
+  "/aluno/frequencia": "frequencia",
+  "/aluno/agenda": "agenda",
+  "/aluno/avisos": "avisos",
+  "/aluno/materiais": "materiais",
+};
+
+function StudentArea() {
+  const location = useLocation();
+  const module = studentModuleByPath[location.pathname];
+
+  if (module) return <StudentModulePage module={module} />;
+  if (location.pathname === "/aluno/notificacoes") return <StudentNotifications />;
+  return <StudentDashboard />;
+}
 
 function StudentDashboard() {
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
