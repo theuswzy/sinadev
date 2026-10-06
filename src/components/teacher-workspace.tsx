@@ -16,7 +16,7 @@ import {
   errorText, formatScore, gradeTaskSubmission, uploadAcademicAttachment, updateTeacherTask, deleteTeacherTask, updateTeacherAnnouncement, deleteTeacherAnnouncement, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
   loadTeacherClassrooms, loadTeacherInstitutionClassrooms, loadTeacherInstitutionStudents, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
-  loadTeacherUnassignedClassrooms, teacherClaimClassroom, teacherJoinClassroom, teacherLeaveClassroom, loadTeacherGrades, loadTeacherGradebook, loadTeacherAcademicMaterials,
+  loadTeacherUnassignedClassrooms, teacherJoinClassroom, teacherLeaveClassroom, loadTeacherGrades, loadTeacherGradebook, loadTeacherAcademicMaterials,
   saveAttendance, saveTeacherGradebook, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
   teacherRemoveStudentFromClassroom, unassignTeacherSubjectFromClass, deleteTeacherSubject, updateTeacherSubject, updateTeacherCalendarEvent, deleteTeacherCalendarEvent, type AttendanceRow, type TeacherTask, type TeacherAnnouncement
 } from "@/lib/sina-data";
@@ -88,7 +88,7 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
   const calendarRange={from:new Date().toISOString(),to:new Date(Date.now()+30*86400000).toISOString()};
   const calendar=useQuery({queryKey:["teacher-overview-calendar",calendarRange.from.slice(0,10),calendarRange.to.slice(0,10)],queryFn:()=>loadTeacherCalendar(calendarRange.from,calendarRange.to),staleTime:15000,refetchOnWindowFocus:true,refetchInterval:30000});
   const classes=(d.classes.data??[]).filter(x=>x.status==="active");
-  const students=(d.students.data??[]).filter(x=>x.class_status==="minha_turma");
+  const students=d.students.data??[];
   const subjects=(d.subjects.data??[]).filter(x=>x.status==="active");
   const pending=(d.students.data??[]).filter(x=>x.class_status==="sem_turma");
   const overdueTasks=(tasks.data??[]).filter(t=>t.due_at&&new Date(t.due_at).getTime()<Date.now());
@@ -96,7 +96,7 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
   const upcomingEvents=(calendar.data??[]).filter(e=>new Date(e.start_at).getTime()>=Date.now()).slice(0,5);
   const actions: { label: string; value: number; desc: string; icon: LucideIcon; go: Section }[]=[
     {label:"Turmas",value:classes.length,desc:"Acompanhar desempenho e vínculos",icon:Users,go:"turmas" as Section},
-    {label:"Alunos",value:students.length,desc:"Consultar e organizar estudantes",icon:GraduationCap,go:"alunos" as Section},
+    {label:"Alunos da escola",value:students.length,desc:"Consultar e organizar estudantes",icon:GraduationCap,go:"alunos" as Section},
     {label:"Disciplinas",value:subjects.length,desc:"Gerenciar suas disciplinas",icon:BookOpen,go:"disciplinas" as Section},
     {label:"Sem turma",value:pending.length,desc:"Resolver vínculos pendentes",icon:School,go:"alunos" as Section},
   ];
@@ -997,7 +997,7 @@ function Communication({d}:{d:ReturnType<typeof useData>}){
   const [classroom,setClassroom]=useState("");const [title,setTitle]=useState("");const [content,setContent]=useState("");const [busy,setBusy]=useState("");const [attachment,setAttachment]=useState<File|null>(null);const [editing,setEditing]=useState<string|null>(null);const [confirmDelete,setConfirmDelete]=useState<string|null>(null);
   const notices=useQuery({queryKey:["teacher-new-notices"],queryFn:loadTeacherAnnouncements,staleTime:15000});
   const selected=notices.data?.find(n=>n.id===editing)??null;
-  async function claim(id:string){setBusy("claim:"+id);try{await teacherClaimClassroom(id);await d.refresh();toast.success("Turma atribuída a você. Agora ela já pode receber avisos.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
+  async function join(id:string){setBusy("join:"+id);try{await teacherJoinClassroom(id);await d.refresh();toast.success("Você foi vinculado à turma. Agora ela aparece nos seus fluxos de trabalho.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   function reset(){setClassroom("");setTitle("");setContent("");setAttachment(null);setEditing(null)}
   function startEdit(n:TeacherAnnouncement){
     const classroomId=(d.classes.data??[]).find(c=>c.id===n.classroom||c.name===n.classroom)?.id??"";
@@ -1018,7 +1018,7 @@ function Communication({d}:{d:ReturnType<typeof useData>}){
   async function remove(){if(!confirmDelete)return;setBusy("delete");try{await deleteTeacherAnnouncement(confirmDelete);await notices.refetch();toast.success("Aviso excluído.");setConfirmDelete(null);}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   return <div className="space-y-5">
     <Card title="Comunicação" description="Publique avisos para suas turmas e anexe PDFs ou documentos.">
-      {(d.classes.data??[]).filter(c=>c.status==="active").length===0 && (d.unassignedClasses.data??[]).length>0 && <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4"><b>Você ainda não tem uma turma atribuída.</b><p className="mt-1 text-sm text-muted-foreground">Assuma uma das turmas disponíveis para poder publicar avisos para os alunos.</p><div className="mt-3 space-y-2">{(d.unassignedClasses.data??[]).map(c=><div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background p-3"><div><b>{c.name}</b><p className="text-xs text-muted-foreground">{c.student_count} aluno(s)</p></div><Button size="sm" disabled={busy!==""} onClick={()=>void claim(c.id)}>{busy==="claim:"+c.id?"Atribuindo…":"Assumir turma"}</Button></div>)}</div></div>}
+      {(d.classes.data??[]).filter(c=>c.status==="active").length===0 && (d.institutionClasses.data??[]).length>0 && <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4"><b>Escolha onde você vai atuar.</b><p className="mt-1 text-sm text-muted-foreground">Você pode ver todas as turmas da escola. Vincule-se a uma ou mais para liberar lançamento de notas, frequência, atividades e comunicação.</p><div className="mt-3 space-y-2">{(d.institutionClasses.data??[]).filter(c=>!c.is_linked).slice(0,5).map(c=><div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background p-3"><div><b>{c.name}</b><p className="text-xs text-muted-foreground">{c.student_count} aluno(s) · {c.teacher_count} professor(es)</p></div><Button size="sm" disabled={busy!==""} onClick={()=>void join(c.id)}>{busy==="join:"+c.id?"Vinculando…":"Vincular-me"}</Button></div>)}</div></div>}
       <div className="grid gap-3"><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select><Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)}/></Field><Field label="Mensagem"><textarea value={content} onChange={e=>setContent(e.target.value)} className="min-h-28 rounded-md border border-input bg-background p-3 text-sm"/></Field><Field label="Anexo"><Input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx" onChange={e=>setAttachment(e.target.files?.[0]??null)}/><p className="text-[11px] text-muted-foreground">Até 20 MB.</p></Field><div className="flex gap-2"><Button disabled={busy!==""||!classroom||!title.trim()||!content.trim()} onClick={()=>void(editing?update():create())}>{busy==="publish"?"Publicando…":editing?"Salvar alterações":"Publicar aviso"}</Button>{editing&&<Button variant="outline" disabled={busy!==""} onClick={reset}>Cancelar</Button>}</div></div>
       <ConfirmActionDialog
         open={!!confirmDelete}
