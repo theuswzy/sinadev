@@ -289,24 +289,20 @@ function StudentProfile() {
             <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
               <div className="relative flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary">
                 {displayAvatar ? <img src={displayAvatar} alt="Prévia do perfil" className="size-full object-cover" /> : <UserRound className="size-10 text-muted-foreground" />}
-                {role.data === "student" && (
-                  <label className="absolute bottom-1 right-1 flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105">
-                    <Camera className="size-4" />
-                    <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} />
-                  </label>
-                )}
+                <label className="absolute bottom-1 right-1 flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105">
+                  <Camera className="size-4" />
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} />
+                </label>
               </div>
               <div className="text-center sm:text-left">
                 <p className="font-semibold">Foto de perfil</p>
                 <p className="mt-1 max-w-md text-sm leading-6 text-muted-foreground">
-                  {role.data === "student" ? "PNG, JPG ou WebP, até 6 MB." : "A foto deste tipo de conta é somente para exibição."}
+                  "PNG, JPG ou WebP, até 6 MB."
                 </p>
-                {role.data === "student" && (
-                  <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary">
-                    <Camera className="size-4" /> {uploading ? "Enviando…" : "Escolher foto"}
-                    <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} />
-                  </label>
-                )}
+                <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary">
+                  <Camera className="size-4" /> {uploading ? "Enviando…" : "Escolher foto"}
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatar} />
+                </label>
               </div>
             </div>
 
