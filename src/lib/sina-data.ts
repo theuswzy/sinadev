@@ -559,6 +559,11 @@ export type TeacherClassroom = {
   student_count: number;
 };
 
+export type TeacherInstitutionClassroom = TeacherClassroom & {
+  teacher_count: number;
+  is_linked: boolean;
+};
+
 export type AttendanceRow = {
   student_id: string;
   full_name: string;
@@ -842,6 +847,24 @@ export async function loadTeacherClassrooms(): Promise<TeacherClassroom[]> {
   const { data, error } = await supabase.rpc("teacher_list_classrooms");
   if (error) throw error;
   return (data ?? []) as TeacherClassroom[];
+}
+
+export async function loadTeacherInstitutionClassrooms(): Promise<TeacherInstitutionClassroom[]> {
+  const { data, error } = await supabase.rpc("teacher_list_institution_classrooms");
+  if (error) throw error;
+  return (data ?? []) as TeacherInstitutionClassroom[];
+}
+
+export async function teacherJoinClassroom(classroomId: string) {
+  const { data, error } = await supabase.rpc("teacher_join_classroom", { _classroom_id: classroomId });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function teacherLeaveClassroom(classroomId: string) {
+  const { data, error } = await supabase.rpc("teacher_leave_classroom", { _classroom_id: classroomId });
+  if (error) throw error;
+  return data ?? false;
 }
 
 export async function loadTeacherUnassignedClassrooms(): Promise<TeacherClassroom[]> {
