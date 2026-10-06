@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { School, Users, Save, RefreshCw } from "lucide-react";
+import { School, Users, Save, RefreshCw, Search, UserCheck, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { errorText, loadAdminLinkableInstitutions, loadAdminTeacherSchoolLinks, adminLinkTeacherToInstitution } from "@/lib/sina-data";
@@ -11,6 +11,18 @@ export function AdminTeacherSchool() {
   const institutions = useQuery({ queryKey: ["admin-linkable-institutions"], queryFn: loadAdminLinkableInstitutions });
   const [selectedSchool, setSelectedSchool] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const filteredTeachers = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase("pt-BR");
+    if (!term) return teachers.data ?? [];
+    return (teachers.data ?? []).filter(teacher =>
+      [teacher.display_name, teacher.email, teacher.institution_name ?? ""].join(" ").toLocaleLowerCase("pt-BR").includes(term),
+    );
+  }, [teachers.data, search]);
+
+  const linkedCount = (teachers.data ?? []).filter(teacher => !!teacher.institution_id).length;
+  const unlinkedCount = Math.max(0, (teachers.data ?? []).length - linkedCount);
 
   async function save(teacherId: string) {
     const institutionId = selectedSchool[teacherId];
@@ -46,6 +58,32 @@ export function AdminTeacherSchool() {
         </Button>
       </div>
 
+      {!teachers.isPending && !teachers.error && !institutions.isPending && !institutions.error && (
+        <>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <div className="flex items-center justify-between gap-2"><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Professores</p><Users className="size-4 text-primary" /></div>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{teachers.data?.length ?? 0}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Contas disponíveis para gestão.</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <div className="flex items-center justify-between gap-2"><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Com escola</p><UserCheck className="size-4 text-primary" /></div>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{linkedCount}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Contexto institucional definido.</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <div className="flex items-center justify-between gap-2"><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Sem escola</p><UserX className="size-4 text-amber-600 dark:text-amber-400" /></div>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{unlinkedCount}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Precisam de vínculo antes de operar.</p>
+            </div>
+          </div>
+          <div className="relative mt-5">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome, e-mail ou escola" className="h-10 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none transition focus:ring-2 focus:ring-ring" aria-label="Buscar professor" />
+          </div>
+        </>
+      )}
+
       {teachers.isPending || institutions.isPending ? (
         <p className="mt-5 text-sm text-muted-foreground">Carregando professores e escolas…</p>
       ) : teachers.error ? (
@@ -54,7 +92,7 @@ export function AdminTeacherSchool() {
         <p className="mt-5 text-sm text-destructive">{errorText(institutions.error)}</p>
       ) : (
         <div className="mt-5 space-y-3">
-          {(teachers.data ?? []).map(teacher => {
+          {filteredTeachers.map(teacher => {
             const value = selectedSchool[teacher.user_id] ?? teacher.institution_id ?? "";
             const sameSchool = value === teacher.institution_id;
             return (
@@ -78,7 +116,7 @@ export function AdminTeacherSchool() {
               </div>
             );
           })}
-          {!teachers.data?.length && <p className="rounded-xl border border-dashed border-border p-5 text-sm text-muted-foreground">Nenhum professor cadastrado.</p>}
+          {!filteredTeachers.length && <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">{teachers.data?.length ? "Nenhum professor corresponde à busca." : "Nenhum professor cadastrado."}</p>}
         </div>
       )}
     </section>
