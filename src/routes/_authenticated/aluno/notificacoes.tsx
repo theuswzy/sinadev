@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated/aluno/notificacoes")({
   component: StudentNotifications,
 });
 
-function StudentNotifications() {
+export function StudentNotifications() {
   const queryClient = useQueryClient();
   const notifications = useQuery({
     queryKey: ["student-notifications-center"],
