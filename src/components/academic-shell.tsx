@@ -341,13 +341,16 @@ export function AcademicShell({
             </div>
 
             <div className="flex items-center gap-2">
-              {institutions.data && institutions.data.length > 0 && (
-                <div className="flex max-w-[220px] items-center gap-2 rounded-xl border border-border bg-card px-2 py-1.5">
-                  <Building2 className="size-4 shrink-0 text-primary" />
-                  {institutions.data.length === 1 ? (
-                    <span className="truncate text-xs font-semibold" title={institutions.data[0].name}>
-                      {institutions.data[0].name}
-                    </span>
+              {institutions.data && institutions.data.length > 0 && (() => {
+                const institution = institutions.data[0];
+                if (!institution) return null;
+                return (
+                  <div className="flex max-w-[220px] items-center gap-2 rounded-xl border border-border bg-card px-2 py-1.5">
+                    <Building2 className="size-4 shrink-0 text-primary" />
+                    {institutions.data.length === 1 ? (
+                      <span className="truncate text-xs font-semibold" title={institution.name}>
+                        {institution.name}
+                      </span>
                   ) : (
                     <select
                       aria-label="Instituição ativa"
@@ -379,8 +382,9 @@ export function AcademicShell({
                       ))}
                     </select>
                   )}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
               <span className="hidden rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground sm:inline-flex">
                 {roleShort}
               </span>
