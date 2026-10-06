@@ -62,7 +62,7 @@ function useData(section: Section){
       qc.invalidateQueries({queryKey:["teacher-new-assignments"]}),
     ]);
   }
-  return {classes,students,subjects,assignments,unassignedClasses,refresh};
+  return {classes,institutionClasses,students,subjects,assignments,unassignedClasses,refresh};
 }
 
 function DataError({d}:{d:ReturnType<typeof useData>}) {
