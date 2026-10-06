@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, BookOpen, UserCheck, Ban, UserRoundCheck, XCircle, Building2, Power, Trash2, Plus, Pencil, BarChart3, CheckCircle2 } from "lucide-react";
+import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, BookOpen, UserCheck, Ban, UserRoundCheck, XCircle, Building2, Power, Trash2, Plus, Pencil, BarChart3, CheckCircle2, RefreshCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
@@ -71,7 +71,7 @@ function AdminArea() {
   const [accountSearch, setAccountSearch] = useState("");
   const [accountRoleFilter, setAccountRoleFilter] = useState<"all" | "student" | "teacher">("all");
   const [accountStatusFilter, setAccountStatusFilter] = useState<"all" | "active" | "pending" | "suspended">("all");
-  const adminStudents = useQuery({ queryKey: ["admin-students"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_student_school_links"); if (error) throw error; return data ?? []; }, enabled: role.data === true });
+  const adminStudents = useQuery({ queryKey: ["admin-students"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_student_school_links"); if (error) throw error; return data ?? []; }, enabled: role.data === true, refetchOnWindowFocus: true, refetchInterval: 30000 });
   const adminTeachers = useQuery({ queryKey: ["admin-teachers"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_teacher_school_links"); if (error) throw error; return data ?? []; }, enabled: role.data === true });
   const academicSetup = useQuery<AdminAcademicSetupData>({ queryKey: ["admin-academic-setup"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_academic_setup"); if (error) throw error; return (data ?? { classrooms: [], subjects: [], terms: [] }) as AdminAcademicSetupData; }, enabled: role.data === true });
   const roleRequests = useQuery({
@@ -87,6 +87,7 @@ function AdminArea() {
   const [editingInstitutionId, setEditingInstitutionId] = useState<string | null>(null);
   const [institutionSchoolSearch, setInstitutionSchoolSearch] = useState("");
   const [selectedInstitutionSchool, setSelectedInstitutionSchool] = useState<SchoolDirectoryEntry | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const institutionSchools = useQuery({
     queryKey: ["admin-school-directory", institutionSchoolSearch],
@@ -337,6 +338,24 @@ function AdminArea() {
     refetchInterval: 30000,
   });
 
+  async function refreshAdminData() {
+    setRefreshing(true);
+    try {
+      await queryClient.refetchQueries({
+        predicate: (query) => {
+          const key = String(query.queryKey[0] ?? "");
+          return key === "my-institutions" || key.startsWith("admin-");
+        },
+        type: "active",
+      });
+      toast.success("Dados administrativos atualizados.");
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   async function logout() {
     await supabase.auth.signOut();
     queryClient.clear();
@@ -414,6 +433,10 @@ function AdminArea() {
               </select>
             )}
             <span className="hidden rounded-full border border-brand-border bg-brand-panel/70 px-3 py-1.5 text-xs font-medium text-brand-muted lg:inline-flex">Controle de acesso</span>
+            <Button type="button" variant="outline" size="sm" onClick={() => void refreshAdminData()} disabled={refreshing} title="Atualizar dados">
+              <RefreshCw className={"mr-2 size-4 " + (refreshing ? "animate-spin" : "")} />
+              <span className="hidden sm:inline">{refreshing ? "Atualizando…" : "Atualizar"}</span>
+            </Button>
             <ThemeToggle />
             <Button variant="outline" size="sm" onClick={() => void navigate({ to: "/perfil" })} className="border-brand-border bg-transparent text-brand-foreground shadow-none hover:bg-brand-panel"><UserRoundCheck className="mr-2 size-4" /><span className="hidden sm:inline">Perfil</span></Button>
             <Button variant="outline" size="sm" onClick={logout} className="border-brand-border bg-transparent text-brand-foreground shadow-none hover:bg-brand-panel">
