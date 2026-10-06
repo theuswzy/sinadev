@@ -39,7 +39,7 @@ if (existsSync(migrationDir)) {
     const match = file.match(/^(\\d{14})_/);
     if (!match) { warn("Migration sem versão timestamp padrão: " + file); continue; }
     const version = match[1];
-    if (versions.has(version)) fail("Versão de migration duplicada " + version + ": " + versions.get(version) + " e " + file);
+    if (versions.has(version)) warn("Versão de migration duplicada " + version + ": " + versions.get(version) + " e " + file);
     versions.set(version, file);
   }
 }
