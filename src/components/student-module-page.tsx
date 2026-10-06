@@ -224,7 +224,14 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     return <AcademicShell title={title.title} subtitle={title.subtitle}><div className="sina-card mt-8 p-6"><p className="text-sm text-destructive">{errorText(activeQuery.error)}</p><Button className="mt-4" variant="outline" onClick={() => void activeQuery.refetch()}>Tentar novamente</Button></div></AcademicShell>;
   }
 
-  return (\n    <AcademicShell title={title.title} subtitle={title.subtitle}>\n      <div className="mt-6 flex justify-end">\n        <Button type="button" variant="outline" size="sm" onClick={() => void Promise.all([student.refetch(), activeQuery.refetch()])} disabled={student.isFetching || activeQuery.isFetching}>\n          <RefreshCw className={"mr-2 size-4 " + ((student.isFetching || activeQuery.isFetching) ? "animate-spin" : "")} />\n          {student.isFetching || activeQuery.isFetching ? "Atualizando…" : "Atualizar dados"}\n        </Button>\n      </div>
+  return (
+    <AcademicShell title={title.title} subtitle={title.subtitle}>
+      <div className="mt-6 flex justify-end">
+        <Button type="button" variant="outline" size="sm" onClick={() => void Promise.all([student.refetch(), activeQuery.refetch()])} disabled={student.isFetching || activeQuery.isFetching}>
+          <RefreshCw className={"mr-2 size-4 " + ((student.isFetching || activeQuery.isFetching) ? "animate-spin" : "")} />
+          {student.isFetching || activeQuery.isFetching ? "Atualizando…" : "Atualizar dados"}
+        </Button>
+      </div>
 
 
       {module === "tarefas" && (
