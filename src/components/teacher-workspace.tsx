@@ -738,7 +738,7 @@ function Tasks({d}:{d:ReturnType<typeof useData>}){
   const [confirmDelete,setConfirmDelete]=useState<string|null>(null);
   const tasks=useQuery({queryKey:["teacher-new-tasks"],queryFn:loadTeacherTasks,staleTime:15000});const submissions=useQuery({queryKey:["teacher-new-submissions",selected],queryFn:()=>loadTaskSubmissions(selected),enabled:!!selected});
   const selectedTask=tasks.data?.find(t=>t.id===editing)??null;
-  const taskSubjectOptions=(d.assignments.data??[]).filter(a=>a.classroom_name===classroom);
+  const taskSubjectOptions=(d.assignments.data??[]).filter(a=>a.classroom_id===classroom);
   const taskSubjectIds=new Set(taskSubjectOptions.map(a=>a.subject_id));
   const taskSubjects=(d.subjects.data??[]).filter(s=>s.status==="active" && taskSubjectIds.has(s.id));
 
@@ -791,8 +791,8 @@ function Tasks({d}:{d:ReturnType<typeof useData>}){
 
   return <Card title="Atividades e entregas" description="Publique atividades, anexe PDF/arquivos e acompanhe as entregas.">
     <div className="grid gap-3 md:grid-cols-2">
-      <Select label="Turma" value={classroom} onChange={v=>{setClassroom(v);setSubject("");}}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.name}>{c.name}</option>)}</Select>
-      <Select label="Disciplina" value={subject} onChange={setSubject}><option value="">Selecione</option>{taskSubjects.map(s=><option key={s.id} value={s.name}>{s.name}</option>)}</Select>
+      <Select label="Turma" value={classroom} onChange={v=>{setClassroom(v);setSubject("");}}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select>
+      <Select label="Disciplina" value={subject} onChange={setSubject}><option value="">Selecione</option>{taskSubjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</Select>
       <Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Ex.: Lista de exercícios"/></Field>
       <Field label="Prazo"><Input type="datetime-local" value={due} onChange={e=>setDue(e.target.value)}/></Field>
       <Field label="Descrição"><textarea value={description} onChange={e=>setDescription(e.target.value)} className="min-h-24 rounded-md border border-input bg-background p-3 text-sm"/></Field>
@@ -965,7 +965,7 @@ function Communication({d}:{d:ReturnType<typeof useData>}){
   return <div className="space-y-5">
     <Card title="Comunicação" description="Publique avisos para suas turmas e anexe PDFs ou documentos.">
       {(d.classes.data??[]).filter(c=>c.status==="active").length===0 && (d.unassignedClasses.data??[]).length>0 && <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4"><b>Você ainda não tem uma turma atribuída.</b><p className="mt-1 text-sm text-muted-foreground">Assuma uma das turmas disponíveis para poder publicar avisos para os alunos.</p><div className="mt-3 space-y-2">{(d.unassignedClasses.data??[]).map(c=><div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background p-3"><div><b>{c.name}</b><p className="text-xs text-muted-foreground">{c.student_count} aluno(s)</p></div><Button size="sm" disabled={busy!==""} onClick={()=>void claim(c.id)}>{busy==="claim:"+c.id?"Atribuindo…":"Assumir turma"}</Button></div>)}</div></div>}
-      <div className="grid gap-3"><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.name}>{c.name}</option>)}</Select><Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)}/></Field><Field label="Mensagem"><textarea value={content} onChange={e=>setContent(e.target.value)} className="min-h-28 rounded-md border border-input bg-background p-3 text-sm"/></Field><Field label="Anexo"><Input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx" onChange={e=>setAttachment(e.target.files?.[0]??null)}/><p className="text-[11px] text-muted-foreground">Até 20 MB.</p></Field><div className="flex gap-2"><Button disabled={busy!==""||!classroom||!title.trim()||!content.trim()} onClick={()=>void(editing?update():create())}>{busy==="publish"?"Publicando…":editing?"Salvar alterações":"Publicar aviso"}</Button>{editing&&<Button variant="outline" disabled={busy!==""} onClick={reset}>Cancelar</Button>}</div></div>
+      <div className="grid gap-3"><Select label="Turma" value={classroom} onChange={setClassroom}><option value="">Selecione</option>{(d.classes.data??[]).filter(c=>c.status==="active").map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</Select><Field label="Título"><Input value={title} onChange={e=>setTitle(e.target.value)}/></Field><Field label="Mensagem"><textarea value={content} onChange={e=>setContent(e.target.value)} className="min-h-28 rounded-md border border-input bg-background p-3 text-sm"/></Field><Field label="Anexo"><Input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx" onChange={e=>setAttachment(e.target.files?.[0]??null)}/><p className="text-[11px] text-muted-foreground">Até 20 MB.</p></Field><div className="flex gap-2"><Button disabled={busy!==""||!classroom||!title.trim()||!content.trim()} onClick={()=>void(editing?update():create())}>{busy==="publish"?"Publicando…":editing?"Salvar alterações":"Publicar aviso"}</Button>{editing&&<Button variant="outline" disabled={busy!==""} onClick={reset}>Cancelar</Button>}</div></div>
       <ConfirmActionDialog
         open={!!confirmDelete}
         onOpenChange={open=>{if(!open&&busy==="")setConfirmDelete(null)}}
