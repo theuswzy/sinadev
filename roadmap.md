@@ -1,12 +1,10 @@
 # SINA — Roadmap
 
 ## Auditoria de qualidade — 6 de outubro de 2026
-- [x] Revisar estruturalmente rotas, navegação e módulos dos três painéis sem redesenhar.
-- [x] Validar build, typecheck, lint e auditoria estrutural automaticamente no CI.
-- [x] Remover árvore de rotas legada fora de src/routes.
-- [x] Registrar cobertura, correções e bloqueios em relatório de auditoria.
-- [ ] Conferir contratos RPC, permissões por instituição e Storage com um projeto Supabase SINA ativo.
-- [ ] Executar teste autenticado de aluno, professor e administrador no preview.
+- [ ] Revisar rotas, navegação e estados dos três painéis sem redesenhar.
+- [ ] Conferir contratos RPC, permissões por instituição e Storage sem alterar dados reais para testes.
+- [ ] Corrigir defeitos confirmados e validar lint, compilação automática e navegação no navegador.
+- [ ] Registrar cobertura, correções e bloqueios em relatório de auditoria.
 
 ## Fundação da plataforma
 - [x] Preservar a identidade visual institucional do SINA.
