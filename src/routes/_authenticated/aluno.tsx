@@ -46,6 +46,25 @@ function StudentDashboard() {
   const calendar = useQuery({ queryKey: ["dashboard-calendar", calendarRange.from.slice(0,10), calendarRange.to.slice(0,10)], queryFn: () => loadStudentCalendar(calendarRange.from, calendarRange.to), enabled: !!student.data, ...liveOptions });
   const notifications = useQuery({ queryKey: ["dashboard-notifications"], queryFn: () => loadNotifications(true), enabled: !!student.data, ...liveOptions });
 
+  const isRefreshing = student.isFetching || tasks.isFetching || grades.isFetching || assessments.isFetching
+    || studentSubjects.isFetching || announcements.isFetching || attendance.isFetching
+    || materials.isFetching || calendar.isFetching || notifications.isFetching;
+
+  async function refreshDashboard() {
+    await Promise.all([
+      student.refetch(),
+      tasks.refetch(),
+      grades.refetch(),
+      assessments.refetch(),
+      studentSubjects.refetch(),
+      announcements.refetch(),
+      attendance.refetch(),
+      materials.refetch(),
+      calendar.refetch(),
+      notifications.refetch(),
+    ]);
+  }
+
   if (role.isPending || student.isPending) {
     return <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico"><div className="sina-card mt-8 p-6">Carregando seu dashboard...</div></AcademicShell>;
   }
@@ -169,22 +188,11 @@ function StudentDashboard() {
               type="button"
               variant="outline"
               className="rounded-xl border-brand-border bg-transparent text-brand-foreground hover:bg-brand-panel"
-              onClick={() => void Promise.all([
-                student.refetch(),
-                tasks.refetch(),
-                grades.refetch(),
-                assessments.refetch(),
-                studentSubjects.refetch(),
-                announcements.refetch(),
-                attendance.refetch(),
-                materials.refetch(),
-                calendar.refetch(),
-                notifications.refetch(),
-              ])}
-              disabled={[student,tasks,grades,assessments,studentSubjects,announcements,attendance,materials,calendar,notifications].some(query => query.isFetching)}
+              onClick={() => void refreshDashboard()}
+              disabled={isRefreshing}
               title="Atualizar informações acadêmicas"
             >
-              <RefreshCw className={"mr-2 size-4 " + ([student,tasks,grades,assessments,studentSubjects,announcements,attendance,materials,calendar,notifications].some(query => query.isFetching) ? "animate-spin" : "")} />
+              <RefreshCw className={"mr-2 size-4 " + (isRefreshing ? "animate-spin" : "")} />
               Atualizar
             </Button>
             <Link to="/perfil" className="inline-flex items-center justify-center rounded-xl border border-brand-border px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-brand-panel">Meu perfil</Link>
@@ -194,7 +202,7 @@ function StudentDashboard() {
 
       {!student.data.classroom_id && <section className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">Seu dashboard já está pronto.</p><p className="mt-1 text-sm text-muted-foreground">A escola ainda precisa concluir seu vínculo com uma turma. Enquanto isso, você já pode acessar seu perfil e acompanhar este painel; notas, frequência, disciplinas e atividades aparecerão conforme forem cadastradas.</p></div><Link to="/perfil" className="shrink-0 text-sm font-semibold text-primary hover:underline">Ver meu perfil →</Link></div></section>}
 
-      {[tasks, grades, assessments, studentSubjects, announcements, attendance, materials, calendar, notifications].some(query => query.error) && <section className="mt-5 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 sm:p-5"><div className="flex items-start gap-3"><div className="min-w-0 flex-1"><p className="font-semibold">Algumas informações podem estar desatualizadas.</p><p className="mt-1 text-sm text-muted-foreground">O SINA conseguiu carregar parte do seu dashboard, mas houve uma falha em alguns serviços. Você pode tentar atualizar novamente sem perder o que já foi carregado.</p></div><Button type="button" variant="outline" size="sm" onClick={() => void Promise.all([tasks.refetch(), grades.refetch(), assessments.refetch(), studentSubjects.refetch(), announcements.refetch(), attendance.refetch(), materials.refetch(), calendar.refetch(), notifications.refetch()])}>Tentar novamente</Button></div></section>
+      {[tasks, grades, assessments, studentSubjects, announcements, attendance, materials, calendar, notifications].some(query => query.error) && <section className="mt-5 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 sm:p-5"><div className="flex items-start gap-3"><div className="min-w-0 flex-1"><p className="font-semibold">Algumas informações podem estar desatualizadas.</p><p className="mt-1 text-sm text-muted-foreground">O SINA conseguiu carregar parte do seu dashboard, mas houve uma falha em alguns serviços. Você pode tentar atualizar novamente sem perder o que já foi carregado.</p></div><Button type="button" variant="outline" size="sm" onClick={() => void refreshDashboard()}>Tentar novamente</Button></div></section>
 
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
