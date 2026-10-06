@@ -71,8 +71,12 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
       const average = items.length > 0
         ? items.reduce((sum, item) => sum + item.score, 0) / items.length
         : null;
+      const teacherId = items[0]?.teacher_id ?? "";
+      const subjectId = items[0]?.subject_id ?? null;
       return {
         subject,
+        subjectId,
+        teacherId,
         average,
         absences: items.reduce((sum, item) => sum + item.absences, 0),
         periods: items.length,
@@ -158,6 +162,9 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     );
   }, [assessments.data]);
 
+  const subjectPerformanceKey = (subjectId: string | null | undefined, subjectName: string, teacherId: string | null | undefined) =>
+    (subjectId ?? subjectName) + "::" + (teacherId ?? "");
+
   const teacherNamesBySubject = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const item of studentSubjects.data ?? []) {
@@ -184,6 +191,14 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     return teacherNamesBySubject.get(grade.subject) ?? [];
   };
 
+  const performanceBySubjectTeacher = useMemo(() => {
+    const map = new Map<string, (typeof subjects)[number]>();
+    for (const item of subjects) {
+      map.set(subjectPerformanceKey(item.subjectId, item.subject, item.teacherId), item);
+    }
+    return map;
+  }, [subjects]);
+
   const now = Date.now();
   const overdueTasks = pendingTasks.filter((task) => task.due_at && new Date(task.due_at).getTime() < now);
   const attendanceSummary = useMemo(() => {
@@ -203,6 +218,27 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     : module === "agenda" ? calendar
     : module === "materiais" ? materials
     : announcements;
+
+  async function refreshModuleData() {
+    const requests: Array<Promise<unknown>> = [student.refetch()];
+    if (module === "tarefas") requests.push(tasks.refetch(), submissions.refetch());
+    if (module === "disciplinas") requests.push(tasks.refetch(), studentSubjects.refetch(), grades.refetch(), assessments.refetch(), attendance.refetch());
+    if (module === "notas") requests.push(studentSubjects.refetch(), grades.refetch(), assessments.refetch());
+    if (module === "frequencia") requests.push(attendance.refetch());
+    if (module === "agenda") requests.push(calendar.refetch());
+    if (module === "avisos") requests.push(announcements.refetch());
+    if (module === "materiais") requests.push(materials.refetch());
+    await Promise.all(requests);
+  }
+
+  const moduleRefreshing = student.isFetching || activeQuery.isFetching ||
+    (module === "tarefas" && (tasks.isFetching || submissions.isFetching)) ||
+    (module === "disciplinas" && (tasks.isFetching || studentSubjects.isFetching || grades.isFetching || assessments.isFetching || attendance.isFetching)) ||
+    (module === "notas" && (studentSubjects.isFetching || grades.isFetching || assessments.isFetching)) ||
+    (module === "frequencia" && attendance.isFetching) ||
+    (module === "agenda" && calendar.isFetching) ||
+    (module === "avisos" && announcements.isFetching) ||
+    (module === "materiais" && materials.isFetching);
 
   if (student.isPending) {
     return <AcademicShell title={title.title} subtitle={title.subtitle}><div className="sina-card mt-8 p-6">Carregando...</div></AcademicShell>;
@@ -227,9 +263,9 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
   return (
     <AcademicShell title={title.title} subtitle={title.subtitle}>
       <div className="mt-6 flex justify-end">
-        <Button type="button" variant="outline" size="sm" onClick={() => void Promise.all([student.refetch(), activeQuery.refetch()])} disabled={student.isFetching || activeQuery.isFetching}>
-          <RefreshCw className={"mr-2 size-4 " + ((student.isFetching || activeQuery.isFetching) ? "animate-spin" : "")} />
-          {student.isFetching || activeQuery.isFetching ? "Atualizando…" : "Atualizar dados"}
+        <Button type="button" variant="outline" size="sm" onClick={() => void refreshModuleData()} disabled={moduleRefreshing}>
+          <RefreshCw className={"mr-2 size-4 " + (moduleRefreshing ? "animate-spin" : "")} />
+          {moduleRefreshing ? "Atualizando…" : "Atualizar dados"}
         </Button>
       </div>
 
@@ -326,7 +362,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(studentSubjects.data ?? []).map((item) => {
-              const performance = subjects.find((s) => s.subject === item.name);
+              const performance = performanceBySubjectTeacher.get(subjectPerformanceKey(item.id, item.name, item.teacher_id));
               const subjectKey = item.id + "::" + item.teacher_id;
               const isSelected = selectedSubjectKey === subjectKey;
               const relatedTasks = (tasks.data ?? []).filter((task) =>
@@ -353,7 +389,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
           {!studentSubjects.isPending && !studentSubjects.data?.length && <div className="sina-card p-8 text-sm text-muted-foreground">Nenhuma disciplina vinculada ainda. Assim que a escola ou o professor fizer o vínculo, ela aparecerá aqui.</div>}          {selectedSubjectKey && (() => {
             const selected = (studentSubjects.data ?? []).find((item) => item.id + "::" + item.teacher_id === selectedSubjectKey);
             if (!selected) return null;
-            const performance = subjects.find((s) => s.subject === selected.name);
+            const performance = performanceBySubjectTeacher.get(subjectPerformanceKey(selected.id, selected.name, selected.teacher_id));
             const selectedTasks = (tasks.data ?? []).filter((task) =>
               (task.subject_id && task.subject_id === selected.id) ||
               (!task.subject_id && (task.subject_name || task.subject) === selected.name),
@@ -380,10 +416,16 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                 <div>
                   <h4 className="font-semibold">Notas recentes</h4>
                   <div className="mt-3 space-y-2">
-                    {(grades.data ?? []).filter(g => g.subject === selected.name).slice(0,4).map(g =>
+                    {(grades.data ?? []).filter(g =>
+                      (g.subject_id && g.subject_id === selected.id && g.teacher_id === selected.teacher_id) ||
+                      (!g.subject_id && g.subject === selected.name && (!g.teacher_id || g.teacher_id === selected.teacher_id))
+                    ).slice(0,4).map(g =>
                       <div key={g.id} className="rounded-xl border border-border p-3"><div className="flex justify-between text-sm"><span>{g.period}º período</span><b>{formatScore(g.score)}</b></div><p className="mt-1 text-xs text-muted-foreground">{g.absences} falta(s)</p></div>
                     )}
-                    {!(grades.data ?? []).some(g => g.subject === selected.name) && <p className="text-sm text-muted-foreground">Sem notas lançadas.</p>}
+                    {!(grades.data ?? []).some(g =>
+                      (g.subject_id && g.subject_id === selected.id && g.teacher_id === selected.teacher_id) ||
+                      (!g.subject_id && g.subject === selected.name && (!g.teacher_id || g.teacher_id === selected.teacher_id))
+                    ) && <p className="text-sm text-muted-foreground">Sem notas lançadas.</p>}
                   </div>
                 </div>
                 <div>
