@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { School, Users, Save } from "lucide-react";
+import { School, Users, Save, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { errorText, loadAdminLinkableInstitutions, loadAdminTeacherSchoolLinks, adminLinkTeacherToInstitution } from "@/lib/sina-data";
@@ -32,12 +32,17 @@ export function AdminTeacherSchool() {
 
   return (
     <section id="professores-escolas" className="sina-card sina-card-hover scroll-mt-28 p-6">
-      <div className="flex items-start gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-3">
         <School className="mt-0.5 size-5 text-primary" />
         <div>
           <h2 className="font-semibold">Vincular professores às escolas</h2>
           <p className="mt-1 text-sm text-muted-foreground">Associe cada professor cadastrado a uma escola. O vínculo fica salvo no Supabase e passa a definir o contexto institucional do professor.</p>
         </div>
+        <Button type="button" variant="outline" size="sm" onClick={() => void Promise.all([teachers.refetch(), institutions.refetch()])} disabled={teachers.isFetching || institutions.isFetching}>
+          <RefreshCw className={"mr-2 size-4 " + ((teachers.isFetching || institutions.isFetching) ? "animate-spin" : "")} />
+          {teachers.isFetching || institutions.isFetching ? "Atualizando…" : "Atualizar"}
+        </Button>
       </div>
 
       {teachers.isPending || institutions.isPending ? (
