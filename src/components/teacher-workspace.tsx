@@ -785,7 +785,9 @@ function Tasks({d}:{d:ReturnType<typeof useData>}){
   async function grade(id:string){const n=Number(scores[id]);if(Number.isNaN(n)||n<0||n>10){toast.error("A nota deve estar entre 0 e 10.");return;}try{await gradeTaskSubmission(id,n,feedback[id]??"");await submissions.refetch();toast.success("Entrega corrigida.");}catch(e){toast.error(errorText(e))}}
 
   function startEdit(t:TeacherTask){
-    setEditing(t.id);setClassroom(t.classroom);setSubject(t.subject);setTitle(t.title);setDescription(t.description);setDue(t.due_at?new Date(t.due_at).toISOString().slice(0,16):"");setAttachment(null);
+    const classroomId=(d.classes.data??[]).find(c=>c.id===t.classroom||c.name===t.classroom)?.id??"";
+    const subjectId=(d.subjects.data??[]).find(s=>s.id===t.subject||s.name===t.subject)?.id??"";
+    setEditing(t.id);setClassroom(classroomId);setSubject(subjectId);setTitle(t.title);setDescription(t.description);setDue(t.due_at?new Date(t.due_at).toISOString().slice(0,16):"");setAttachment(null);
     window.scrollTo({top:0,behavior:"smooth"});
   }
 
@@ -948,7 +950,10 @@ function Communication({d}:{d:ReturnType<typeof useData>}){
   const selected=notices.data?.find(n=>n.id===editing)??null;
   async function claim(id:string){setBusy("claim:"+id);try{await teacherClaimClassroom(id);await d.refresh();toast.success("Turma atribuída a você. Agora ela já pode receber avisos.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   function reset(){setClassroom("");setTitle("");setContent("");setAttachment(null);setEditing(null)}
-  function startEdit(n:TeacherAnnouncement){setEditing(n.id);setClassroom(n.classroom);setTitle(n.title);setContent(n.content);setAttachment(null);window.scrollTo({top:0,behavior:"smooth"})}
+  function startEdit(n:TeacherAnnouncement){
+    const classroomId=(d.classes.data??[]).find(c=>c.id===n.classroom||c.name===n.classroom)?.id??"";
+    setEditing(n.id);setClassroom(classroomId);setTitle(n.title);setContent(n.content);setAttachment(null);window.scrollTo({top:0,behavior:"smooth"});
+  }
   async function create(){
     if(!classroom||!title.trim()||!content.trim()){toast.error("Selecione a turma e preencha título e mensagem.");return;}
     setBusy("publish");let uploadedPath:string|null=null;
