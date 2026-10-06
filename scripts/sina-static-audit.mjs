@@ -36,7 +36,7 @@ if (existsSync(migrationDir)) {
   const files = readdirSync(migrationDir).filter((name) => name.endsWith(".sql"));
   const versions = new Map();
   for (const file of files) {
-    const match = file.match(/^(\\d{14})_/);
+    const match = file.match(/^(\d{14})_/);
     if (!match) { warn("Migration sem versão timestamp padrão: " + file); continue; }
     const version = match[1];
     if (versions.has(version)) warn("Versão de migration duplicada " + version + ": " + versions.get(version) + " e " + file);
