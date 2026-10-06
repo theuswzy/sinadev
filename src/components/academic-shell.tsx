@@ -342,37 +342,43 @@ export function AcademicShell({
 
             <div className="flex items-center gap-2">
               {institutions.data && institutions.data.length > 0 && (
-                <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-2 py-1.5">
-                  <Building2 className="size-4 text-primary" />
-                  <select
-                    aria-label="Instituição ativa"
-                    value={institutions.data.find((institution) => institution.is_active)?.id ?? institutions.data[0]?.id ?? ""}
-                    onChange={async (event) => {
-                      if (!event.target.value) return;
-                      const { error } = await supabase.rpc("account_set_institution", { _institution_id: event.target.value });
-                      if (error) {
-                        console.error("[SINA] Não foi possível trocar a instituição:", error);
-                        toast.error("Não foi possível trocar de instituição.");
-                        return;
-                      }
-                      await Promise.all([
-                        queryClient.invalidateQueries({ queryKey: ["my-role"] }),
-                        queryClient.invalidateQueries({ queryKey: ["my-institutions"] }),
-                        queryClient.invalidateQueries({
-                          predicate: (query) => {
-                            const key = String(query.queryKey[0] ?? "");
-                            return key.startsWith("teacher-") || key.startsWith("student-") || key.startsWith("admin-");
-                          },
-                        }),
-                      ]);
-                      toast.success("Instituição ativa atualizada.");
-                    }}
-                    className="max-w-[120px] bg-transparent text-xs font-semibold outline-none sm:max-w-48"
-                  >
-                    {institutions.data.map((institution) => (
-                      <option key={institution.id} value={institution.id}>{institution.name}</option>
-                    ))}
-                  </select>
+                <div className="flex max-w-[220px] items-center gap-2 rounded-xl border border-border bg-card px-2 py-1.5">
+                  <Building2 className="size-4 shrink-0 text-primary" />
+                  {institutions.data.length === 1 ? (
+                    <span className="truncate text-xs font-semibold" title={institutions.data[0].name}>
+                      {institutions.data[0].name}
+                    </span>
+                  ) : (
+                    <select
+                      aria-label="Instituição ativa"
+                      value={institutions.data.find((institution) => institution.is_active)?.id ?? institutions.data[0]?.id ?? ""}
+                      onChange={async (event) => {
+                        if (!event.target.value) return;
+                        const { error } = await supabase.rpc("account_set_institution", { _institution_id: event.target.value });
+                        if (error) {
+                          console.error("[SINA] Não foi possível trocar a instituição:", error);
+                          toast.error("Não foi possível trocar de instituição.");
+                          return;
+                        }
+                        await Promise.all([
+                          queryClient.invalidateQueries({ queryKey: ["my-role"] }),
+                          queryClient.invalidateQueries({ queryKey: ["my-institutions"] }),
+                          queryClient.invalidateQueries({
+                            predicate: (query) => {
+                              const key = String(query.queryKey[0] ?? "");
+                              return key.startsWith("teacher-") || key.startsWith("student-") || key.startsWith("admin-");
+                            },
+                          }),
+                        ]);
+                        toast.success("Instituição ativa atualizada.");
+                      }}
+                      className="max-w-[120px] bg-transparent text-xs font-semibold outline-none sm:max-w-48"
+                    >
+                      {institutions.data.map((institution) => (
+                        <option key={institution.id} value={institution.id}>{institution.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               )}
               <span className="hidden rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground sm:inline-flex">
