@@ -82,9 +82,19 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
   }, [grades.data]);
 
   async function sendTask(taskId: string) {
+    const content = (drafts[taskId] ?? "").trim();
+    if (!content) {
+      toast.error("Escreva uma resposta antes de enviar a atividade.");
+      return;
+    }
+    if (content.length > 5000) {
+      toast.error("A resposta pode ter no máximo 5.000 caracteres.");
+      return;
+    }
+
     setSending(taskId);
     try {
-      await submitTask(taskId, drafts[taskId] ?? "");
+      await submitTask(taskId, content);
       await submissions.refetch();
       toast.success("Entrega enviada para correção.");
     } catch (error) {
@@ -277,7 +287,14 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                     </div>
                     {task.attachment_url && <a href={task.attachment_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><ClipboardCheck className="size-4" />{task.attachment_name || "Abrir anexo da atividade"}</a>}
                     <div className="mt-4 space-y-2">
-                      <textarea value={drafts[task.id] ?? submission?.content ?? ""} onChange={(e) => setDrafts((v) => ({...v, [task.id]: e.target.value}))} placeholder="Digite sua resposta ou observação..." className="min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"/>
+                      <textarea
+                        value={drafts[task.id] ?? submission?.content ?? ""}
+                        onChange={(e) => setDrafts((v) => ({...v, [task.id]: e.target.value}))}
+                        placeholder="Digite sua resposta ou observação..."
+                        maxLength={5000}
+                        aria-label={"Resposta para " + task.title}
+                        className="min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                      />
                       <Button onClick={() => void sendTask(task.id)} disabled={sending === task.id}>{sending === task.id ? "Enviando..." : submission ? "Atualizar entrega" : "Enviar entrega"}</Button>
                       {submission?.feedback && <p className="text-sm text-muted-foreground">Feedback: {submission.feedback}</p>}
                     </div>
