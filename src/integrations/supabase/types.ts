@@ -1400,21 +1400,17 @@ export type Database = {
         }[]
       }
       admin_delete_account: { Args: { _user_id: string }; Returns: boolean }
+      admin_delete_classroom: { Args: { _id: string }; Returns: boolean }
       admin_delete_institution: {
         Args: { _institution_id: string }
         Returns: boolean
       }
-      admin_delete_classroom: {
-        Args: { _id: string }
-        Returns: boolean
-      }
-      admin_restore_classroom: {
-        Args: { _id: string }
-        Returns: boolean
-      }
       admin_delete_subject: { Args: { _id: string }; Returns: boolean }
       admin_get_academic_overview: { Args: never; Returns: Json }
-      admin_get_classroom_hub: { Args: { _classroom_id: string }; Returns: Json }
+      admin_get_classroom_hub: {
+        Args: { _classroom_id: string }
+        Returns: Json
+      }
       admin_import_academic_csv: { Args: { _rows: Json }; Returns: Json }
       admin_link_student_to_institution: {
         Args: { _institution_id: string; _student_id: string }
@@ -1587,6 +1583,7 @@ export type Database = {
         Args: { _student_id: string }
         Returns: boolean
       }
+      admin_restore_classroom: { Args: { _id: string }; Returns: boolean }
       admin_review_role_request: {
         Args: {
           _approved_role: string
@@ -1660,7 +1657,7 @@ export type Database = {
         Returns: Json
       }
       ensure_account_onboarding_v2: {
-        Args: { _requested_role: string; _school_directory_id: string }
+        Args: { _requested_role: string; _school_directory_id?: string }
         Returns: Json
       }
       ensure_student_profile: { Args: never; Returns: boolean }
@@ -1979,13 +1976,10 @@ export type Database = {
           title: string
         }[]
       }
+      student_mark_all_notifications_read: { Args: never; Returns: number }
       student_mark_notification_read: {
         Args: { _id: string }
         Returns: boolean
-      }
-      student_mark_all_notifications_read: {
-        Args: never
-        Returns: number
       }
       student_set_task_completed: {
         Args: { _completed: boolean; _task_id: string }
@@ -2262,17 +2256,6 @@ export type Database = {
           subject_name: string
         }[]
       }
-      teacher_get_gradebook: {
-        Args: { _classroom_id: string; _period: number; _subject_id: string }
-        Returns: {
-          absences: number
-          enrollment: string
-          full_name: string
-          score: number | null
-          student_id: string
-          updated_at: string
-        }[]
-      }
       teacher_get_class_report: {
         Args: { _classroom_id: string }
         Returns: {
@@ -2282,6 +2265,17 @@ export type Database = {
           grade_average: number
           student_id: string
           student_name: string
+        }[]
+      }
+      teacher_get_gradebook: {
+        Args: { _classroom_id: string; _period: number; _subject_id: string }
+        Returns: {
+          absences: number
+          enrollment: string
+          full_name: string
+          score: number
+          student_id: string
+          updated_at: string
         }[]
       }
       teacher_get_student_academic_profile: {
