@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, UserCheck, Users, UserX, School } from "lucide-react";
+import { Search, UserCheck, Users, UserX, School, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -205,7 +205,7 @@ export function AdminStudentClassroom() {
         )}
       </section>
 
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row">\n        <Button type="button" variant="outline" onClick={() => void refresh()} disabled={students.isFetching || schoolLinks.isFetching || institutions.isFetching || setup.isFetching} className="sm:order-2">\n          <RefreshCw className={"mr-2 size-4 " + ((students.isFetching || schoolLinks.isFetching || institutions.isFetching || setup.isFetching) ? "animate-spin" : "")} />\n          {students.isFetching || schoolLinks.isFetching || institutions.isFetching || setup.isFetching ? "Atualizando…" : "Atualizar dados"}\n        </Button>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar aluno, matrícula ou turma" className="pl-9" />
