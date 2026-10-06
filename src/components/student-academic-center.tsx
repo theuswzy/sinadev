@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   errorText,
   loadStudentAssessmentsDetailed,
-  loadStudentAttendance,
+  loadStudentAttendanceDetailed,
   loadStudentCalendar,
   loadStudentTaskSubmissions,
   loadStudentAcademicMaterialsDetailed,
@@ -30,7 +30,7 @@ function monthEnd() {
 export function StudentAcademicCenter() {
   const tasks = useQuery({ queryKey: ["student-academic-tasks-center"], queryFn: loadStudentTasksDetailed });
   const assessments = useQuery({ queryKey: ["student-assessments"], queryFn: loadStudentAssessmentsDetailed });
-  const attendance = useQuery({ queryKey: ["student-attendance-history"], queryFn: loadStudentAttendance });
+  const attendance = useQuery({ queryKey: ["student-attendance-history"], queryFn: loadStudentAttendanceDetailed });
   const calendar = useQuery({ queryKey: ["student-calendar-center"], queryFn: () => loadStudentCalendar(monthStart(), monthEnd()) });
   const submissions = useQuery({ queryKey: ["student-task-submissions"], queryFn: loadStudentTaskSubmissions });
   const materials = useQuery({ queryKey: ["student-academic-materials"], queryFn: loadStudentAcademicMaterialsDetailed, staleTime: 15000 });
@@ -59,12 +59,14 @@ export function StudentAcademicCenter() {
 
   return (
     <section id="academico" className="mt-6 scroll-mt-28 space-y-5">
-      <div className="rounded-3xl border border-primary/15 bg-primary/5 p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Minha vida acadêmica</p>
-        <h2 className="mt-1 font-display text-2xl font-bold">Atividades, avaliações, frequência e agenda</h2>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Tudo que você precisa acompanhar fica reunido em uma única área.</p>
-          <Button type="button" variant="outline" size="sm" onClick={() => void Promise.all([tasks.refetch(), assessments.refetch(), attendance.refetch(), calendar.refetch(), submissions.refetch(), materials.refetch()])} disabled={tasks.isFetching || assessments.isFetching || attendance.isFetching || calendar.isFetching || submissions.isFetching || materials.isFetching}>
+      <div className="rounded-3xl border border-primary/15 bg-primary/5 p-6 sm:p-7">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Minha vida acadêmica</p>
+            <h2 className="mt-1 font-display text-2xl font-bold">Atividades, avaliações, frequência e agenda</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Tudo que você precisa acompanhar fica reunido em uma única área, com contexto de disciplina, professor, turma e data.</p>
+          </div>
+          <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => void Promise.all([tasks.refetch(), assessments.refetch(), attendance.refetch(), calendar.refetch(), submissions.refetch(), materials.refetch()])} disabled={tasks.isFetching || assessments.isFetching || attendance.isFetching || calendar.isFetching || submissions.isFetching || materials.isFetching}>
             <RefreshCw className={"mr-2 size-4 " + ((tasks.isFetching || assessments.isFetching || attendance.isFetching || calendar.isFetching || submissions.isFetching || materials.isFetching) ? "animate-spin" : "")} />
             {tasks.isFetching || assessments.isFetching || attendance.isFetching || calendar.isFetching || submissions.isFetching || materials.isFetching ? "Atualizando…" : "Atualizar dados"}
           </Button>
@@ -128,8 +130,43 @@ export function StudentAcademicCenter() {
         </div>
 
         <div className="sina-card p-6">
-          <div className="flex items-center gap-3"><Clock3 className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Frequência</p><h3 className="font-semibold">Histórico recente</h3></div></div>
-          <div className="mt-4 space-y-2">{(attendance.data ?? []).slice(0, 12).map(item => <div key={item.attendance_date} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3"><div><p className="text-sm font-semibold">{new Date(item.attendance_date + "T12:00:00").toLocaleDateString("pt-BR")}</p><p className="text-xs text-muted-foreground">{item.classroom}{item.note ? ` · ${item.note}` : ""}</p></div><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === "absent" ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>{item.status === "absent" ? "Falta" : item.status === "late" ? "Atrasado" : item.status === "excused" ? "Justificada" : "Presente"}</span></div>)}{!attendance.data?.length && <p className="text-sm text-muted-foreground">A frequência detalhada aparecerá aqui.</p>}</div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3"><Clock3 className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Frequência</p><h3 className="font-semibold">Histórico recente</h3></div></div>
+            <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold">{attendance.data?.length ?? 0} registros</span>
+          </div>
+          {(() => {
+            const rows = attendance.data ?? [];
+            const absences = rows.filter(item => item.status === "absent").length;
+            const present = rows.filter(item => item.status === "present").length;
+            const late = rows.filter(item => item.status === "late").length;
+            const percentage = rows.length ? Math.round((present / rows.length) * 100) : null;
+            return (
+              <>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-primary/5 p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Frequência</p><p className="mt-1 text-xl font-bold">{percentage == null ? "—" : percentage + "%"}</p></div>
+                  <div className="rounded-xl bg-destructive/5 p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Faltas</p><p className="mt-1 text-xl font-bold">{absences}</p></div>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {rows.slice(0, 8).map((item, index) => (
+                    <div key={item.attendance_date + item.teacher_id + index} className="rounded-xl border border-border p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold">{item.subject_name || "Disciplina não identificada"}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{item.teacher_name || "Professor não informado"} · {item.classroom_name}</p>
+                          <p className="mt-1 text-[11px] text-muted-foreground">{new Date(item.attendance_date + "T12:00:00").toLocaleDateString("pt-BR")}{item.note ? " · " + item.note : ""}</p>
+                        </div>
+                        <span className={"shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold " + (item.status === "absent" ? "bg-destructive/10 text-destructive" : item.status === "late" ? "bg-amber-500/10 text-amber-700 dark:text-amber-300" : item.status === "excused" ? "bg-secondary text-foreground" : "bg-primary/10 text-primary")}>
+                          {item.status === "absent" ? "Falta" : item.status === "late" ? "Atrasado" : item.status === "excused" ? "Justificada" : "Presente"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {!rows.length && <p className="text-sm text-muted-foreground">A frequência detalhada aparecerá aqui.</p>}
+                  {!!rows.length && <p className="pt-1 text-[11px] text-muted-foreground">{late} atraso(s) · {Math.max(0, rows.length - present - absences - late)} justificada(s) ou outro status.</p>}
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
 
