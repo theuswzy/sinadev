@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon , RefreshCw } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, GraduationCap, Megaphone, Plus, School, Users, BarChart3, Paperclip, Pencil, Trash2, X, FileText, Download } from "lucide-react";
 import { toast } from "sonner";
@@ -108,7 +108,7 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex">
           <Button type="button" onClick={()=>onNavigate("notas")} className="rounded-xl">Lançar notas</Button>
-          <Button type="button" variant="outline" onClick={()=>onNavigate("frequencia")} className="rounded-xl border-brand-border bg-transparent text-brand-foreground hover:bg-brand-panel">Registrar frequência</Button>
+          <Button type="button" variant="outline" onClick={()=>onNavigate("frequencia")} className="rounded-xl border-brand-border bg-transparent text-brand-foreground hover:bg-brand-panel">Registrar frequência</Button>\n          <Button type="button" variant="outline" onClick={()=>void Promise.all([d.refresh(), tasks.refetch(), materials.refetch(), calendar.refetch()])} disabled={tasks.isFetching || materials.isFetching || calendar.isFetching} className="rounded-xl border-brand-border bg-transparent text-brand-foreground hover:bg-brand-panel"><RefreshCw className={"mr-2 size-4 " + ((tasks.isFetching || materials.isFetching || calendar.isFetching) ? "animate-spin" : "")}/>{tasks.isFetching || materials.isFetching || calendar.isFetching ? "Atualizando…" : "Atualizar painel"}</Button>
         </div>
       </div>
     </section>
