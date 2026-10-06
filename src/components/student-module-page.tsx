@@ -99,7 +99,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     setSending(taskId);
     try {
       await submitTask(taskId, content);
-      await submissions.refetch();
+      await Promise.all([submissions.refetch(), tasks.refetch()]);
       toast.success("Entrega enviada para correção.");
     } catch (error) {
       toast.error(errorText(error));
