@@ -109,7 +109,7 @@ export function AdminAcademicSetup() {
   const [linkClassroomId, setLinkClassroomId] = useState("");
   const [linkSubjectId, setLinkSubjectId] = useState("");
   const [linkTeacherId, setLinkTeacherId] = useState("");
-  const [confirmRemoveSubjectTeacher, setConfirmRemoveSubjectTeacher] = useState<{ classroomId: string; subjectId: string; teacherId: string; teacherName: string; subjectName: string; isPrimary: boolean } | null>(null);
+  const [confirmRemoveSubjectTeacher, setConfirmRemoveSubjectTeacher] = useState<{ classroomId: string; subjectId: string; teacherId: string; teacherName: string; subjectName: string } | null>(null);
 
   async function refresh() {
     await Promise.all([
@@ -476,7 +476,7 @@ export function AdminAcademicSetup() {
                 return (
               <div className="mt-4 rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4">
                 <p className="font-semibold">Criar novo vínculo</p>
-                <p className="mt-1 text-xs text-muted-foreground">Use quando uma disciplina ainda não possui professor nesta turma. O primeiro vínculo pode ser definido como responsável depois.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Use quando uma disciplina ainda não possui professor nesta turma. O primeiro vínculo será definido automaticamente como responsável pelas notas oficiais.</p>
                 <div className="mt-3 grid gap-2 md:grid-cols-3">
                   <select value={linkClassroomId} onChange={e => { setLinkClassroomId(e.target.value); setLinkTeacherId(""); }} className="h-10 rounded-xl border border-input bg-background px-3 text-sm">
                     <option value="">Selecione a turma</option>
@@ -570,7 +570,7 @@ export function AdminAcademicSetup() {
                                 <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" disabled={busyAction !== null}
                                   onClick={() => setConfirmRemoveSubjectTeacher({
                                     classroomId: first.classroom_id, subjectId: first.subject_id, teacherId: item.teacher_id!,
-                                    teacherName: item.teacher_name, subjectName: first.subject_name, isPrimary: item.is_primary,
+                                    teacherName: item.teacher_name, subjectName: first.subject_name,
                                   })}>
                                   Remover
                                 </Button>
