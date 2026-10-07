@@ -78,6 +78,10 @@ export function AdminAcademicSetup() {
   const periodLocks = useQuery({ queryKey: ["admin-academic-period-locks"], queryFn: loadAdminAcademicPeriodLocks, staleTime: 10000 });
   const gradeAudit = useQuery({ queryKey: ["admin-grade-change-audit"], queryFn: () => loadAdminGradeChangeAudit(50), staleTime: 10000, refetchOnWindowFocus: true });
   const [classroomHubId, setClassroomHubId] = useState<string | null>(null);
+  const [timetableClassroomId, setTimetableClassroomId] = useState("");
+  const [timetableEntry, setTimetableEntry] = useState<{ id: string | null; classroomSubjectId: string; weekday: number; startTime: string; endTime: string; room: string; notes: string }>({
+    id: null, classroomSubjectId: "", weekday: 1, startTime: "13:10", endTime: "14:00", room: "", notes: "",
+  });
   const classroomTimetable = useQuery({
     queryKey: ["admin-classroom-timetable", timetableClassroomId],
     queryFn: () => loadAdminClassroomTimetable(timetableClassroomId),
@@ -111,10 +115,6 @@ export function AdminAcademicSetup() {
   const [confirmDeleteSubject, setConfirmDeleteSubject] = useState<{ id: string; name: string } | null>(null);
   const [confirmDeleteClassroom, setConfirmDeleteClassroom] = useState<{ id: string; name: string } | null>(null);
   const [editingClassroom, setEditingClassroom] = useState<{ id: string; name: string; code: string } | null>(null);
-  const [timetableClassroomId, setTimetableClassroomId] = useState("");
-  const [timetableEntry, setTimetableEntry] = useState<{ id: string | null; classroomSubjectId: string; weekday: number; startTime: string; endTime: string; room: string; notes: string }>({
-    id: null, classroomSubjectId: "", weekday: 1, startTime: "13:10", endTime: "14:00", room: "", notes: "",
-  });
   const [matrixClassroomFilter, setMatrixClassroomFilter] = useState("all");
   const [matrixSubjectFilter, setMatrixSubjectFilter] = useState("all");
   const [matrixTeacherFilter, setMatrixTeacherFilter] = useState("all");
