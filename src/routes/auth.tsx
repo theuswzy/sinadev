@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { GoogleAuthButton } from "@/components/google-auth-button";
+import { authErrorMessage } from "@/lib/auth-messages";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   acceptInstitutionInvitation,
@@ -18,28 +20,7 @@ import {
   type SchoolDirectoryEntry,
 } from "@/lib/sina-data";
 
-function authErrorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : "";
-  const normalized = message.toLowerCase();
-  if (normalized.includes("invalid login credentials")) return "E-mail ou senha incorretos.";
-  if (normalized.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar.";
-  if (normalized.includes("user already registered")) return "Este e-mail já possui uma conta.";
-  if (normalized.includes("password should be at least")) return "A senha precisa ter pelo menos 6 caracteres.";
-  if (normalized.includes("email rate limit")) return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
-  if (normalized.includes("otp_expired") || normalized.includes("token has expired") || normalized.includes("invalid or has expired")) {
-    return "Este link de segurança expirou ou já foi usado. Solicite um novo e-mail.";
-  }
-  if (normalized.includes("code verifier") || normalized.includes("pkce")) {
-    return "Este link foi aberto em outro navegador ou sessão. Solicite um novo e-mail de confirmação.";
-  }
-  if (normalized.includes("redirect") && normalized.includes("not allowed")) {
-    return "O endereço de retorno deste e-mail não está autorizado no Supabase.";
-  }
-  if (normalized.includes("network") || normalized.includes("fetch")) return "Não foi possível conectar ao serviço. Verifique sua internet e tente novamente.";
-  return message || "Não foi possível concluir a operação.";
-}
-
-function readAuthRedirectError(): string | null {
+function readAuthRedirectError(): Error | null {
   const params = new URLSearchParams();
   const url = new URL(window.location.href);
 
@@ -51,7 +32,7 @@ function readAuthRedirectError(): string | null {
 
   const code = params.get("error_code");
   const detail = code ? ` [${code}]` : "";
-  return authErrorMessage(new Error(`${error}${detail}`));
+  return new Error(`${error}${detail}`);
 }
 
 export const Route = createFileRoute("/auth")({
@@ -109,6 +90,7 @@ function AuthPage() {
   const [pendingState, setPendingState] = useState<OnboardingState | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [signupConfirmationOpen, setSignupConfirmationOpen] = useState(false);
   const [signupConfirmationEmail, setSignupConfirmationEmail] = useState("");
@@ -199,7 +181,7 @@ function AuthPage() {
       // precisa trocar explicitamente o código por uma sessão.
       const url = new URL(window.location.href);
       const redirectError = readAuthRedirectError();
-      if (redirectError) throw new Error(redirectError);
+      if (redirectError) throw redirectError;
 
       const code = url.searchParams.get("code");
 
@@ -377,6 +359,7 @@ function AuthPage() {
     }
   }
   async function google() {
+    if (busy || checkingSession) return;
     setMessage("");
     setBusy(true);
 
@@ -399,29 +382,24 @@ function AuthPage() {
       window.localStorage.removeItem("sina-school-directory-id");
     }
 
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/auth`,
-    });
-
-    if (result.error) {
-      window.localStorage.removeItem("sina-requested-role");
-      window.localStorage.removeItem("sina-school-directory-id");
-      setMessage(authErrorMessage(result.error));
+    setGoogleBusy(true);
+    try {
+      // Managed OAuth is required for this Cloud project and editor preview.
+      // Keep the public callback so existing finishAuth/onboarding owns return.
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/auth`,
+      });
+      if (result.error) throw result.error;
+      if (result.redirected) return;
+      await finishAuth(
+        isSignup ? requestedRole ?? undefined : undefined,
+        isSignup ? selectedSchool?.id : undefined,
+      );
+    } catch (error) {
+      setMessage(authErrorMessage(error));
+    } finally {
+      setGoogleBusy(false);
       setBusy(false);
-      return;
-    }
-
-    if (!result.redirected) {
-      try {
-        await finishAuth(
-          isSignup ? requestedRole ?? undefined : undefined,
-          isSignup ? selectedSchool?.id : undefined,
-        );
-      } catch (error) {
-        setMessage(authErrorMessage(error));
-      } finally {
-        setBusy(false);
-      }
     }
   }
 
@@ -583,9 +561,9 @@ function AuthPage() {
             <LockKeyhole className="size-3.5" />
             Acesso acadêmico
           </span>
-          <h1 className="mt-6 max-w-xl font-display text-5xl font-semibold leading-tight tracking-tight">
+          <h2 className="mt-6 max-w-xl font-display text-5xl font-semibold leading-tight tracking-tight">
             Seu acompanhamento acadêmico, em um só lugar.
-          </h1>
+          </h2>
           <p className="mt-5 max-w-lg text-base leading-8 text-muted-foreground">
             Notas, frequência, avisos e atividades organizados em uma experiência simples para alunos e professores.
           </p>
@@ -599,14 +577,14 @@ function AuthPage() {
           <div className="rounded-3xl border border-border bg-card p-6 shadow-xl shadow-foreground/5 sm:p-8">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">SINA</p>
-              <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight">{title}</h2>
+              <h1 className="mt-2 font-display text-2xl font-semibold">{title}</h1>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
             </div>
 
             {mode !== "forgot" && mode !== "pending" && (
               <div className="mt-6 grid grid-cols-2 rounded-xl bg-secondary p-1">
-                <button type="button" onClick={() => { setMode("login"); setMessage(""); }} className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${mode === "login" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Entrar</button>
-                <button type="button" onClick={() => { setMode("signup"); setMessage(""); }} className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${mode === "signup" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Criar conta</button>
+                <Button variant="ghost" type="button" disabled={busy || checkingSession} aria-pressed={mode === "login"} onClick={() => { setMode("login"); setMessage(""); }} className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${mode === "login" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Entrar</Button>
+                <Button variant="ghost" type="button" disabled={busy || checkingSession} aria-pressed={mode === "signup"} onClick={() => { setMode("signup"); setMessage(""); }} className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${mode === "signup" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>Criar conta</Button>
               </div>
             )}
 
@@ -802,7 +780,7 @@ function AuthPage() {
                         {message && <div role="status" className="rounded-xl border border-border bg-secondary px-4 py-3 text-sm leading-6">{message}</div>}
                         <div className="grid grid-cols-2 gap-2">
                           <Button type="button" variant="outline" className="h-11" onClick={() => { setMessage(""); setSignupStep(2); }}>Voltar</Button>
-                          <Button disabled={busy} className="h-11 font-semibold" type="submit">{busy ? "Enviando…" : "Enviar cadastro"} <ArrowRight /></Button>
+                          <Button disabled={busy} className="h-11 font-semibold" type="submit">{busy && !googleBusy ? "Enviando…" : "Enviar cadastro"} <ArrowRight /></Button>
                         </div>
                       </form>
                     )}
@@ -810,7 +788,7 @@ function AuthPage() {
                     {signupStep === 3 && (
                       <>
                         <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
-                        <Button type="button" variant="outline" onClick={() => void google()} disabled={busy} className="h-11 w-full">Continuar com Google</Button>
+                        <GoogleAuthButton onClick={() => void google()} disabled={busy || checkingSession} loading={googleBusy} />
                         <p className="mt-2 text-center text-xs leading-5 text-muted-foreground">
                           {requestedRole === "student"
                             ? "Sua conta será criada como aluno. A escola e a turma podem ser vinculadas depois."
@@ -838,10 +816,10 @@ function AuthPage() {
                       <label className="block text-sm font-medium">Senha
                         <Input required type="password" minLength={6} value={password} onChange={e => setPassword(e.target.value)} className="mt-2 h-11" autoComplete="current-password" placeholder="Sua senha" />
                       </label>
-                      <Button disabled={busy} className="h-11 w-full font-semibold" type="submit">{busy ? "Entrando…" : "Entrar no SINA"} <ArrowRight /></Button>
+                      <Button disabled={busy || checkingSession} className="h-11 w-full font-semibold" type="submit">{busy && !googleBusy ? "Entrando…" : "Entrar no SINA"} <ArrowRight /></Button>
                     </form>
                     <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />ou<span className="h-px flex-1 bg-border" /></div>
-                    <Button type="button" variant="outline" onClick={() => void google()} disabled={busy} className="h-11 w-full">Continuar com Google</Button>
+                    <GoogleAuthButton onClick={() => void google()} disabled={busy || checkingSession} loading={googleBusy} />
                   </>
                 ) : (
                   <>
@@ -850,23 +828,23 @@ function AuthPage() {
                       <label className="block text-sm font-medium">E-mail
                         <Input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-2 h-11" autoComplete="email" placeholder="voce@exemplo.com" />
                       </label>
-                      <Button disabled={busy} className="h-11 w-full font-semibold" type="submit">{busy ? "Enviando…" : "Enviar link de recuperação"} <ArrowRight /></Button>
+                      <Button disabled={busy || checkingSession} className="h-11 w-full font-semibold" type="submit">{busy ? "Enviando…" : "Enviar link de recuperação"} <ArrowRight /></Button>
                     </form>
                   </>
                 )}
 
                 <div className="mt-5 flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <Button variant="link" className="h-auto px-0" onClick={() => { setMode(mode === "signup" ? "login" : "signup"); setMessage(""); }}>
+                  <Button disabled={busy || checkingSession} variant="link" className="h-auto px-0" onClick={() => { setMode(mode === "signup" ? "login" : "signup"); setMessage(""); }}>
                     {mode === "signup" ? "Já tenho conta" : "Criar conta"}
                   </Button>
-                  <Button variant="link" className="h-auto px-0 text-muted-foreground" onClick={() => { setMode(mode === "forgot" ? "login" : "forgot"); setMessage(""); }}>
+                  <Button disabled={busy || checkingSession} variant="link" className="h-auto px-0 text-muted-foreground" onClick={() => { setMode(mode === "forgot" ? "login" : "forgot"); setMessage(""); }}>
                     {mode === "forgot" ? "Voltar para entrar" : "Esqueci minha senha"}
                   </Button>
                 </div>
               </>
             )}
           </div>
-          <p className="mt-4 text-center text-xs leading-5 text-muted-foreground">Ao continuar, você acessa apenas os dados permitidos para sua função no SINA.</p>
+          <p className="mt-4 flex items-start justify-center gap-2 text-center text-xs leading-5 text-muted-foreground"><ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0" />Acesso individual e protegido. Seus dados acadêmicos respeitam as permissões da sua instituição.</p>
         </section>
       </main>
     </div>

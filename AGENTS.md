@@ -16,3 +16,8 @@
 - Academic roles are mutually exclusive and assigned by an administrator through a checked database function; admin roles are never editable from the role selector, preventing self-promotion.
 - Include the connected Cloud project's public URL and publishable key as build-time fallbacks in Vite; deployment builds may omit VITE_* variables, and browser auth must still initialize.
 - Keep Lovable auth email delivery on the scaffolded managed handler and shared SINA template frame; this preserves verified webhook behavior and consistent branding across every auth message.
+
+- Authentication screens render only curated SINA messages through src/lib/auth-messages.ts; provider and RPC errors are untrusted and must not reach users verbatim.
+- Keep managed Google OAuth with a public /auth callback and existing finishAuth; this Cloud project requires its broker for session delivery and editor compatibility.
+- Read confirmation URL parameters after hydration and verify only on explicit confirmation; SSR must not access window or consume email tokens.
+- Preserve the recovery page on sign-out so a successful password reset can show its confirmation before the user returns to login.
