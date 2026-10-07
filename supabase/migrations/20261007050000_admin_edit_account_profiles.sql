@@ -32,10 +32,7 @@ BEGIN
 
   UPDATE public.profiles
   SET display_name = trim(_display_name),
-      avatar_url = CASE
-        WHEN _avatar_url IS NULL THEN avatar_url
-        ELSE nullif(trim(_avatar_url), '')
-      END,
+      avatar_url = nullif(trim(coalesce(_avatar_url, '')), ''),
       updated_at = now()
   WHERE user_id = _user_id
   RETURNING * INTO v_profile;
