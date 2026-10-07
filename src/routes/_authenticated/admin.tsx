@@ -621,7 +621,7 @@ function AdminArea() {
               <div className="rounded-xl border border-border p-4">
                 <p className="font-semibold">Turmas que precisam de atenção</p>
                 <div className="mt-3 space-y-2">
-                  {(academicOverview.data?.classrooms_attention ?? []).map(item=><div key={item.id} className="flex flex-col gap-2 rounded-lg bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between"><div><b>{item.name}</b><p className="text-xs text-muted-foreground">Média: {item.average == null ? "—" : Number(item.average).toFixed(1)} · Frequência: {item.attendance_percent == null ? "—" : Number(item.attendance_percent).toFixed(0)+"%"}</p></div><span className="text-xs font-semibold text-primary">Revisar turma</span></div>)}
+                  {(academicOverview.data?.classrooms_attention ?? []).map(item=><button type="button" key={item.id} onClick={()=>setAdminTab("academico")} className="flex w-full flex-col gap-2 rounded-lg bg-muted/40 p-3 text-left transition hover:bg-muted/60 sm:flex-row sm:items-center sm:justify-between"><div><b>{item.name}</b><p className="text-xs text-muted-foreground">Média: {item.average == null ? "—" : Number(item.average).toFixed(1)} · Frequência: {item.attendance_percent == null ? "—" : Number(item.attendance_percent).toFixed(0)+"%"}</p></div><span className="text-xs font-semibold text-primary">Abrir acadêmico →</span></button>)}
                   {!(academicOverview.data?.classrooms_attention ?? []).length && <p className="text-sm text-muted-foreground">Nenhuma turma foi sinalizada pelos critérios atuais. 🎉</p>}
                 </div>
               </div>
