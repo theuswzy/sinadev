@@ -771,7 +771,7 @@ export function AdminAcademicSetup() {
                           <tr>
                             <th className="px-3 py-2 font-semibold">Aluno</th>
                             <th className="px-3 py-2 font-semibold">Matrícula</th>
-                            <th className="px-3 py-2 font-semibold">Status</th>
+                            <th className="px-3 py-2 font-semibold">Vínculo</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -779,7 +779,7 @@ export function AdminAcademicSetup() {
                             <tr key={student.id}>
                               <td className="px-3 py-2 font-medium">{student.full_name}</td>
                               <td className="px-3 py-2 text-muted-foreground">{student.enrollment || "—"}</td>
-                              <td className="px-3 py-2 text-xs text-muted-foreground">{student.status}</td>
+                              <td className="px-3 py-2 text-xs text-muted-foreground">Vinculado à turma</td>
                             </tr>
                           ))}
                         </tbody>
