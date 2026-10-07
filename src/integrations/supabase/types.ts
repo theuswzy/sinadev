@@ -1586,6 +1586,29 @@ export type Database = {
         Args: { _student_id: string }
         Returns: boolean
       }
+      admin_update_student_profile: {
+        Args: {
+          _avatar_url?: string
+          _enrollment?: string
+          _full_name: string
+          _student_id: string
+        }
+        Returns: {
+          attendance: number | null
+          avatar_url: string | null
+          claim_code: string
+          classroom: string
+          classroom_id: string | null
+          created_at: string
+          enrollment: string | null
+          full_name: string
+          id: string
+          institution_id: string | null
+          teacher_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+      }
       admin_restore_classroom: { Args: { _id: string }; Returns: boolean }
       admin_review_role_request: {
         Args: {
