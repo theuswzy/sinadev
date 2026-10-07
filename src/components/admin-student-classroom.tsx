@@ -54,8 +54,8 @@ export function AdminStudentClassroom() {
 
   const items = students.data?.items ?? [];
   const total = students.data?.total ?? 0;
-  const enrolled = items.filter(s => !!s.classroom_id).length;
-  const pendingClass = items.length - enrolled;
+  const activeClassroomCount = classes.length;
+  const pendingClass = items.filter(s => !s.classroom_id).length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const waitingSchool = schoolLinks.data?.filter(s => s.status === "sem_escola").length ?? 0;
 
@@ -124,7 +124,7 @@ export function AdminStudentClassroom() {
         </div>
         <div className="grid grid-cols-4 gap-2 text-center text-xs">
           <div className="rounded-xl border border-border px-3 py-2"><p className="font-bold text-lg">{total}</p><p className="text-muted-foreground">Alunos</p></div>
-          <div className="rounded-xl border border-border px-3 py-2"><p className="font-bold text-lg">{enrolled}</p><p className="text-muted-foreground">Turmas</p></div>
+          <div className="rounded-xl border border-border px-3 py-2"><p className="font-bold text-lg">{activeClassroomCount}</p><p className="text-muted-foreground">Turmas</p></div>
           <div className="rounded-xl border border-border px-3 py-2"><p className="font-bold text-lg">{pendingClass}</p><p className="text-muted-foreground">Sem turma</p></div>
           <div className="rounded-xl border border-border px-3 py-2"><p className="font-bold text-lg">{waitingSchool}</p><p className="text-muted-foreground">Sem escola</p></div>
         </div>
