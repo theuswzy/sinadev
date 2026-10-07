@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ClipboardCheck, ClipboardList, FileSpreadsheet, Save, UsersRound, Pencil, Trash2, Paperclip } from "lucide-react";
+import { CalendarDays, ClipboardCheck, ClipboardList, FileSpreadsheet, Save, UsersRound, Pencil, Trash2, Paperclip, FileText, Search, Archive, ExternalLink } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -20,12 +20,16 @@ import {
   loadTeacherAcademicOptions,
   loadTeacherAssessments,
   loadTeacherCalendar,
+  loadTeacherAcademicMaterials,
+  createTeacherAcademicMaterial,
+  deleteTeacherAcademicMaterial,
   loadTeacherClassReport,
   loadTeacherClassrooms,
   saveAttendance,
   type AttendanceRow,
   type TeacherAssessment,
   type TeacherTask,
+  type AcademicMaterial,
 } from "@/lib/sina-data";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -265,6 +269,54 @@ export function TeacherAcademicCenter() {
   }
 
 
+  const materials = useQuery({
+    queryKey: ["teacher-academic-materials"],
+    queryFn: loadTeacherAcademicMaterials,
+  });
+  const [materialTitle, setMaterialTitle] = useState("");
+  const [materialDescription, setMaterialDescription] = useState("");
+  const [materialSubjectId, setMaterialSubjectId] = useState("");
+  const [materialTermId, setMaterialTermId] = useState("");
+  const [materialFile, setMaterialFile] = useState<File | null>(null);
+  const [materialSearch, setMaterialSearch] = useState("");
+  const [materialSaving, setMaterialSaving] = useState(false);
+
+  const visibleMaterials = useMemo(() => {
+    const query = materialSearch.trim().toLocaleLowerCase("pt-BR");
+    return (materials.data ?? []).filter(item => {
+      if (item.classroom_id !== classroomId) return false;
+      if (!query) return true;
+      return [item.title, item.description, item.file_name, item.classroom_name, item.subject_name, item.term_name]
+        .filter(Boolean)
+        .some(value => value!.toLocaleLowerCase("pt-BR").includes(query));
+    });
+  }, [materials.data, classroomId, materialSearch]);
+
+  function resetMaterialForm() {
+    setMaterialTitle(""); setMaterialDescription(""); setMaterialSubjectId(""); setMaterialTermId(""); setMaterialFile(null);
+  }
+
+  async function publishMaterial() {
+    if (!classroomId || !materialTitle.trim() || !materialFile) { toast.error("Informe o título e selecione um arquivo."); return; }
+    if (materialSubjectId && !classSubjects.some(item => item.subject_id === materialSubjectId)) { toast.error("A disciplina selecionada não pertence à turma."); return; }
+    setMaterialSaving(true);
+    try {
+      const attachment = await uploadAcademicAttachment(materialFile, "materials");
+      await createTeacherAcademicMaterial({ classroomId, subjectId: materialSubjectId || null, termId: materialTermId || null, title: materialTitle.trim(), description: materialDescription.trim(), attachment });
+      resetMaterialForm();
+      await qc.invalidateQueries({ queryKey: ["teacher-academic-materials"] });
+      toast.success("Material publicado para a turma.");
+    } catch (error) { toast.error(errorText(error)); } finally { setMaterialSaving(false); }
+  }
+
+  async function archiveMaterial(material: AcademicMaterial) {
+    if (!window.confirm("Arquivar o material \"" + material.title + "\"? Ele deixará de aparecer para os alunos.")) return;
+    try {
+      await deleteTeacherAcademicMaterial(material.id);
+      await qc.invalidateQueries({ queryKey: ["teacher-academic-materials"] });
+      toast.success("Material arquivado.");
+    } catch (error) { toast.error(errorText(error)); }
+  }
   const calendar = useQuery({
     queryKey: ["teacher-calendar-center"],
     queryFn: () => loadTeacherCalendar(monthStart(), monthEnd()),
@@ -414,6 +466,25 @@ export function TeacherAcademicCenter() {
         <div className="mt-4 space-y-3">{(submissions.data ?? []).length ? (submissions.data ?? []).map(item => { const value=grading[item.id] ?? {score:item.score == null ? "" : String(item.score), feedback:item.feedback ?? ""}; return <article key={item.id} className="rounded-2xl border border-border p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div><p className="font-semibold">{item.student_name}</p><p className="text-xs text-muted-foreground">{item.enrollment} · {new Date(item.submitted_at).toLocaleString("pt-BR")}</p><p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{item.content || "Sem texto. Verifique o anexo da entrega."}</p></div><div className="grid min-w-[280px] gap-2 sm:grid-cols-[120px_1fr]"><Input type="number" min="0" max="10" step="0.01" placeholder="Nota" value={value.score} onChange={e => setGrading(v => ({ ...v, [item.id]: { ...value, score: e.target.value } }))} /><Input placeholder="Feedback" value={value.feedback} onChange={e => setGrading(v => ({ ...v, [item.id]: { ...value, feedback: e.target.value } }))} /><Button className="sm:col-span-2" onClick={() => void gradeSubmission(item.id)}><Save className="mr-2 size-4" />Salvar correção</Button></div></div></article> }) : taskId ? <p className="text-sm text-muted-foreground">Nenhuma entrega registrada para esta atividade.</p> : <p className="text-sm text-muted-foreground">Selecione uma atividade para ver as entregas.</p>}</div>
       </div>
 
+      <div className="sina-card overflow-hidden p-0">
+        <div className="bg-gradient-to-br from-primary/10 via-background to-secondary/40 p-6 md:p-7">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div><div className="flex items-center gap-3"><FileText className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Biblioteca acadêmica</p><h3 className="mt-1 font-semibold">Materiais de estudo</h3></div></div><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Publique arquivos organizados por turma, disciplina e período para seus alunos.</p></div>
+            <div className="relative w-full lg:max-w-sm"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={materialSearch} onChange={e => setMaterialSearch(e.target.value)} placeholder="Buscar material..." aria-label="Buscar material" /></div>
+          </div>
+        </div>
+        <div className="grid gap-6 p-6 lg:grid-cols-[minmax(280px,360px)_1fr]">
+          <div className="rounded-2xl border border-border bg-secondary/30 p-5"><p className="text-sm font-semibold">Publicar material</p><p className="mt-1 text-xs text-muted-foreground">PDF, imagens, Word, PowerPoint, Excel ou TXT · até 20 MB.</p><div className="mt-4 space-y-3">
+            <Input value={materialTitle} onChange={e => setMaterialTitle(e.target.value)} placeholder="Título do material" aria-label="Título do material" />
+            <select value={materialSubjectId} onChange={e => setMaterialSubjectId(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Todas as disciplinas</option>{classSubjects.map(subject => <option key={subject.subject_id} value={subject.subject_id}>{subject.subject_name}</option>)}</select>
+            <select value={materialTermId} onChange={e => setMaterialTermId(e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"><option value="">Sem período específico</option>{(options.data?.terms ?? []).map(term => <option key={term.id} value={term.id}>{term.name}</option>)}</select>
+            <textarea value={materialDescription} onChange={e => setMaterialDescription(e.target.value)} placeholder="Descrição (opcional)" className="min-h-24 w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            <label className="block cursor-pointer rounded-xl border border-dashed border-border bg-background p-4 transition-colors hover:border-primary/50 hover:bg-primary/5"><input type="file" className="sr-only" onChange={e => setMaterialFile(e.target.files?.[0] ?? null)} accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx" /><div className="flex items-center gap-3"><Paperclip className="size-4 text-primary" /><div className="min-w-0"><p className="truncate text-sm font-medium">{materialFile?.name ?? "Selecionar arquivo"}</p><p className="text-xs text-muted-foreground">{materialFile ? (materialFile.size / 1024 / 1024).toFixed(2) + " MB" : "Clique para escolher o arquivo"}</p></div></div></label>
+            <Button className="w-full" onClick={() => void publishMaterial()} disabled={materialSaving || !materialTitle.trim() || !materialFile}>{materialSaving ? "Publicando…" : "Publicar material"}</Button>
+          </div></div>
+          <div className="min-w-0">{materials.isPending ? <div className="rounded-2xl border border-border p-8 text-center text-sm text-muted-foreground">Carregando biblioteca…</div> : materials.isError ? <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-8 text-center"><p className="text-sm font-medium">Não foi possível carregar os materiais.</p></div> : visibleMaterials.length === 0 ? <div className="rounded-2xl border border-dashed border-border p-10 text-center"><FileText className="mx-auto size-8 text-muted-foreground/60" /><p className="mt-3 text-sm font-medium">{materialSearch ? "Nenhum material encontrado" : "Nenhum material publicado nesta turma"}</p><p className="mt-1 text-xs text-muted-foreground">{materialSearch ? "Tente outro termo de busca." : "Publique o primeiro arquivo usando o formulário ao lado."}</p></div> : <div className="grid gap-3 md:grid-cols-2">{visibleMaterials.map(material => <article key={material.id} className="group rounded-2xl border border-border bg-background p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-start gap-3"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><FileText className="size-5" /></div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><h4 className="truncate font-semibold">{material.title}</h4><p className="mt-1 truncate text-xs text-muted-foreground">{material.subject_name ?? "Todas as disciplinas"}{material.term_name ? " · " + material.term_name : ""}</p></div><button type="button" onClick={() => void archiveMaterial(material)} className="rounded-md p-2 text-muted-foreground opacity-70 transition hover:bg-destructive/10 hover:text-destructive" aria-label={"Arquivar " + material.title}><Archive className="size-4" /></button></div>{material.description && <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{material.description}</p>}<div className="mt-3 flex items-center justify-between gap-3"><span className="truncate text-xs text-muted-foreground">{material.file_name} · {(material.file_size / 1024 / 1024).toFixed(2)} MB</span>{material.file_url && <a href={material.file_url} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline">Abrir <ExternalLink className="size-3" /></a>}</div></div></div></article>)}</div>}</div>
+        </div>
+      </div>
       <div className="sina-card p-6">
         <div className="flex items-center gap-3"><CalendarDays className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Calendário</p><h3 className="font-semibold">Agenda acadêmica</h3></div></div>
         <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]"><Input placeholder="Título do evento" value={eventTitle} onChange={e => setEventTitle(e.target.value)} /><Input type="datetime-local" value={eventStart} onChange={e => setEventStart(e.target.value)} /><select value={eventClassroom} onChange={e => setEventClassroom(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Todas as turmas</option>{classrooms.data.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select><Button onClick={() => void createEvent()} disabled={!eventTitle.trim() || !eventStart}>Adicionar</Button></div>
