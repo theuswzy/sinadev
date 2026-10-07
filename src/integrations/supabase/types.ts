@@ -1452,7 +1452,19 @@ export type Database = {
           _room?: string | null
           _notes?: string | null
         }
-        Returns: string
+        Returns: {
+          id: string
+          institution_id: string
+          classroom_id: string
+          classroom_subject_id: string
+          weekday: number
+          start_time: string
+          end_time: string
+          room: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
       }
       admin_delete_classroom_timetable: {
         Args: { _id: string }
