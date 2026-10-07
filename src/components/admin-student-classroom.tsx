@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, UserCheck, Users, UserX, School, RefreshCw } from "lucide-react";
+import { Search, UserCheck, Users, UserX, School, RefreshCw, Pencil, Camera, X, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import {
   errorText,
@@ -14,6 +15,7 @@ import {
   loadAdminStudentSchoolLinks,
   loadAdminLinkableInstitutions,
   adminLinkStudentToInstitution,
+  adminUpdateStudentProfile,
 } from "@/lib/sina-data";
 
 export function AdminStudentClassroom() {
@@ -49,6 +51,13 @@ export function AdminStudentClassroom() {
   }, [onlyWithoutClass]);
   const [onlyWithoutSchool, setOnlyWithoutSchool] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [editingStudent, setEditingStudent] = useState<AdminStudentClassroom | null>(null);
+  const [editFullName, setEditFullName] = useState("");
+  const [editEnrollment, setEditEnrollment] = useState("");
+  const [editAvatarUrl, setEditAvatarUrl] = useState<string | null>(null);
+  const [editAvatarPreview, setEditAvatarPreview] = useState<string | null>(null);
+  const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const classes = (setup.data?.classrooms ?? []).filter(c => c.status === "active");
 
@@ -94,6 +103,73 @@ export function AdminStudentClassroom() {
       toast.error(errorText(e));
     } finally {
       setBusy(null);
+    }
+  }
+
+  function openEdit(student: AdminStudentClassroom) {
+    setEditingStudent(student);
+    setEditFullName(student.full_name);
+    setEditEnrollment(student.enrollment ?? "");
+    setEditAvatarUrl(student.avatar_url);
+    setEditAvatarPreview(student.avatar_url);
+    setEditAvatarFile(null);
+  }
+
+  function closeEdit() {
+    if (savingProfile) return;
+    setEditingStudent(null);
+    setEditFullName("");
+    setEditEnrollment("");
+    setEditAvatarUrl(null);
+    setEditAvatarPreview(null);
+    setEditAvatarFile(null);
+  }
+
+  function chooseAvatar(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Escolha uma imagem PNG, JPG ou WebP.");
+      return;
+    }
+    if (file.size > 6 * 1024 * 1024) {
+      toast.error("A foto precisa ter no máximo 6 MB.");
+      return;
+    }
+    setEditAvatarFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setEditAvatarPreview(typeof reader.result === "string" ? reader.result : null);
+    reader.readAsDataURL(file);
+  }
+
+  async function saveProfile() {
+    if (!editingStudent) return;
+    const fullName = editFullName.trim();
+    if (!fullName) {
+      toast.error("Informe o nome completo do aluno.");
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      let avatarUrl = editAvatarUrl;
+      if (editAvatarFile) {
+        const extension = editAvatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
+        const path = `admin/${editingStudent.id}/${Date.now()}.${extension}`;
+        const { error: uploadError } = await supabase.storage.from("avatars").upload(path, editAvatarFile, {
+          cacheControl: "3600",
+          contentType: editAvatarFile.type,
+          upsert: false,
+        });
+        if (uploadError) throw uploadError;
+        avatarUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+      }
+      await adminUpdateStudentProfile(editingStudent.id, fullName, editEnrollment.trim(), avatarUrl);
+      await refresh();
+      closeEdit();
+      toast.success("Perfil do aluno atualizado.");
+    } catch (e) {
+      toast.error(errorText(e));
+    } finally {
+      setSavingProfile(false);
     }
   }
 
@@ -228,7 +304,15 @@ export function AdminStudentClassroom() {
           {items.map(student => (
             <div key={student.id} className="rounded-2xl border border-border p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-start gap-3">
+                  {student.avatar_url ? (
+                    <img src={student.avatar_url} alt="" className="size-11 shrink-0 rounded-full border border-border object-cover" />
+                  ) : (
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <UserRound className="size-5" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{student.full_name}</p>
                     {student.classroom_id ? (
@@ -244,12 +328,19 @@ export function AdminStudentClassroom() {
                   <p className="break-all text-xs text-muted-foreground">
                     {student.enrollment || "Sem matrícula"} · {student.classroom_name || "Sem turma"}
                   </p>
+                  </div>
                 </div>
-                {student.classroom_id && (
-                  <Button size="sm" variant="ghost" onClick={() => void remove(student.id)} disabled={busy === student.id}>
-                    Retirar da turma
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="outline" onClick={() => openEdit(student)} disabled={busy === student.id || savingProfile}>
+                    <Pencil className="mr-2 size-4" />
+                    Editar perfil
                   </Button>
-                )}
+                  {student.classroom_id && (
+                    <Button size="sm" variant="ghost" onClick={() => void remove(student.id)} disabled={busy === student.id}>
+                      Retirar da turma
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="mt-3 grid gap-2 md:grid-cols-[1fr_180px_auto]">
@@ -290,6 +381,63 @@ export function AdminStudentClassroom() {
           </div>
         </div>
       )}
+      <Dialog open={!!editingStudent} onOpenChange={(open) => { if (!open) closeEdit(); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar perfil do aluno</DialogTitle>
+            <DialogDescription>
+              Altere os dados básicos do aluno. A atualização fica vinculada à instituição ativa do administrador.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5">
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative">
+                {editAvatarPreview ? (
+                  <img src={editAvatarPreview} alt="Prévia da foto do aluno" className="size-28 rounded-full border border-border object-cover shadow-sm" />
+                ) : (
+                  <div className="flex size-28 items-center justify-center rounded-full border border-border bg-primary/10 text-primary">
+                    <UserRound className="size-10" />
+                  </div>
+                )}
+                <label className="absolute bottom-0 right-0 flex size-9 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90" title="Alterar foto">
+                  <Camera className="size-4" />
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => chooseAvatar(event.target.files?.[0])} />
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer text-sm font-semibold text-primary hover:underline">
+                  Alterar foto
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => chooseAvatar(event.target.files?.[0])} />
+                </label>
+                {editAvatarPreview && (
+                  <Button type="button" size="sm" variant="ghost" onClick={() => { setEditAvatarFile(null); setEditAvatarUrl(null); setEditAvatarPreview(null); }}>
+                    <X className="mr-1 size-4" />
+                    Remover
+                  </Button>
+                )}
+              </div>
+              <p className="text-center text-xs text-muted-foreground">PNG, JPG ou WebP · até 6 MB</p>
+            </div>
+            <div className="grid gap-4">
+              <label className="text-sm font-medium">
+                Nome completo
+                <Input className="mt-2" value={editFullName} onChange={(event) => setEditFullName(event.target.value)} />
+              </label>
+              <label className="text-sm font-medium">
+                Matrícula
+                <Input className="mt-2" value={editEnrollment} onChange={(event) => setEditEnrollment(event.target.value)} placeholder="Número da matrícula" />
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeEdit} disabled={savingProfile}>Cancelar</Button>
+            <Button type="button" onClick={() => void saveProfile()} disabled={savingProfile || !editFullName.trim()}>
+              {savingProfile ? "Salvando…" : "Salvar alterações"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </section>
   );
 }
