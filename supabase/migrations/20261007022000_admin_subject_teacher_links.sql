@@ -177,3 +177,62 @@ CREATE TRIGGER trg_guard_classroom_teacher_subject_links
 BEFORE DELETE ON public.classroom_teachers
 FOR EACH ROW
 EXECUTE FUNCTION public.guard_classroom_teacher_subject_links();
+
+
+-- Keep the student subject list one row per discipline even when multiple
+-- teachers are linked to the same classroom/subject.
+CREATE OR REPLACE FUNCTION public.student_list_subjects()
+RETURNS TABLE(
+  id uuid,
+  name text,
+  code text,
+  classroom_id uuid,
+  classroom_name text,
+  teacher_id uuid,
+  teacher_name text
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT
+    s.id,
+    s.name,
+    s.code,
+    c.id,
+    c.name,
+    cs.teacher_id,
+    COALESCE(NULLIF(trim(p.display_name), ''), '')
+  FROM public.classrooms c
+  JOIN public.students st
+    ON st.classroom_id = c.id
+   AND st.user_id = auth.uid()
+   AND st.institution_id = c.institution_id
+  JOIN LATERAL (
+    SELECT cs.*
+    FROM public.classroom_subjects cs
+    WHERE cs.institution_id = c.institution_id
+      AND cs.classroom_id = c.id
+      AND cs.subject_id IN (
+        SELECT s2.id
+        FROM public.subjects s2
+        WHERE s2.institution_id = c.institution_id
+          AND s2.status = 'active'
+      )
+    ORDER BY cs.is_primary DESC, cs.created_at ASC, cs.id
+    LIMIT 1
+  ) cs ON true
+  JOIN public.subjects s
+    ON s.id = cs.subject_id
+   AND s.institution_id = c.institution_id
+   AND s.status = 'active'
+  LEFT JOIN public.profiles p ON p.user_id = cs.teacher_id
+  WHERE c.id = st.classroom_id
+    AND c.institution_id = sina_private.current_institution('student'::public.app_role)
+    AND c.status = 'active'
+  ORDER BY s.name;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.student_list_subjects() FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.student_list_subjects() TO authenticated;
