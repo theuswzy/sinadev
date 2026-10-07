@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION public.teacher_clear_gradebook_scores(
   _classroom_id uuid,
   _subject_id uuid,
   _period integer,
-  _student_ids uuid[]
+  _rows jsonb
 )
 RETURNS integer
 LANGUAGE plpgsql
@@ -18,6 +18,8 @@ DECLARE
   v_subject_name text;
   v_count integer := 0;
   v_student uuid;
+  v_absences integer;
+  item jsonb;
 BEGIN
   IF NOT public.has_role(auth.uid(), 'teacher'::public.app_role) THEN
     RAISE EXCEPTION 'Acesso reservado a professores autorizados.';
@@ -36,7 +38,7 @@ BEGIN
     RAISE EXCEPTION 'Período inválido.';
   END IF;
 
-  IF _student_ids IS NULL OR cardinality(_student_ids) = 0 THEN
+  IF jsonb_typeof(_rows) <> 'array' OR jsonb_array_length(_rows) = 0 THEN
     RETURN 0;
   END IF;
 
@@ -56,8 +58,15 @@ BEGIN
     RAISE EXCEPTION 'A disciplina não está vinculada a esta turma para você.';
   END IF;
 
-  FOREACH v_student IN ARRAY _student_ids
+  FOR item IN SELECT value FROM jsonb_array_elements(_rows)
   LOOP
+    v_student := NULLIF(item->>'student_id', '')::uuid;
+    v_absences := COALESCE(NULLIF(item->>'absences', '')::integer, 0);
+
+    IF v_student IS NULL OR v_absences < 0 THEN
+      RAISE EXCEPTION 'Dados inválidos para limpeza da nota.';
+    END IF;
+
     IF NOT EXISTS (
       SELECT 1
       FROM public.students s
@@ -70,6 +79,7 @@ BEGIN
 
     UPDATE public.grades
     SET score = NULL,
+        absences = v_absences,
         subject = trim(v_subject_name),
         institution_id = v_institution,
         subject_id = _subject_id,
@@ -87,5 +97,5 @@ BEGIN
 END;
 $function$;
 
-REVOKE EXECUTE ON FUNCTION public.teacher_clear_gradebook_scores(uuid, uuid, integer, uuid[]) FROM public;
-GRANT EXECUTE ON FUNCTION public.teacher_clear_gradebook_scores(uuid, uuid, integer, uuid[]) TO authenticated;
+REVOKE EXECUTE ON FUNCTION public.teacher_clear_gradebook_scores(uuid, uuid, integer, jsonb) FROM public;
+GRANT EXECUTE ON FUNCTION public.teacher_clear_gradebook_scores(uuid, uuid, integer, jsonb) TO authenticated;
