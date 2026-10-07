@@ -504,13 +504,20 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
     }
 
     const rows: Array<{student_id:string;score:number;absences:number}>=[];
-    const clearIds:string[]=[];
+    const clearRows: Array<{student_id:string;absences:number}>=[];
 
     for(const row of gradebook.data){
       const draft=drafts[row.student_id]??{score:row.score==null?"":String(row.score),absences:String(row.absences??0)};
       const rawScore=draft.score.trim();
       if(!rawScore){
-        if(row.score!=null) clearIds.push(row.student_id);
+        if(row.score!=null){
+          const absences=Number(draft.absences);
+          if(!Number.isInteger(absences)||absences<0){
+            toast.error("Existe uma quantidade de faltas inválida.");
+            return;
+          }
+          clearRows.push({student_id:row.student_id,absences});
+        }
         continue;
       }
       const score=Number(rawScore.replace(",","."));
@@ -526,7 +533,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
       rows.push({student_id:row.student_id,score,absences});
     }
 
-    if(!rows.length&&!clearIds.length){
+    if(!rows.length&&!clearRows.length){
       toast.error("Faça uma alteração antes de salvar.");
       return;
     }
@@ -536,8 +543,8 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
       const saved=rows.length
         ? await saveTeacherGradebook({classroomId:classroom,subjectId:subject,period:Number(period),rows})
         : 0;
-      const cleared=clearIds.length
-        ? await clearTeacherGradebookScores({classroomId:classroom,subjectId:subject,period:Number(period),studentIds:clearIds})
+      const cleared=clearRows.length
+        ? await clearTeacherGradebookScores({classroomId:classroom,subjectId:subject,period:Number(period),rows:clearRows})
         : 0;
       await gradebook.refetch();
       setDrafts({});
@@ -698,7 +705,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
           if(!clearStudentId||!classroom||!subject)return;
           setBusy(true);
           try{
-            await clearTeacherGradebookScores({classroomId:classroom,subjectId:subject,period:Number(period),studentIds:[clearStudentId]});
+            await clearTeacherGradebookScores({classroomId:classroom,subjectId:subject,period:Number(period),rows:[{student_id:clearStudentId,absences:Number(drafts[clearStudentId]?.absences??0)}]});
             await gradebook.refetch();
             setDrafts({});
             toast.success("Nota removida do diário.");
