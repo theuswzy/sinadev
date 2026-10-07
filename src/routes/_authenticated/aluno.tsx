@@ -216,7 +216,7 @@ function StudentDashboard() {
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(studentSubjects.data ?? []).map(item => {
             const pendingCount = pending.filter(task => (task.subject_id && task.subject_id === item.id) || (!task.subject_id && (task.subject_name || task.subject) === item.name)).length;
-            return <a key={item.id + item.teacher_id} href={"/aluno/disciplinas#" + item.id + "::" + item.teacher_id} className="rounded-2xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5">
+            return <Link key={item.id + item.teacher_id} to="/aluno/disciplinas" hash={item.id + "::" + item.teacher_id} className="rounded-2xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5">
               <div className="flex items-start justify-between gap-3"><span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary"><BookOpen className="size-4"/></span>{pendingCount > 0 && <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">{pendingCount} pend.</span>}</div>
               <p className="mt-3 font-semibold">{item.name}</p>
               <p className="mt-1 text-xs text-muted-foreground">Prof. {item.teacher_name || "não informado"}</p>
