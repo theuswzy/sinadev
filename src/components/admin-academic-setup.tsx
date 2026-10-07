@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, BookOpen, CalendarRange, Layers3, Save, Archive, RotateCcw, Users, FileUp, Mail, Copy, X, Pencil, Trash2, SlidersHorizontal, Eye, History, LockKeyhole, UnlockKeyhole } from "lucide-react";
+import { AlertTriangle, BookOpen, CalendarRange, Clock, Layers3, Save, Archive, RotateCcw, Users, FileUp, Mail, Copy, X, Pencil, Trash2, SlidersHorizontal, Eye, History, LockKeyhole, UnlockKeyhole } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,9 @@ import {
   adminUnassignTeacherFromClassroom,
   adminImportAcademicCsv,
   loadAdminClassroomHub,
+  loadAdminClassroomTimetable,
+  adminUpsertClassroomTimetable,
+  adminDeleteClassroomTimetable,
   createAdminInstitutionInvitation, loadAdminInstitutionInvitations, revokeAdminInstitutionInvitation,
 } from "@/lib/sina-data";
 
@@ -75,6 +78,11 @@ export function AdminAcademicSetup() {
   const periodLocks = useQuery({ queryKey: ["admin-academic-period-locks"], queryFn: loadAdminAcademicPeriodLocks, staleTime: 10000 });
   const gradeAudit = useQuery({ queryKey: ["admin-grade-change-audit"], queryFn: () => loadAdminGradeChangeAudit(50), staleTime: 10000, refetchOnWindowFocus: true });
   const [classroomHubId, setClassroomHubId] = useState<string | null>(null);
+  const classroomTimetable = useQuery({
+    queryKey: ["admin-classroom-timetable", timetableClassroomId],
+    queryFn: () => loadAdminClassroomTimetable(timetableClassroomId),
+    enabled: !!timetableClassroomId,
+  });
   const classroomHub = useQuery({
     queryKey: ["admin-classroom-hub", classroomHubId],
     queryFn: () => loadAdminClassroomHub(classroomHubId!),
@@ -103,6 +111,10 @@ export function AdminAcademicSetup() {
   const [confirmDeleteSubject, setConfirmDeleteSubject] = useState<{ id: string; name: string } | null>(null);
   const [confirmDeleteClassroom, setConfirmDeleteClassroom] = useState<{ id: string; name: string } | null>(null);
   const [editingClassroom, setEditingClassroom] = useState<{ id: string; name: string; code: string } | null>(null);
+  const [timetableClassroomId, setTimetableClassroomId] = useState("");
+  const [timetableEntry, setTimetableEntry] = useState<{ id: string | null; classroomSubjectId: string; weekday: number; startTime: string; endTime: string; room: string; notes: string }>({
+    id: null, classroomSubjectId: "", weekday: 1, startTime: "13:10", endTime: "14:00", room: "", notes: "",
+  });
   const [matrixClassroomFilter, setMatrixClassroomFilter] = useState("all");
   const [matrixSubjectFilter, setMatrixSubjectFilter] = useState("all");
   const [matrixTeacherFilter, setMatrixTeacherFilter] = useState("all");
@@ -259,6 +271,46 @@ export function AdminAcademicSetup() {
     setBusyAction("term");
     try { await adminUpsertTerm(null, termName.trim(), termStart || null, termEnd || null, termCurrent); setTermName(""); setTermStart(""); setTermEnd(""); await refresh(); toast.success("Período acadêmico salvo."); }
     catch (error) { toast.error(errorText(error)); }
+    finally { setBusyAction(null); }
+  }
+
+  const timetableClassroomRows = (setup.data?.matrix ?? []).filter(row => row.classroom_id === timetableClassroomId && row.teacher_id);
+  const timetableDays = [
+    { value: 1, label: "Seg" },
+    { value: 2, label: "Ter" },
+    { value: 3, label: "Qua" },
+    { value: 4, label: "Qui" },
+    { value: 5, label: "Sex" },
+  ];
+  async function saveTimetableEntry() {
+    if (!timetableClassroomId || !timetableEntry.classroomSubjectId) { toast.error("Selecione a turma e a disciplina."); return; }
+    if (!timetableEntry.startTime || !timetableEntry.endTime || timetableEntry.endTime <= timetableEntry.startTime) { toast.error("Informe um horário válido."); return; }
+    setBusyAction("timetable");
+    try {
+      await adminUpsertClassroomTimetable({
+        id: timetableEntry.id,
+        classroomId: timetableClassroomId,
+        classroomSubjectId: timetableEntry.classroomSubjectId,
+        weekday: timetableEntry.weekday,
+        startTime: timetableEntry.startTime,
+        endTime: timetableEntry.endTime,
+        room: timetableEntry.room,
+        notes: timetableEntry.notes,
+      });
+      await qc.invalidateQueries({ queryKey: ["admin-classroom-timetable", timetableClassroomId] });
+      setTimetableEntry({ id: null, classroomSubjectId: "", weekday: 1, startTime: "13:10", endTime: "14:00", room: "", notes: "" });
+      toast.success("Aula adicionada ao cronograma.");
+    } catch (error) { toast.error(errorText(error)); }
+    finally { setBusyAction(null); }
+  }
+  async function removeTimetableEntry(id: string) {
+    setBusyAction("timetable-delete:" + id);
+    try {
+      await adminDeleteClassroomTimetable(id);
+      await qc.invalidateQueries({ queryKey: ["admin-classroom-timetable", timetableClassroomId] });
+      if (timetableEntry.id === id) setTimetableEntry({ id: null, classroomSubjectId: "", weekday: 1, startTime: "13:10", endTime: "14:00", room: "", notes: "" });
+      toast.success("Aula removida do cronograma.");
+    } catch (error) { toast.error(errorText(error)); }
     finally { setBusyAction(null); }
   }
 
@@ -631,6 +683,77 @@ export function AdminAcademicSetup() {
               </table>
               {!matrixRows.length && <div className="p-8 text-center text-sm text-muted-foreground">Nenhum vínculo encontrado com esses filtros. Vincule disciplinas às turmas para começar a preencher a matriz.</div>}
             </div>
+          </section>
+
+          <section className="rounded-2xl border border-border p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+              <Clock className="mt-0.5 size-5 text-primary" />
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-primary">Cronograma de aulas</p>
+                <h3 className="mt-1 text-lg font-semibold">Horários semanais de cada turma</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Cadastre o que cada turma tem em cada dia. O mesmo cronograma será mostrado para os alunos vinculados à turma.</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              <select value={timetableClassroomId} onChange={e => { setTimetableClassroomId(e.target.value); setTimetableEntry({ id: null, classroomSubjectId: "", weekday: 1, startTime: "13:10", endTime: "14:00", room: "", notes: "" }); }} className="h-10 rounded-xl border border-input bg-background px-3 text-sm">
+                <option value="">Selecione a turma</option>
+                {(setup.data?.classrooms ?? []).filter(c => c.status === "active").map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <select value={timetableEntry.classroomSubjectId} onChange={e => setTimetableEntry(v => ({ ...v, classroomSubjectId: e.target.value }))} disabled={!timetableClassroomId} className="h-10 rounded-xl border border-input bg-background px-3 text-sm">
+                <option value="">Selecione disciplina + professor</option>
+                {timetableClassroomRows.map(row => <option key={row.id} value={row.classroom_subject_id || row.id}>{row.subject_name} · {row.teacher_name}</option>)}
+              </select>
+            </div>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <select value={timetableEntry.weekday} onChange={e => setTimetableEntry(v => ({ ...v, weekday: Number(e.target.value) }))} className="h-10 rounded-xl border border-input bg-background px-3 text-sm">
+                {timetableDays.map(day => <option key={day.value} value={day.value}>{day.label}</option>)}
+              </select>
+              <Input type="time" value={timetableEntry.startTime} onChange={e => setTimetableEntry(v => ({ ...v, startTime: e.target.value }))} />
+              <Input type="time" value={timetableEntry.endTime} onChange={e => setTimetableEntry(v => ({ ...v, endTime: e.target.value }))} />
+              <Input placeholder="Sala (opcional)" value={timetableEntry.room} onChange={e => setTimetableEntry(v => ({ ...v, room: e.target.value }))} />
+              <Input placeholder="Observação (opcional)" value={timetableEntry.notes} onChange={e => setTimetableEntry(v => ({ ...v, notes: e.target.value }))} />
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button onClick={() => void saveTimetableEntry()} disabled={busyAction !== null || !timetableClassroomId || !timetableEntry.classroomSubjectId}>
+                <Save className="mr-2 size-4" />{busyAction === "timetable" ? "Salvando…" : "Adicionar aula"}
+              </Button>
+              {timetableEntry.id && <Button variant="outline" onClick={() => setTimetableEntry({ id: null, classroomSubjectId: "", weekday: 1, startTime: "13:10", endTime: "14:00", room: "", notes: "" })}>Cancelar edição</Button>}
+            </div>
+
+            {timetableClassroomId && (
+              <div className="mt-5 overflow-x-auto rounded-2xl border border-border">
+                <table className="w-full min-w-[760px] text-sm">
+                  <thead className="bg-secondary/50 text-left">
+                    <tr><th className="px-3 py-3 font-semibold">Hora</th>{timetableDays.map(day => <th key={day.value} className="px-3 py-3 font-semibold">{day.label}</th>)}</tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {Array.from(new Set((classroomTimetable.data ?? []).map(item => item.start_time))).sort().map(start => (
+                      <tr key={start} className="align-top">
+                        <td className="px-3 py-3 whitespace-nowrap font-semibold">{start.slice(0,5)}</td>
+                        {timetableDays.map(day => {
+                          const item = (classroomTimetable.data ?? []).find(row => row.weekday === day.value && row.start_time === start);
+                          return <td key={day.value} className="min-w-[130px] px-3 py-2">
+                            {item ? <div className="rounded-xl border border-primary/15 bg-primary/5 p-2">
+                              <p className="font-semibold leading-tight">{item.subject_name}</p>
+                              <p className="mt-1 text-[11px] text-muted-foreground">{item.teacher_name || "Professor não informado"}</p>
+                              <p className="mt-1 text-[11px] text-muted-foreground">{item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}{item.room ? " · " + item.room : ""}</p>
+                              <div className="mt-2 flex gap-1">
+                                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setTimetableEntry({ id: item.id, classroomSubjectId: item.classroom_subject_id, weekday: item.weekday, startTime: item.start_time.slice(0,5), endTime: item.end_time.slice(0,5), room: item.room || "", notes: item.notes || "" })}><Pencil className="size-3.5" /></Button>
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive" disabled={busyAction !== null} onClick={() => void removeTimetableEntry(item.id)}><Trash2 className="size-3.5" /></Button>
+                              </div>
+                            </div> : <span className="text-xs text-muted-foreground">—</span>}
+                          </td>;
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!classroomTimetable.isPending && !(classroomTimetable.data ?? []).length && <div className="p-8 text-center text-sm text-muted-foreground">Nenhuma aula cadastrada para esta turma.</div>}
+              </div>
+            )}
           </section>
 
           <section className="rounded-2xl border border-border p-5 sm:p-6">
