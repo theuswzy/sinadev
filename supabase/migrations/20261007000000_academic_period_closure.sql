@@ -30,6 +30,11 @@ CREATE INDEX IF NOT EXISTS academic_period_lock_audit_institution_time_idx
 ALTER TABLE public.academic_period_locks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.academic_period_lock_audit ENABLE ROW LEVEL SECURITY;
 
+REVOKE ALL ON public.academic_period_locks FROM public, anon, authenticated;
+REVOKE ALL ON public.academic_period_lock_audit FROM public, anon, authenticated;
+GRANT SELECT ON public.academic_period_locks TO authenticated;
+GRANT SELECT ON public.academic_period_lock_audit TO authenticated;
+
 DROP POLICY IF EXISTS "Admins read academic period locks" ON public.academic_period_locks;
 CREATE POLICY "Admins read academic period locks"
 ON public.academic_period_locks
