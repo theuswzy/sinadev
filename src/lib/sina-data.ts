@@ -980,6 +980,31 @@ export async function saveAttendance(classroomId: string, date: string, subjectI
   return data ?? 0;
 }
 
+export type TeacherAttendanceReportRow = {
+  student_id: string;
+  student_name: string;
+  enrollment: string;
+  total_records: number;
+  present_count: number;
+  absent_count: number;
+  late_count: number;
+  excused_count: number;
+  attendance_percent: number | null;
+  last_attendance_date: string | null;
+};
+
+export async function loadTeacherAttendanceReport(
+  classroomId: string,
+  subjectId: string,
+): Promise<TeacherAttendanceReportRow[]> {
+  const { data, error } = await supabase.rpc("teacher_get_attendance_report", {
+    _classroom_id: classroomId,
+    _subject_id: subjectId,
+  });
+  if (error) throw error;
+  return (data ?? []) as TeacherAttendanceReportRow[];
+}
+
 export type TeacherSubject = { id: string; name: string; code: string | null; status: string; created_by: string | null };
 
 export type TeacherSubjectAssignment = { id: string; classroom_id: string; classroom_name: string; subject_id: string; subject_name: string; teacher_id: string };
