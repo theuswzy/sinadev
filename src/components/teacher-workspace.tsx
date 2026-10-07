@@ -17,7 +17,7 @@ import {
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
   loadTeacherClassrooms, loadTeacherInstitutionClassrooms, loadTeacherInstitutionStudents, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
   loadTeacherUnassignedClassrooms, teacherJoinClassroom, teacherLeaveClassroom, loadTeacherGrades, loadTeacherGradebook, loadTeacherAcademicMaterials,
-  saveAttendance, saveTeacherGradebook, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
+  saveAttendance, saveTeacherGradebook, clearTeacherGradebookScores, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
   teacherRemoveStudentFromClassroom, unassignTeacherSubjectFromClass, deleteTeacherSubject, updateTeacherSubject, updateTeacherCalendarEvent, deleteTeacherCalendarEvent, type AttendanceRow, type TeacherTask, type TeacherAnnouncement
 } from "@/lib/sina-data";
 
@@ -449,6 +449,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
   const [period,setPeriod]=useState("1");
   const [drafts,setDrafts]=useState<Record<string,{score:string;absences:string}>>({});
   const [busy,setBusy]=useState(false);
+  const [clearStudentId,setClearStudentId]=useState<string|null>(null);
   const options=useQuery({queryKey:["teacher-new-options"],queryFn:loadTeacherAcademicOptions,staleTime:30000});
   const assignments=(d.assignments.data??[]).filter(a=>a.classroom_id===classroom);
   const subjectOptions=assignments.filter((a,index,self)=>self.findIndex(x=>x.subject_id===a.subject_id)===index);
@@ -503,10 +504,15 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
     }
 
     const rows: Array<{student_id:string;score:number;absences:number}>=[];
+    const clearIds:string[]=[];
+
     for(const row of gradebook.data){
       const draft=drafts[row.student_id]??{score:row.score==null?"":String(row.score),absences:String(row.absences??0)};
       const rawScore=draft.score.trim();
-      if(!rawScore) continue;
+      if(!rawScore){
+        if(row.score!=null) clearIds.push(row.student_id);
+        continue;
+      }
       const score=Number(rawScore.replace(",","."));
       const absences=Number(draft.absences);
       if(!Number.isFinite(score)||score<0||score>10){
@@ -520,16 +526,22 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
       rows.push({student_id:row.student_id,score,absences});
     }
 
-    if(!rows.length){
-      toast.error("Preencha pelo menos uma nota antes de salvar.");
+    if(!rows.length&&!clearIds.length){
+      toast.error("Faça uma alteração antes de salvar.");
       return;
     }
 
     setBusy(true);
     try{
-      const saved=await saveTeacherGradebook({classroomId:classroom,subjectId:subject,period:Number(period),rows});
+      const saved=rows.length
+        ? await saveTeacherGradebook({classroomId:classroom,subjectId:subject,period:Number(period),rows})
+        : 0;
+      const cleared=clearIds.length
+        ? await clearTeacherGradebookScores({classroomId:classroom,subjectId:subject,period:Number(period),studentIds:clearIds})
+        : 0;
       await gradebook.refetch();
-      toast.success(saved+" lançamento(s) salvo(s).");
+      setDrafts({});
+      toast.success((saved+cleared)+" alteração(ões) salva(s).");
     }catch(e){
       toast.error(errorText(e));
     }finally{
@@ -646,7 +658,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
                     aria-label={"Faltas de "+row.full_name}
                   />
                 </div>
-                <div>
+                <div className="flex flex-wrap items-center gap-2">
                   <span className={
                     !hasScore
                       ? "inline-flex rounded-full bg-muted px-2.5 py-1 text-[11px] font-semibold text-muted-foreground"
@@ -656,6 +668,9 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
                   }>
                     {!hasScore?"Pendente":validScore?"Preenchida":"Inválida"}
                   </span>
+                  {row.score!=null&&<Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-destructive hover:text-destructive" disabled={busy} onClick={()=>setClearStudentId(row.student_id)}>
+                    <Trash2 className="mr-1 size-3"/>Limpar nota
+                  </Button>}
                 </div>
               </div>;
             })}
@@ -671,6 +686,27 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
       )}
 
       {!classroom&&!gradebook.isPending&&<div className="mt-5 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Selecione uma turma para começar o diário de notas.</div>}
+
+      <ConfirmActionDialog
+        open={!!clearStudentId}
+        onOpenChange={open=>{if(!open&&!busy)setClearStudentId(null)}}
+        title="Limpar nota lançada?"
+        description="A nota oficial deste aluno será removida deste período. As faltas permanecem registradas."
+        actionLabel="Limpar nota"
+        loading={busy}
+        onConfirm={async()=>{
+          if(!clearStudentId||!classroom||!subject)return;
+          setBusy(true);
+          try{
+            await clearTeacherGradebookScores({classroomId:classroom,subjectId:subject,period:Number(period),studentIds:[clearStudentId]});
+            await gradebook.refetch();
+            setDrafts({});
+            toast.success("Nota removida do diário.");
+            setClearStudentId(null);
+          }catch(e){toast.error(errorText(e))}
+          finally{setBusy(false)}
+        }}
+      />
     </Card>
   </div>;
 }
