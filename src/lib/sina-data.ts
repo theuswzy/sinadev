@@ -790,6 +790,39 @@ export async function adminLinkTeacherToInstitution(teacherId: string, instituti
 export type AdminTeacherAssignment = { classroom_id: string; classroom_name: string; teacher_id: string; teacher_name: string; teacher_email: string };
 export type AdminTeacher = { user_id: string; display_name: string; email: string };
 
+export type AdminSubjectTeacherMatrixEntry = {
+  id: string;
+  classroom_id: string;
+  classroom_name: string;
+  subject_id: string;
+  subject_name: string;
+  teacher_id: string | null;
+  teacher_name: string;
+  teacher_email: string | null;
+  is_primary: boolean;
+  teacher_count: number;
+};
+
+export async function loadAdminSubjectTeacherMatrix(): Promise<AdminSubjectTeacherMatrixEntry[]> {
+  const { data, error } = await supabase.rpc("admin_list_subject_teacher_matrix");
+  if (error) throw error;
+  return (data ?? []) as AdminSubjectTeacherMatrixEntry[];
+}
+
+export async function adminSetSubjectResponsible(
+  classroomId: string,
+  subjectId: string,
+  teacherId: string | null,
+) {
+  const { data, error } = await supabase.rpc("admin_set_subject_responsible", {
+    _classroom_id: classroomId,
+    _subject_id: subjectId,
+    _teacher_id: teacherId,
+  });
+  if (error) throw error;
+  return data ?? false;
+}
+
 export async function loadAdminTeacherAssignments(): Promise<AdminTeacherAssignment[]> {
   const { data, error } = await supabase.rpc("admin_list_teacher_classroom_assignments");
   if (error) throw error;
