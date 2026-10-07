@@ -106,6 +106,9 @@ export function AdminAcademicSetup() {
   const [matrixClassroomFilter, setMatrixClassroomFilter] = useState("all");
   const [matrixSubjectFilter, setMatrixSubjectFilter] = useState("all");
   const [matrixTeacherFilter, setMatrixTeacherFilter] = useState("all");
+  const [linkClassroomId, setLinkClassroomId] = useState("");
+  const [linkSubjectId, setLinkSubjectId] = useState("");
+  const [linkTeacherId, setLinkTeacherId] = useState("");
   const [confirmRemoveSubjectTeacher, setConfirmRemoveSubjectTeacher] = useState<{ classroomId: string; subjectId: string; teacherId: string; teacherName: string; subjectName: string; isPrimary: boolean } | null>(null);
 
   async function refresh() {
@@ -461,6 +464,44 @@ export function AdminAcademicSetup() {
                   <p className="mt-1 text-sm text-muted-foreground">O primeiro professor é o responsável pelas notas oficiais. Professores adicionais continuam vinculados e podem atuar conforme suas permissões.</p>
                 </div>
               </div>
+              <div className="mt-4 rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4">
+                <p className="font-semibold">Criar novo vínculo</p>
+                <p className="mt-1 text-xs text-muted-foreground">Use quando uma disciplina ainda não possui professor nesta turma. O primeiro vínculo pode ser definido como responsável depois.</p>
+                <div className="mt-3 grid gap-2 md:grid-cols-3">
+                  <select value={linkClassroomId} onChange={e => { setLinkClassroomId(e.target.value); setLinkTeacherId(""); }} className="h-10 rounded-xl border border-input bg-background px-3 text-sm">
+                    <option value="">Selecione a turma</option>
+                    {(setup.data?.classrooms ?? []).filter(c => c.status === "active").map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <select value={linkSubjectId} onChange={e => setLinkSubjectId(e.target.value)} className="h-10 rounded-xl border border-input bg-background px-3 text-sm">
+                    <option value="">Selecione a disciplina</option>
+                    {(setup.data?.subjects ?? []).filter(s => s.status === "active").map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  <select value={linkTeacherId} onChange={e => setLinkTeacherId(e.target.value)} disabled={!linkClassroomId} className="h-10 rounded-xl border border-input bg-background px-3 text-sm">
+                    <option value="">Selecione o professor</option>
+                    {(assignments.data ?? []).filter(a => a.classroom_id === linkClassroomId).map(a => <option key={a.teacher_id} value={a.teacher_id}>{a.teacher_name || a.teacher_email}</option>)}
+                  </select>
+                </div>
+                <Button
+                  className="mt-3"
+                  disabled={busyAction !== null || !linkClassroomId || !linkSubjectId || !linkTeacherId}
+                  onClick={async () => {
+                    setBusyAction("create-subject-link");
+                    try {
+                      await adminSetSubjectTeacherLink(linkClassroomId, linkSubjectId, linkTeacherId, false);
+                      await qc.invalidateQueries({ queryKey: ["admin-subject-teacher-matrix"] });
+                      await qc.invalidateQueries({ queryKey: ["admin-academic-setup"] });
+                      setLinkTeacherId("");
+                      toast.success("Vínculo professor/disciplina criado.");
+                    } catch (error) {
+                      toast.error(errorText(error));
+                    } finally {
+                      setBusyAction(null);
+                    }
+                  }}
+                >
+                  {busyAction === "create-subject-link" ? "Criando…" : "Criar vínculo"}
+                </Button>
+              </div>
               {subjectTeacherMatrix.isPending ? (
                 <p className="mt-4 text-sm text-muted-foreground">Carregando responsáveis…</p>
               ) : subjectTeacherMatrix.error ? (
@@ -473,7 +514,6 @@ export function AdminAcademicSetup() {
                   {Array.from(new Map((subjectTeacherMatrix.data ?? [])
                     .filter(row => matrixClassroomFilter === "all" || row.classroom_id === matrixClassroomFilter)
                     .filter(row => matrixSubjectFilter === "all" || row.subject_id === matrixSubjectFilter)
-                    .filter(row => matrixTeacherFilter === "all" || row.teacher_id === matrixTeacherFilter)
                     .reduce((groups, row) => {
                       const key = row.classroom_id + ":" + row.subject_id;
                       const current = groups.get(key) ?? [];
@@ -484,6 +524,7 @@ export function AdminAcademicSetup() {
                     const items = (rows ?? []).filter(Boolean) as NonNullable<typeof subjectTeacherMatrix.data>;
                     if (!items.length) return null;
                     const first = items[0];
+                    if (matrixTeacherFilter !== "all" && !items.some(item => item.teacher_id === matrixTeacherFilter)) return null;
                     const responsible = items.find(item => item.is_primary);
                     const linkedTeacherIds = new Set(items.map(item => item.teacher_id).filter(Boolean));
                     const classTeachers = (assignments.data ?? []).filter(item => item.classroom_id === first.classroom_id);
