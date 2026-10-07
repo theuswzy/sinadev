@@ -15,7 +15,7 @@ import {
   createTeacherCalendarEvent, createTeacherClassroom, createTeacherSubject, createTeacherTask, createTeacherAcademicMaterial, deleteTeacherAcademicMaterial,
   errorText, formatScore, gradeTaskSubmission, uploadAcademicAttachment, updateTeacherTask, deleteTeacherTask, updateTeacherAnnouncement, deleteTeacherAnnouncement, loadAttendance, loadTaskSubmissions, loadTeacherAcademicOptions,
   loadTeacherAnnouncements, loadTeacherAssessments, loadTeacherCalendar, loadTeacherClassReport,
-  loadTeacherClassrooms, loadTeacherInstitutionClassrooms, loadTeacherInstitutionStudents, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents,
+  loadTeacherClassrooms, loadTeacherInstitutionClassrooms, loadTeacherInstitutionStudents, loadTeacherInstitutionStudentsPage, loadTeacherSubjects, loadTeacherTasks, loadTeacherUnassignedStudents, loadTeacherGradebookPeriodStatus,
   loadTeacherUnassignedClassrooms, teacherJoinClassroom, teacherLeaveClassroom, loadTeacherGrades, loadTeacherGradebook, loadTeacherAcademicMaterials,
   saveAttendance, saveTeacherGradebook, clearTeacherGradebookScores, teacherEnrollStudentInClassroom, teacherLinkStudentToSchool,
   teacherRemoveStudentFromClassroom, unassignTeacherSubjectFromClass, deleteTeacherSubject, updateTeacherSubject, updateTeacherCalendarEvent, deleteTeacherCalendarEvent, type AttendanceRow, type TeacherTask, type TeacherAnnouncement
@@ -458,6 +458,8 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
   const periodOptions=configuredTerms.length
     ? configuredTerms.map((term,index)=>({value:String(index+1),label:term.name}))
     : [1,2,3,4].map(value=>({value:String(value),label:value+"º período"}));
+  const periodStatus=useQuery({ queryKey:["teacher-gradebook-period-status",period], queryFn:()=>loadTeacherGradebookPeriodStatus(Number(period)), staleTime:10000, refetchOnWindowFocus:true });
+  const periodClosed=periodStatus.data?.is_closed === true;
   const gradebook=useQuery({
     queryKey:["teacher-gradebook",classroom,subject,period],
     queryFn:()=>loadTeacherGradebook(classroom,subject,Number(period)),
@@ -498,6 +500,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
   }
 
   async function save(){
+    if(periodClosed){ toast.error("Este período está encerrado. Solicite ao administrador a reabertura."); return; }
     if(!classroom||!subject||!gradebook.data?.length){
       toast.error("Selecione turma, disciplina e carregue o diário.");
       return;
@@ -584,6 +587,8 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
         </Select>
       </div>
 
+      {periodClosed&&<div className="mt-4 rounded-xl border border-destructive/25 bg-destructive/5 p-4 text-sm"><div className="flex items-start gap-3"><LockKeyhole className="mt-0.5 size-4 text-destructive"/><div><p className="font-semibold">Período encerrado</p><p className="mt-1 text-muted-foreground">As notas oficiais deste período estão protegidas contra alterações. O diário permanece disponível para consulta.</p>{periodStatus.data?.closed_at&&<p className="mt-1 text-xs text-muted-foreground">Encerrado em {new Date(periodStatus.data.closed_at).toLocaleString("pt-BR")}.</p>}</div></div></div>}
+
       {selectedSubject&&<div className="mt-4 rounded-xl border border-primary/15 bg-primary/5 p-3 text-sm">
         <b>{selectedSubject.subject_name}</b>
         <span className="text-muted-foreground"> · {selectedSubject.classroom_name} · professor responsável: você</span>
@@ -650,6 +655,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
                     placeholder="0,0–10,0"
                     value={draft.score}
                     onChange={e=>updateDraft(row.student_id,"score",e.target.value)}
+                    disabled={periodClosed}
                     aria-label={"Nota de "+row.full_name}
                   />
                 </div>
@@ -662,6 +668,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
                     inputMode="numeric"
                     value={draft.absences}
                     onChange={e=>updateDraft(row.student_id,"absences",e.target.value)}
+                    disabled={periodClosed}
                     aria-label={"Faltas de "+row.full_name}
                   />
                 </div>
@@ -675,7 +682,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
                   }>
                     {!hasScore?"Pendente":validScore?"Preenchida":"Inválida"}
                   </span>
-                  {row.score!=null&&<Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-destructive hover:text-destructive" disabled={busy} onClick={()=>setClearStudentId(row.student_id)}>
+                  {row.score!=null&&<Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-destructive hover:text-destructive" disabled={busy||periodClosed} onClick={()=>setClearStudentId(row.student_id)}>
                     <Trash2 className="mr-1 size-3"/>Limpar nota
                   </Button>}
                 </div>
@@ -688,14 +695,14 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
       {rows.length>0&&(
         <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">Você pode editar várias linhas e salvar tudo em um único lançamento.</p>
-          <Button disabled={busy||gradebook.isPending} onClick={()=>void save()}>{busy?"Salvando…":"Salvar alterações"}</Button>
+          <Button disabled={busy||gradebook.isPending||periodClosed} onClick={()=>void save()}>{busy?"Salvando…":"Salvar alterações"}</Button>
         </div>
       )}
 
       {!classroom&&!gradebook.isPending&&<div className="mt-5 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Selecione uma turma para começar o diário de notas.</div>}
 
       <ConfirmActionDialog
-        open={!!clearStudentId}
+        open={!!clearStudentId&&!periodClosed}
         onOpenChange={open=>{if(!open&&!busy)setClearStudentId(null)}}
         title="Limpar nota lançada?"
         description="A nota oficial deste aluno será removida deste período. As faltas permanecem registradas."
