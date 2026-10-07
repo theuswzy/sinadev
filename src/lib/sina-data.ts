@@ -1442,6 +1442,7 @@ export type GradeChangeAuditEntry = {
   id: string;
   grade_id: string | null;
   student_id: string;
+  student_name: string | null;
   subject_id: string | null;
   subject: string | null;
   period: number;
