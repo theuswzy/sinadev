@@ -111,7 +111,9 @@ function AuthContinuePage() {
   const [started, setStarted] = useState(false);
   const [error, setError] = useState("");
 
-  const hasSafeTokenHash = Boolean(tokenHash && tokenType === "email");
+  const confirmationType = tokenType === "email" || tokenType === "signup" || tokenType === "invite"
+    ? tokenType : null;
+  const hasSafeTokenHash = Boolean(tokenHash && confirmationType);
   const hasSafeLegacyTarget = Boolean(legacyTarget);
 
   async function continueConfirmation() {
@@ -121,10 +123,10 @@ function AuthContinuePage() {
     setError("");
 
     try {
-      if (hasSafeTokenHash && tokenHash) {
+      if (hasSafeTokenHash && tokenHash && confirmationType) {
         const { error: verifyError } = await supabase.auth.verifyOtp({
           token_hash: tokenHash,
-          type: "email",
+          type: confirmationType,
         });
 
         if (verifyError) throw verifyError;

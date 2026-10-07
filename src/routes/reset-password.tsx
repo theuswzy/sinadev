@@ -15,6 +15,7 @@ export const Route = createFileRoute("/reset-password")({
       { property: "og:description", content: "Recuperação de acesso ao SINA." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "robots", content: "noindex, nofollow, noarchive" },
     ],
   }),
   component: ResetPassword,
