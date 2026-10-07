@@ -381,14 +381,14 @@ export async function clearTeacherGradebookScores(args: {
   classroomId: string;
   subjectId: string;
   period: number;
-  studentIds: string[];
+  rows: Array<{ student_id: string; absences: number }>;
 }): Promise<number> {
-  if (!args.studentIds.length) return 0;
+  if (!args.rows.length) return 0;
   const { data, error } = await supabase.rpc("teacher_clear_gradebook_scores", {
     _classroom_id: args.classroomId,
     _subject_id: args.subjectId,
     _period: args.period,
-    _student_ids: args.studentIds,
+    _rows: args.rows,
   });
   if (error) throw error;
   return data ?? 0;
