@@ -485,6 +485,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
   const selectedSubject=subjectOptions.find(a=>a.subject_id===subject);
   const responsibility=useQuery({queryKey:["teacher-grade-responsibility",classroom,subject],queryFn:async()=>{const {data,error}=await supabase.rpc("teacher_list_subject_responsibilities");if(error)throw error;return (data??[]).find((item:any)=>item.classroom_id===classroom&&item.subject_id===subject)??null},enabled:!!classroom&&!!subject,staleTime:15000});
   const selectedResponsibility=responsibility.data;
+  const isAdditionalTeacher=selectedResponsibility ? !selectedResponsibility.is_primary : false;
   const configuredTerms=(options.data?.terms??[]).slice(0,4);
   const periodOptions=configuredTerms.length
     ? configuredTerms.map((term,index)=>({value:String(index+1),label:term.name}))
@@ -532,6 +533,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
 
   async function save(){
     if(periodClosed){ toast.error("Este período está encerrado. Solicite ao administrador a reabertura."); return; }
+    if(isAdditionalTeacher){ toast.error("O lançamento oficial de notas é exclusivo do professor responsável pela disciplina."); return; }
     if(!classroom||!subject||!gradebook.data?.length){
       toast.error("Selecione turma, disciplina e carregue o diário.");
       return;
@@ -629,9 +631,12 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
         </div>
         <p className="mt-1 text-muted-foreground">
           {selectedResponsibility?.is_primary
-            ? "Você é o responsável principal desta disciplina nesta turma."
-            : "Você está vinculado como professor adicional. O responsável principal continua definido pela instituição."}
+            ? "Você é o responsável principal desta disciplina nesta turma e pode realizar os lançamentos oficiais."
+            : "Você está vinculado como professor adicional. O diário oficial fica em modo de consulta; frequência, atividades e avaliações continuam disponíveis conforme seu vínculo."}
         </p>
+        {isAdditionalTeacher&&<div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+          <b className="text-foreground">Modo consulta do diário oficial.</b> Para alterar notas, o administrador precisa definir você como professor responsável.
+        </div>}
       </div>}
 
       {classroom&&subject&&(
@@ -695,7 +700,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
                     placeholder="0,0–10,0"
                     value={draft.score}
                     onChange={e=>updateDraft(row.student_id,"score",e.target.value)}
-                    disabled={periodClosed}
+                    disabled={periodClosed||isAdditionalTeacher}
                     aria-label={"Nota de "+row.full_name}
                   />
                 </div>
@@ -708,7 +713,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
                     inputMode="numeric"
                     value={draft.absences}
                     onChange={e=>updateDraft(row.student_id,"absences",e.target.value)}
-                    disabled={periodClosed}
+                    disabled={periodClosed||isAdditionalTeacher}
                     aria-label={"Faltas de "+row.full_name}
                   />
                 </div>
@@ -722,7 +727,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
                   }>
                     {!hasScore?"Pendente":validScore?"Preenchida":"Inválida"}
                   </span>
-                  {row.score!=null&&<Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-destructive hover:text-destructive" disabled={busy||periodClosed} onClick={()=>setClearStudentId(row.student_id)}>
+                  {row.score!=null&&<Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-[11px] text-destructive hover:text-destructive" disabled={busy||periodClosed||isAdditionalTeacher} onClick={()=>setClearStudentId(row.student_id)}>
                     <Trash2 className="mr-1 size-3"/>Limpar nota
                   </Button>}
                 </div>
@@ -735,14 +740,14 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
       {rows.length>0&&(
         <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted-foreground">Você pode editar várias linhas e salvar tudo em um único lançamento.</p>
-          <Button disabled={busy||gradebook.isPending||periodClosed} onClick={()=>void save()}>{busy?"Salvando…":"Salvar alterações"}</Button>
+          <Button disabled={busy||gradebook.isPending||periodClosed||isAdditionalTeacher} onClick={()=>void save()}>{busy?"Salvando…":"Salvar alterações"}</Button>
         </div>
       )}
 
       {!classroom&&!gradebook.isPending&&<div className="mt-5 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Selecione uma turma para começar o diário de notas.</div>}
 
       <ConfirmActionDialog
-        open={!!clearStudentId&&!periodClosed}
+        open={!!clearStudentId&&!periodClosed&&!isAdditionalTeacher}
         onOpenChange={open=>{if(!open&&!busy)setClearStudentId(null)}}
         title="Limpar nota lançada?"
         description="A nota oficial deste aluno será removida deste período. As faltas permanecem registradas."
