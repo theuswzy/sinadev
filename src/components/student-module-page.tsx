@@ -525,7 +525,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
           </div>
 
           <div className="sina-card overflow-hidden">
-            <div className="border-b border-border p-5"><h3 className="font-semibold">Lançamentos por disciplina</h3><p className="mt-1 text-xs text-muted-foreground">O professor da matéria fica identificado na mesma linha.</p></div>
+            <div className="border-b border-border p-5"><h3 className="font-semibold">Lançamentos oficiais do diário</h3><p className="mt-1 text-xs text-muted-foreground">Estas são as notas registradas pelo professor por período. Elas não são recalculadas a partir das avaliações abaixo.</p></div>
             <div className="overflow-x-auto"><table className="w-full min-w-[880px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-4 text-left">Disciplina</th><th className="p-4 text-left">Professor</th><th className="p-4 text-left">Período</th><th className="p-4 text-left">Nota</th><th className="p-4 text-left">Faltas</th></tr></thead><tbody>
               {(grades.data ?? []).map((g) => {
                 const teachers = gradeTeachers(g);
@@ -541,7 +541,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
           </div>
 
           <div>
-            <div className="mb-3"><h3 className="font-semibold">Avaliações por disciplina e professor</h3><p className="mt-1 text-xs text-muted-foreground">Cada grupo identifica a matéria, o professor e os resultados das avaliações.</p></div>
+            <div className="mb-3"><h3 className="font-semibold">Avaliações e pesos</h3><p className="mt-1 text-xs text-muted-foreground">A média das avaliações considera os pesos cadastrados e serve para acompanhamento. A nota oficial continua sendo a do diário.</p></div>
             <div className="space-y-4">
               {assessmentGroups.map((group) => (
                 <section key={group.subject + group.teacher} className="sina-card overflow-hidden">
