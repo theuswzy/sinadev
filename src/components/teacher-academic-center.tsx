@@ -238,7 +238,7 @@ export function TeacherAcademicCenter() {
         <div className="mt-5 overflow-x-auto rounded-xl border border-border">
           <table className="w-full min-w-[900px] text-sm">
             <thead className="bg-secondary/50"><tr>
-              <th className="p-3 text-left">Aluno</th><th className="p-3 text-left">Matrícula</th><th className="p-3 text-left">Frequência</th><th className="p-3 text-left">Presenças</th><th className="p-3 text-left">Faltas</th><th className="p-3 text-left">Atrasos</th><th className="p-3 text-left">Último registro</th>
+              <th className="p-3 text-left">Aluno</th><th className="p-3 text-left">Matrícula</th><th className="p-3 text-left">Frequência</th><th className="p-3 text-left">Presenças</th><th className="p-3 text-left">Faltas</th><th className="p-3 text-left">Justificadas</th><th className="p-3 text-left">Atrasos</th><th className="p-3 text-left">Último registro</th>
             </tr></thead>
             <tbody>{(attendanceReport.data ?? []).map(item => <tr key={item.student_id} className="border-t border-border">
               <td className="p-3 font-medium">{item.student_name}</td>
@@ -246,6 +246,7 @@ export function TeacherAcademicCenter() {
               <td className="p-3 font-semibold">{item.attendance_percent == null ? "—" : `${item.attendance_percent.toLocaleString("pt-BR")}%`}</td>
               <td className="p-3">{item.present_count}</td>
               <td className="p-3 text-destructive">{item.absent_count}</td>
+              <td className="p-3">{item.excused_count}</td>
               <td className="p-3">{item.late_count}</td>
               <td className="p-3 text-xs text-muted-foreground">{item.last_attendance_date ? new Date(item.last_attendance_date + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</td>
             </tr>)}</tbody>
