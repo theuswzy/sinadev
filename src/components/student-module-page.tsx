@@ -58,6 +58,10 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
   const [subjectFilter, setSubjectFilter] = useState("all");
+  const [attendanceSubjectFilter, setAttendanceSubjectFilter] = useState("all");
+  const [attendanceStatusFilter, setAttendanceStatusFilter] = useState("all");
+  const [attendanceFrom, setAttendanceFrom] = useState("");
+  const [attendanceTo, setAttendanceTo] = useState("");
   const [selectedSubjectKey, setSelectedSubjectKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -242,15 +246,35 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
   const now = Date.now();
   const overdueTasks = pendingTasks.filter((task) => task.due_at && new Date(task.due_at).getTime() < now);
+  const attendanceSubjectOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of attendance.data ?? []) {
+      const key = item.subject_id ?? item.subject_name ?? "sem-disciplina";
+      if (!map.has(key)) map.set(key, item.subject_name || "Disciplina não identificada");
+    }
+    return Array.from(map, ([id, name]) => ({ id, name }));
+  }, [attendance.data]);
+
+  const filteredAttendance = useMemo(() => {
+    return (attendance.data ?? []).filter((item) => {
+      const subjectKey = item.subject_id ?? item.subject_name ?? "sem-disciplina";
+      if (attendanceSubjectFilter !== "all" && subjectKey !== attendanceSubjectFilter) return false;
+      if (attendanceStatusFilter !== "all" && item.status !== attendanceStatusFilter) return false;
+      if (attendanceFrom && item.attendance_date < attendanceFrom) return false;
+      if (attendanceTo && item.attendance_date > attendanceTo) return false;
+      return true;
+    });
+  }, [attendance.data, attendanceSubjectFilter, attendanceStatusFilter, attendanceFrom, attendanceTo]);
+
   const attendanceSummary = useMemo(() => {
-    const rows = attendance.data ?? [];
+    const rows = filteredAttendance;
     const present = rows.filter((item) => item.status === "present").length;
     const absent = rows.filter((item) => item.status === "absent").length;
     const late = rows.filter((item) => item.status === "late").length;
     const excused = rows.filter((item) => item.status === "excused").length;
-    const percentage = rows.length ? Math.round((present / rows.length) * 100) : null;
+    const percentage = rows.length ? Math.round(((present + late) / rows.length) * 100) : null;
     return { total: rows.length, present, absent, late, excused, percentage };
-  }, [attendance.data]);
+  }, [filteredAttendance]);
   const title = meta[module];
   const activeQuery = module === "tarefas" ? tasks
     : module === "disciplinas" ? studentSubjects
@@ -567,9 +591,32 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-primary">Diário acadêmico</p>
               <h2 className="mt-1 text-xl font-semibold">Frequência detalhada por disciplina</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Data, disciplina, professor, turma, situação e observação aparecem juntos em cada registro.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Consulte cada lançamento com disciplina, professor, turma, data e situação.</p>
             </div>
-            <span className="rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold">{attendance.data?.length ?? 0} registro{attendance.data?.length === 1 ? "" : "s"}</span>
+            <span className="rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold">{filteredAttendance.length} de {attendance.data?.length ?? 0} registro{(attendance.data?.length ?? 0) === 1 ? "" : "s"}</span>
+          </div>
+
+          <div className="sina-card p-5">
+            <div className="grid gap-3 md:grid-cols-4">
+              <select value={attendanceSubjectFilter} onChange={(e) => setAttendanceSubjectFilter(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                <option value="all">Todas as disciplinas</option>
+                {attendanceSubjectOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+              <select value={attendanceStatusFilter} onChange={(e) => setAttendanceStatusFilter(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                <option value="all">Todas as situações</option>
+                <option value="present">Presente</option>
+                <option value="absent">Falta</option>
+                <option value="late">Atrasado</option>
+                <option value="excused">Justificada</option>
+              </select>
+              <input type="date" value={attendanceFrom} onChange={(e) => setAttendanceFrom(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm" aria-label="Data inicial" />
+              <input type="date" value={attendanceTo} onChange={(e) => setAttendanceTo(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm" aria-label="Data final" />
+            </div>
+            {(attendanceSubjectFilter !== "all" || attendanceStatusFilter !== "all" || attendanceFrom || attendanceTo) && (
+              <button type="button" onClick={() => { setAttendanceSubjectFilter("all"); setAttendanceStatusFilter("all"); setAttendanceFrom(""); setAttendanceTo(""); }} className="mt-3 text-xs font-semibold text-primary hover:underline">
+                Limpar filtros
+              </button>
+            )}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -577,13 +624,13 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
             <div className="sina-card p-4"><CheckCircle2 className="size-4 text-success"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Presenças</p><p className="mt-1 text-2xl font-semibold">{attendanceSummary.present}</p></div>
             <div className="sina-card p-4"><AlertTriangle className="size-4 text-destructive"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-2xl font-semibold">{attendanceSummary.absent}</p></div>
             <div className="sina-card p-4"><UserRound className="size-4 text-warning"/><p className="mt-3 text-xs font-bold uppercase text-muted-foreground">Atrasos</p><p className="mt-1 text-2xl font-semibold">{attendanceSummary.late}</p></div>
-            <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Frequência</p><p className="mt-1 text-2xl font-semibold">{attendanceSummary.percentage == null ? "—" : attendanceSummary.percentage + "%"}</p><p className="mt-1 text-[11px] text-muted-foreground">presenças ÷ registros disponíveis</p></div>
+            <div className="sina-card p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Frequência</p><p className="mt-1 text-2xl font-semibold">{attendanceSummary.percentage == null ? "—" : attendanceSummary.percentage + "%"}</p><p className="mt-1 text-[11px] text-muted-foreground">presenças + atrasos ÷ registros</p></div>
           </div>
 
           <div className="sina-card overflow-hidden">
             <div className="border-b border-border p-5">
               <h3 className="font-semibold">Histórico completo</h3>
-              <p className="mt-1 text-xs text-muted-foreground">Use esta tabela como seu histórico oficial de acompanhamento.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Cada linha representa um lançamento oficial de frequência.</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1100px] text-sm">
@@ -598,8 +645,8 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {(attendance.data ?? []).map((item, index) => (
-                    <tr key={item.attendance_date + item.teacher_id + index} className="border-t border-border">
+                  {filteredAttendance.map((item, index) => (
+                    <tr key={item.attendance_date + (item.subject_id ?? "") + item.teacher_id + index} className="border-t border-border">
                       <td className="p-4 whitespace-nowrap">{new Date(item.attendance_date + "T12:00:00").toLocaleDateString("pt-BR")}</td>
                       <td className="p-4 font-medium">{item.subject_name || "Disciplina não identificada"}</td>
                       <td className="p-4 text-xs text-muted-foreground">{item.teacher_name}</td>
@@ -614,7 +661,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                   ))}
                 </tbody>
               </table>
-              {!attendance.data?.length && <p className="p-8 text-center text-sm text-muted-foreground">Ainda não há registros de frequência para exibir.</p>}
+              {!filteredAttendance.length && <p className="p-8 text-center text-sm text-muted-foreground">Nenhum registro corresponde aos filtros selecionados.</p>}
             </div>
           </div>
         </section>
