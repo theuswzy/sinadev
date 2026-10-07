@@ -142,3 +142,38 @@ REVOKE EXECUTE ON FUNCTION public.admin_set_subject_teacher_link(uuid,uuid,uuid,
 REVOKE EXECUTE ON FUNCTION public.admin_remove_subject_teacher_link(uuid,uuid,uuid) FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.admin_set_subject_teacher_link(uuid,uuid,uuid,boolean) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_remove_subject_teacher_link(uuid,uuid,uuid) TO authenticated;
+
+
+-- Protect the relationship from any direct classroom-teacher removal path.
+-- Cascading deletes (for example when a classroom itself is deleted) are allowed
+-- to proceed; explicit membership removal must clear subject links first.
+CREATE OR REPLACE FUNCTION public.guard_classroom_teacher_subject_links()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $function$
+BEGIN
+  IF pg_trigger_depth() = 1
+     AND EXISTS (
+       SELECT 1
+       FROM public.classroom_subjects cs
+       WHERE cs.classroom_id = OLD.classroom_id
+         AND cs.teacher_id = OLD.user_id
+         AND cs.institution_id = OLD.institution_id
+     )
+  THEN
+    RAISE EXCEPTION 'Não é possível desvincular o professor da turma enquanto ele estiver vinculado a uma disciplina. Remova ou transfira os vínculos das disciplinas primeiro.';
+  END IF;
+
+  RETURN OLD;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS trg_guard_classroom_teacher_subject_links
+ON public.classroom_teachers;
+
+CREATE TRIGGER trg_guard_classroom_teacher_subject_links
+BEFORE DELETE ON public.classroom_teachers
+FOR EACH ROW
+EXECUTE FUNCTION public.guard_classroom_teacher_subject_links();
