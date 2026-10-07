@@ -108,7 +108,29 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     }
   }
 
-  const pendingTasks = (tasks.data ?? []).filter((task) => !task.completed);
+  const taskState = (task: NonNullable<typeof tasks.data>[number], submission?: NonNullable<typeof submissions.data>[number]) => {
+    if (submission?.status === "graded") return "graded" as const;
+    if (task.completed) return "completed" as const;
+    if (submission?.status === "submitted") return "submitted" as const;
+    if (submission?.status === "in_progress") return "in_progress" as const;
+    if (task.due_at && new Date(task.due_at).getTime() < Date.now()) return "overdue" as const;
+    return "pending" as const;
+  };
+
+  const taskStateLabel: Record<ReturnType<typeof taskState>, string> = {
+    pending: "Pendente",
+    in_progress: "Em andamento",
+    submitted: "Entregue",
+    graded: "Corrigida",
+    completed: "Concluída",
+    overdue: "Atrasada",
+  };
+
+  const pendingTasks = (tasks.data ?? []).filter((task) => {
+    const submission = submissions.data?.find((item) => item.task_id === task.id);
+    const state = taskState(task, submission);
+    return state === "pending" || state === "in_progress" || state === "overdue";
+  });
   const taskGroups = useMemo(() => {
     const filtered = subjectFilter === "all"
       ? (tasks.data ?? [])
@@ -320,7 +342,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                         <p className="mt-1 text-xs text-muted-foreground">Professor {task.teacher_name || "não identificado"} · {task.due_at ? new Date(task.due_at).toLocaleString("pt-BR") : "Sem prazo"}</p>
                         {task.description && <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>}
                       </div>
-                      <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">{submission?.status === "graded" ? "Corrigida" : task.completed ? "Concluída" : "Pendente"}</span>
+                      <span className={"shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold " + (taskState(task, submission) === "overdue" ? "bg-destructive/10 text-destructive" : taskState(task, submission) === "graded" || taskState(task, submission) === "completed" ? "bg-primary/10 text-primary" : taskState(task, submission) === "submitted" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-secondary")}>{taskStateLabel[taskState(task, submission)]}</span>
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-3">
                       <div className="rounded-xl border border-border bg-muted/30 p-3"><p className="text-[11px] font-semibold uppercase text-muted-foreground">Disciplina</p><p className="mt-1 text-xs">{group.subject}</p></div>
@@ -337,7 +359,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                         aria-label={"Resposta para " + task.title}
                         className="min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
                       />
-                      <Button onClick={() => void sendTask(task.id)} disabled={sending === task.id}>{sending === task.id ? "Enviando..." : submission ? "Atualizar entrega" : "Enviar entrega"}</Button>
+                      <Button onClick={() => void sendTask(task.id)} disabled={sending === task.id || taskState(task, submission) === "graded"}>{sending === task.id ? "Enviando..." : taskState(task, submission) === "graded" ? "Entrega corrigida" : submission ? "Atualizar entrega" : "Enviar entrega"}</Button>
                       {submission?.feedback && <p className="text-sm text-muted-foreground">Feedback: {submission.feedback}</p>}
                     </div>
                   </article>
