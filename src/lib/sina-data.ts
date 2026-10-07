@@ -823,6 +823,36 @@ export async function adminSetSubjectResponsible(
   return data ?? false;
 }
 
+export async function adminSetSubjectTeacherLink(
+  classroomId: string,
+  subjectId: string,
+  teacherId: string,
+  isPrimary = false,
+) {
+  const { data, error } = await supabase.rpc("admin_set_subject_teacher_link", {
+    _classroom_id: classroomId,
+    _subject_id: subjectId,
+    _teacher_id: teacherId,
+    _is_primary: isPrimary,
+  });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function adminRemoveSubjectTeacherLink(
+  classroomId: string,
+  subjectId: string,
+  teacherId: string,
+) {
+  const { data, error } = await supabase.rpc("admin_remove_subject_teacher_link", {
+    _classroom_id: classroomId,
+    _subject_id: subjectId,
+    _teacher_id: teacherId,
+  });
+  if (error) throw error;
+  return data ?? false;
+}
+
 export async function loadAdminTeacherAssignments(): Promise<AdminTeacherAssignment[]> {
   const { data, error } = await supabase.rpc("admin_list_teacher_classroom_assignments");
   if (error) throw error;
