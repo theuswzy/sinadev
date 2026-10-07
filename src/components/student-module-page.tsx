@@ -214,6 +214,23 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     return teacherNamesBySubject.get(grade.subject) ?? [];
   };
 
+  const assessmentPerformance = useMemo(() => {
+    const map = new Map<string, { score: number; weight: number; count: number }>();
+    for (const item of assessments.data ?? []) {
+      if (item.score == null || Number(item.max_score) <= 0 || Number(item.weight) <= 0) continue;
+      const key = subjectPerformanceKey(item.subject_id, item.subject_name || "Sem disciplina", item.teacher_id);
+      const current = map.get(key) ?? { score: 0, weight: 0, count: 0 };
+      current.score += (Number(item.score) / Number(item.max_score)) * 10 * Number(item.weight);
+      current.weight += Number(item.weight);
+      current.count += 1;
+      map.set(key, current);
+    }
+    return new Map(Array.from(map.entries()).map(([key, value]) => [
+      key,
+      { average: value.weight > 0 ? value.score / value.weight : null, count: value.count },
+    ]));
+  }, [assessments.data]);
+
   const performanceBySubjectTeacher = useMemo(() => {
     const map = new Map<string, (typeof subjects)[number]>();
     for (const item of subjects) {
@@ -477,12 +494,14 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
         <section className="mt-6 space-y-5">
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p>
-            <h2 className="mt-1 text-xl font-semibold">Média geral por disciplina</h2>
-            <p className="mt-1 text-sm text-muted-foreground">A média geral agora começa pela visão das disciplinas. Clique em uma matéria para ir à área de disciplinas e acompanhar o restante dos detalhes.</p>
+            <h2 className="mt-1 text-xl font-semibold">Notas por disciplina</h2>
+            <p className="mt-1 text-sm text-muted-foreground">A nota oficial vem dos lançamentos do diário. As avaliações com peso aparecem separadamente para você acompanhar seu desempenho sem misturar os dois cálculos.</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(studentSubjects.data ?? []).map((item) => {
-              const performance = subjects.find((s) => s.subject === item.name);
+              const performance = subjects.find((s) => s.subject === item.name && (s.teacherId === item.teacher_id || !item.teacher_id));
+              const assessmentKey = subjectPerformanceKey(item.id, item.name, item.teacher_id);
+              const assessment = assessmentPerformance.get(assessmentKey);
               return <Link key={item.id + item.teacher_id} to="/aluno/disciplinas" hash={item.id + "::" + item.teacher_id} className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
                 <div className="flex items-center justify-between gap-3">
                   <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><BarChart3 className="size-5"/></span>
@@ -490,8 +509,10 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                 </div>
                 <h3 className="mt-4 font-semibold">{item.name}</h3>
                 <p className="mt-1 text-xs text-muted-foreground">Prof. {item.teacher_name || "não informado"}</p>
-                <p className="mt-3 font-display text-3xl font-semibold">{performance?.average == null ? "—" : formatScore(performance.average)}</p>
+                <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Nota oficial</p>
+                <p className="mt-1 font-display text-3xl font-semibold">{performance?.average == null ? "—" : formatScore(performance.average)}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{performance ? performance.periods + " lançamento(s)" : "Ainda sem lançamento"}</p>
+                {assessment && <div className="mt-3 rounded-xl bg-muted/40 p-3"><p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Média das avaliações</p><p className="mt-1 text-lg font-semibold">{assessment.average == null ? "—" : formatScore(assessment.average)}</p><p className="mt-1 text-[11px] text-muted-foreground">{assessment.count} avaliação(ões) com nota · pesos considerados</p></div>}
                 <p className="mt-3 text-xs font-semibold text-primary">Abrir detalhes →</p>
               </a>;
             })}
