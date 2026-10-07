@@ -840,7 +840,7 @@ function Tasks({d}:{d:ReturnType<typeof useData>}){
   const [classroom,setClassroom]=useState("");const [subject,setSubject]=useState("");const [title,setTitle]=useState("");const [description,setDescription]=useState("");const [due,setDue]=useState("");const [selected,setSelected]=useState("");const [busy,setBusy]=useState(false);const [scores,setScores]=useState<Record<string,string>>({});const [feedback,setFeedback]=useState<Record<string,string>>({});
   const [attachment,setAttachment]=useState<File|null>(null);const [editing,setEditing]=useState<string|null>(null);
   const [confirmDelete,setConfirmDelete]=useState<string|null>(null);
-  const tasks=useQuery({queryKey:["teacher-new-tasks"],queryFn:loadTeacherTasks,staleTime:15000});const submissions=useQuery({queryKey:["teacher-new-submissions",selected],queryFn:()=>loadTaskSubmissions(selected),enabled:!!selected});
+  const tasks=useQuery({queryKey:["teacher-new-tasks"],queryFn:loadTeacherTasks,staleTime:15000,refetchOnWindowFocus:true});const submissions=useQuery({queryKey:["teacher-new-submissions",selected],queryFn:()=>loadTaskSubmissions(selected),enabled:!!selected,refetchOnWindowFocus:true});
   const selectedTask=tasks.data?.find(t=>t.id===editing)??null;
   const taskSubjectOptions=(d.assignments.data??[]).filter(a=>a.classroom_id===classroom);
   const taskSubjectIds=new Set(taskSubjectOptions.map(a=>a.subject_id));
@@ -856,7 +856,7 @@ function Tasks({d}:{d:ReturnType<typeof useData>}){
       const uploaded=attachment?await uploadAcademicAttachment(attachment,"tasks"):null;
       uploadedPath=uploaded?.path??null;
       await createTeacherTask({classroom,subject,title:title.trim(),description:description.trim(),dueAt:due?new Date(due).toISOString():null,attachment:uploaded});
-      resetForm();await tasks.refetch();toast.success("Atividade publicada.");
+      resetForm();await Promise.all([tasks.refetch(),qc.invalidateQueries({queryKey:["teacher-overview-tasks"]})]);toast.success("Atividade publicada.");
     }catch(e){
       if(uploadedPath) void supabase.storage.from("academic-attachments").remove([uploadedPath]);
       toast.error(errorText(e));
@@ -871,7 +871,7 @@ function Tasks({d}:{d:ReturnType<typeof useData>}){
       const uploaded=attachment?await uploadAcademicAttachment(attachment,"tasks"):null;
       uploadedPath=uploaded?.path??null;
       await updateTeacherTask({id:editing,classroom,subject,title:title.trim(),description:description.trim(),dueAt:due?new Date(due).toISOString():null,attachmentPath:uploaded?.path??selectedTask?.attachment_path??null,attachmentName:uploaded?.name??selectedTask?.attachment_name??null,attachmentSize:uploaded?.size??selectedTask?.attachment_size??null,attachmentType:uploaded?.type??selectedTask?.attachment_type??null});
-      resetForm();await tasks.refetch();toast.success("Atividade atualizada.");
+      resetForm();await Promise.all([tasks.refetch(),qc.invalidateQueries({queryKey:["teacher-overview-tasks"]})]);toast.success("Atividade atualizada.");
     }catch(e){
       if(uploadedPath) void supabase.storage.from("academic-attachments").remove([uploadedPath]);
       toast.error(errorText(e));
@@ -881,12 +881,12 @@ function Tasks({d}:{d:ReturnType<typeof useData>}){
   async function remove(){
     if(!confirmDelete)return;
     setBusy(true);
-    try{await deleteTeacherTask(confirmDelete);if(selected===confirmDelete)setSelected("");await tasks.refetch();toast.success("Atividade excluída.");setConfirmDelete(null);}
+    try{await deleteTeacherTask(confirmDelete);if(selected===confirmDelete)setSelected("");await Promise.all([tasks.refetch(),qc.invalidateQueries({queryKey:["teacher-overview-tasks"]})]);toast.success("Atividade excluída.");setConfirmDelete(null);}
     catch(e){toast.error(errorText(e))}
     finally{setBusy(false)}
   }
 
-  async function grade(id:string){const n=Number(scores[id]);if(Number.isNaN(n)||n<0||n>10){toast.error("A nota deve estar entre 0 e 10.");return;}try{await gradeTaskSubmission(id,n,feedback[id]??"");await submissions.refetch();toast.success("Entrega corrigida.");}catch(e){toast.error(errorText(e))}}
+  async function grade(id:string){const n=Number(scores[id]);if(Number.isNaN(n)||n<0||n>10){toast.error("A nota deve estar entre 0 e 10.");return;}try{await gradeTaskSubmission(id,n,feedback[id]??"");await Promise.all([submissions.refetch(),qc.invalidateQueries({queryKey:["student-module-submissions"]}),qc.invalidateQueries({queryKey:["student-module-tasks"]}),qc.invalidateQueries({queryKey:["teacher-overview-tasks"]})]);toast.success("Entrega corrigida.");}catch(e){toast.error(errorText(e))}}
 
   function startEdit(t:TeacherTask){
     const classroomId=(d.classes.data??[]).find(c=>c.id===t.classroom||c.name===t.classroom)?.id??"";
