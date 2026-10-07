@@ -23,6 +23,8 @@ import {
   loadAdminTeacherAssignments,
   loadAdminSubjectTeacherMatrix,
   adminSetSubjectResponsible,
+  adminSetSubjectTeacherLink,
+  adminRemoveSubjectTeacherLink,
   adminAssignTeacherToClassroom,
   adminUnassignTeacherFromClassroom,
   adminImportAcademicCsv,
@@ -104,6 +106,7 @@ export function AdminAcademicSetup() {
   const [matrixClassroomFilter, setMatrixClassroomFilter] = useState("all");
   const [matrixSubjectFilter, setMatrixSubjectFilter] = useState("all");
   const [matrixTeacherFilter, setMatrixTeacherFilter] = useState("all");
+  const [confirmRemoveSubjectTeacher, setConfirmRemoveSubjectTeacher] = useState<{ classroomId: string; subjectId: string; teacherId: string; teacherName: string; subjectName: string; isPrimary: boolean } | null>(null);
 
   async function refresh() {
     await Promise.all([
@@ -128,6 +131,38 @@ export function AdminAcademicSetup() {
       await qc.invalidateQueries({ queryKey: ["admin-subject-teacher-matrix"] });
       await qc.invalidateQueries({ queryKey: ["admin-academic-setup"] });
       toast.success(teacherId ? "Professor responsável atualizado." : "Responsável removido.");
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function addSubjectTeacher(classroomId: string, subjectId: string, teacherId: string) {
+    if (!teacherId) return;
+    setBusyAction("add-subject-teacher:" + classroomId + ":" + subjectId + ":" + teacherId);
+    try {
+      await adminSetSubjectTeacherLink(classroomId, subjectId, teacherId, false);
+      await qc.invalidateQueries({ queryKey: ["admin-subject-teacher-matrix"] });
+      await qc.invalidateQueries({ queryKey: ["admin-academic-setup"] });
+      toast.success("Professor vinculado à disciplina.");
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function removeSubjectTeacher() {
+    if (!confirmRemoveSubjectTeacher) return;
+    const item = confirmRemoveSubjectTeacher;
+    setBusyAction("remove-subject-teacher:" + item.classroomId + ":" + item.subjectId + ":" + item.teacherId);
+    try {
+      await adminRemoveSubjectTeacherLink(item.classroomId, item.subjectId, item.teacherId);
+      await qc.invalidateQueries({ queryKey: ["admin-subject-teacher-matrix"] });
+      await qc.invalidateQueries({ queryKey: ["admin-academic-setup"] });
+      setConfirmRemoveSubjectTeacher(null);
+      toast.success("Professor desvinculado da disciplina.");
     } catch (error) {
       toast.error(errorText(error));
     } finally {
@@ -438,6 +473,7 @@ export function AdminAcademicSetup() {
                   {Array.from(new Map((subjectTeacherMatrix.data ?? [])
                     .filter(row => matrixClassroomFilter === "all" || row.classroom_id === matrixClassroomFilter)
                     .filter(row => matrixSubjectFilter === "all" || row.subject_id === matrixSubjectFilter)
+                    .filter(row => matrixTeacherFilter === "all" || row.teacher_id === matrixTeacherFilter)
                     .reduce((groups, row) => {
                       const key = row.classroom_id + ":" + row.subject_id;
                       const current = groups.get(key) ?? [];
@@ -449,7 +485,9 @@ export function AdminAcademicSetup() {
                     if (!items.length) return null;
                     const first = items[0];
                     const responsible = items.find(item => item.is_primary);
-                    const choices = items.filter(item => item.teacher_id);
+                    const linkedTeacherIds = new Set(items.map(item => item.teacher_id).filter(Boolean));
+                    const classTeachers = (assignments.data ?? []).filter(item => item.classroom_id === first.classroom_id);
+                    const availableTeachers = classTeachers.filter(item => !linkedTeacherIds.has(item.teacher_id));
                     return (
                       <div key={first.classroom_id + ":" + first.subject_id} className="rounded-xl border border-border p-4">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -462,19 +500,41 @@ export function AdminAcademicSetup() {
                             {!responsible && <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">Sem responsável</span>}
                           </div>
                         </div>
+                        <div className="mt-3 space-y-2">
+                          {items.map(item => (
+                            <div key={item.id} className="flex flex-col gap-2 rounded-xl border border-border bg-secondary/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0">
+                                <p className="font-medium">{item.teacher_name}</p>
+                                <p className="text-xs text-muted-foreground">{item.teacher_email || "Sem e-mail"} · {item.is_primary ? "Responsável pelas notas oficiais" : "Professor adicional"}</p>
+                              </div>
+                              <div className="flex shrink-0 flex-wrap gap-2">
+                                {!item.is_primary && (
+                                  <Button size="sm" variant="outline" disabled={busyAction !== null} onClick={() => void setSubjectResponsible(first.classroom_id, first.subject_id, item.teacher_id)}>
+                                    Tornar responsável
+                                  </Button>
+                                )}
+                                <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" disabled={busyAction !== null}
+                                  onClick={() => setConfirmRemoveSubjectTeacher({
+                                    classroomId: first.classroom_id, subjectId: first.subject_id, teacherId: item.teacher_id!,
+                                    teacherName: item.teacher_name, subjectName: first.subject_name, isPrimary: item.is_primary,
+                                  })}>
+                                  Remover
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                          <select
-                            value={responsible?.teacher_id ?? ""}
-                            onChange={e => void setSubjectResponsible(first.classroom_id, first.subject_id, e.target.value || null)}
-                            disabled={busyAction !== null || choices.length === 0}
-                            className="h-10 flex-1 rounded-xl border border-input bg-background px-3 text-sm"
-                          >
-                            <option value="">Sem responsável</option>
-                            {choices.map(item => (
-                              <option key={item.teacher_id} value={item.teacher_id!}>{item.teacher_name}{item.is_primary ? " · atual" : ""}</option>
-                            ))}
+                          <select defaultValue="" onChange={e => {
+                            const teacherId = e.target.value;
+                            e.currentTarget.value = "";
+                            if (teacherId) void addSubjectTeacher(first.classroom_id, first.subject_id, teacherId);
+                          }} disabled={busyAction !== null || availableTeachers.length === 0}
+                            className="h-10 flex-1 rounded-xl border border-input bg-background px-3 text-sm">
+                            <option value="">Adicionar professor à disciplina…</option>
+                            {availableTeachers.map(item => <option key={item.teacher_id} value={item.teacher_id}>{item.teacher_name}</option>)}
                           </select>
-                          {choices.length === 0 && <span className="text-xs text-muted-foreground">Vincule um professor à disciplina primeiro.</span>}
+                          {availableTeachers.length === 0 && <span className="text-xs text-muted-foreground">Todos os professores vinculados à turma já estão nesta disciplina.</span>}
                         </div>
                       </div>
                     );
@@ -734,6 +794,16 @@ export function AdminAcademicSetup() {
             actionLabel="Excluir turma"
             loading={busyAction?.startsWith("delete-classroom:") ?? false}
             onConfirm={deleteClassroom}
+          />
+
+          <ConfirmActionDialog
+            open={!!confirmRemoveSubjectTeacher}
+            onOpenChange={open => { if (!open && busyAction === null) setConfirmRemoveSubjectTeacher(null); }}
+            title="Remover professor da disciplina?"
+            description={confirmRemoveSubjectTeacher ? `O professor ${confirmRemoveSubjectTeacher.teacherName} será desvinculado de ${confirmRemoveSubjectTeacher.subjectName}. Se ele for o responsável atual e houver outro professor, primeiro transfira a responsabilidade.` : ""}
+            actionLabel="Remover vínculo"
+            loading={busyAction?.startsWith("remove-subject-teacher:") ?? false}
+            onConfirm={() => void removeSubjectTeacher()}
           />
 
           <ConfirmActionDialog
