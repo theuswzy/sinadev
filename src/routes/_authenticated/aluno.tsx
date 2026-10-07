@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight } from "lucide-react";
+import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight, RefreshCw } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { StudentModulePage, type StudentModule } from "@/components/student-module-page";
 import { StudentNotifications } from "@/routes/_authenticated/aluno/notificacoes";
@@ -45,6 +45,13 @@ function StudentDashboard() {
   const calendarRange = { from: new Date().toISOString(), to: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString() };
   const calendar = useQuery({ queryKey: ["dashboard-calendar", calendarRange.from.slice(0,10), calendarRange.to.slice(0,10)], queryFn: () => loadStudentCalendar(calendarRange.from, calendarRange.to), enabled: !!student.data, ...liveOptions });
   const notifications = useQuery({ queryKey: ["dashboard-notifications"], queryFn: () => loadNotifications(true), enabled: !!student.data, ...liveOptions });
+  const dashboardQueries = [tasks, grades, assessments, studentSubjects, announcements, attendance, materials, calendar, notifications];
+  const dashboardHasError = dashboardQueries.some((query) => !!query.error);
+  const dashboardRefreshing = dashboardQueries.some((query) => query.isFetching);
+
+  async function refreshDashboard() {
+    await Promise.all([student.refetch(), ...dashboardQueries.map((query) => query.refetch())]);
+  }
 
   if (role.isPending || student.isPending) {
     return <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico"><div className="sina-card mt-8 p-6">Carregando seu dashboard...</div></AcademicShell>;
@@ -168,6 +175,7 @@ function StudentDashboard() {
       </section>
 
       {!student.data.classroom_id && <section className="mt-5 rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">Seu dashboard já está pronto.</p><p className="mt-1 text-sm text-muted-foreground">A escola ainda precisa concluir seu vínculo com uma turma. Enquanto isso, você já pode acessar seu perfil e acompanhar este painel; notas, frequência, disciplinas e atividades aparecerão conforme forem cadastradas.</p></div><Link to="/perfil" className="shrink-0 text-sm font-semibold text-primary hover:underline">Ver meu perfil →</Link></div></section>}
+      {dashboardHasError && <section className="mt-5 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 sm:p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-start gap-3"><RefreshCw className="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden="true"/><div><p className="font-semibold">Algumas informações precisam ser atualizadas.</p><p className="mt-1 text-sm text-muted-foreground">Parte do dashboard foi carregada, mas um ou mais serviços não responderam. Seus dados já carregados continuam disponíveis.</p></div></div><Button type="button" variant="outline" onClick={() => void refreshDashboard()} disabled={dashboardRefreshing} className="shrink-0"><RefreshCw className={"mr-2 size-4 " + (dashboardRefreshing ? "animate-spin" : "")}/>{dashboardRefreshing ? "Atualizando…" : "Tentar novamente"}</Button></div></section>}
 
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
@@ -260,27 +268,6 @@ function StudentDashboard() {
             </Link>
           ))}
           {!pending.length && <div className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Nenhuma pendência acadêmica no momento. Você está em dia.</div>}
-        </div>
-      </section>
-
-      <section className="mt-5 sina-card p-5 sm:p-6">
-        <div className="flex items-center justify-between gap-3">
-          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Acesso rápido</p><h2 className="mt-1 text-lg font-semibold">O que você precisa agora?</h2></div>
-          <ArrowRight className="size-5 text-primary"/>
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            {to:"/aluno/tarefas",label:"Tarefas",desc:"Veja prazos e entregas.",Icon:ClipboardList},
-            {to:"/aluno/notas",label:"Notas",desc:"Confira seu desempenho.",Icon:BarChart3},
-            {to:"/aluno/frequencia",label:"Frequência",desc:"Acompanhe sua presença.",Icon:CheckCircle2},
-            {to:"/aluno/agenda",label:"Agenda",desc:"Veja os próximos eventos.",Icon:CalendarDays},
-          ].map(({to,label,desc,Icon})=>(
-            <Link key={to} to={to} className="group rounded-2xl border border-border p-4 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span>
-              <p className="mt-3 font-semibold group-hover:text-primary">{label}</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p>
-            </Link>
-          ))}
         </div>
       </section>
 
