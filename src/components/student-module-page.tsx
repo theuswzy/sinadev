@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Megaphone, BookOpen, Clock3, CheckCircle2, AlertTriangle, UserRound, ClipboardCheck, BarChart3, ArrowRight, FileText, RefreshCw } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
@@ -35,15 +35,16 @@ const meta: Record<StudentModule, { title: string; subtitle: string }> = {
 };
 
 export function StudentModulePage({ module }: { module: StudentModule }) {
+  const queryClient = useQueryClient();
   const student = useQuery({ queryKey: ["my-student"], queryFn: loadMyStudent });
-  const tasks = useQuery({ queryKey: ["student-module-tasks"], queryFn: loadStudentTasksDetailed, enabled: module === "tarefas" || module === "disciplinas" });
+  const tasks = useQuery({ queryKey: ["student-module-tasks"], queryFn: loadStudentTasksDetailed, enabled: module === "tarefas" || module === "disciplinas", refetchOnWindowFocus: true });
   const studentSubjects = useQuery({ queryKey: ["student-module-subjects"], queryFn: loadStudentSubjects, enabled: module === "disciplinas" || module === "tarefas" || module === "notas" });
-  const grades = useQuery({ queryKey: ["student-module-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id && (module === "disciplinas" || module === "notas") });
+  const grades = useQuery({ queryKey: ["student-module-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id && (module === "disciplinas" || module === "notas"), refetchOnWindowFocus: true });
   const assessments = useQuery({ queryKey: ["student-module-assessments"], queryFn: loadStudentAssessmentsDetailed, enabled: module === "notas" || module === "disciplinas" });
-  const attendance = useQuery({ queryKey: ["student-module-attendance"], queryFn: loadStudentAttendanceDetailed, enabled: module === "frequencia" || module === "disciplinas" });
+  const attendance = useQuery({ queryKey: ["student-module-attendance"], queryFn: loadStudentAttendanceDetailed, enabled: module === "frequencia" || module === "disciplinas", refetchOnWindowFocus: true });
   const announcements = useQuery({ queryKey: ["student-module-announcements"], queryFn: loadStudentAnnouncementsDetailed, enabled: module === "avisos" });
   const materials = useQuery({ queryKey: ["student-module-materials"], queryFn: loadStudentAcademicMaterialsDetailed, enabled: module === "materiais" });
-  const submissions = useQuery({ queryKey: ["student-module-submissions"], queryFn: loadStudentTaskSubmissions, enabled: module === "tarefas" });
+  const submissions = useQuery({ queryKey: ["student-module-submissions"], queryFn: loadStudentTaskSubmissions, enabled: module === "tarefas", refetchOnWindowFocus: true });
   const calendar = useQuery({
     queryKey: ["student-module-calendar"],
     queryFn: () => {
@@ -100,7 +101,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     setSending(taskId);
     try {
       await submitTask(taskId, content);
-      await Promise.all([submissions.refetch(), tasks.refetch()]);
+      await Promise.all([submissions.refetch(), tasks.refetch(), queryClient.invalidateQueries({ queryKey: ["student-dashboard"] })]);
       toast.success("Entrega enviada para correção.");
     } catch (error) {
       toast.error(errorText(error));
