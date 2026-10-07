@@ -116,7 +116,6 @@ export function AdminStudentClassroom() {
   }
 
   function closeEdit() {
-    if (savingProfile) return;
     setEditingStudent(null);
     setEditFullName("");
     setEditEnrollment("");
