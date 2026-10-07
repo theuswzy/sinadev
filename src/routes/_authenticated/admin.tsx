@@ -319,7 +319,6 @@ function AdminArea() {
   const studentCount = adminStudents.data?.length ?? 0;
   const unassignedStudents = adminStudents.data?.filter(student => !student.institution_id || !student.classroom_id).length ?? 0;
   const activeTeacherLinks = adminTeachers.data?.filter(teacher => teacher.institution_id).length ?? 0;
-  const classroomCount = academicSetup.data?.classrooms?.length ?? 0;
   const subjectCount = academicSetup.data?.subjects?.length ?? 0;
   const currentTerm = academicSetup.data?.terms?.find(term => term.is_current)?.name ?? "Nenhum período atual";
   const academicOverview = useQuery({
@@ -531,7 +530,7 @@ function AdminArea() {
             {[
               {label:"Alunos",value:academicOverview.isPending ? "—" : (academicOverview.data?.students ?? 0),caption:academicOverview.isPending ? "Carregando instituição" : (academicOverview.data?.students_without_class ? (academicOverview.data.students_without_class+" sem turma") : "Com vínculo acadêmico"),Icon:GraduationCap,tab:"academico"},
               {label:"Professores",value:academicOverview.isPending ? "—" : (academicOverview.data?.teachers ?? 0),caption:"Com turmas atribuídas nesta instituição",Icon:ShieldCheck,tab:"pessoas"},
-              {label:"Turmas",value:classroomCount,caption:currentTerm,Icon:LayoutDashboard,tab:"academico"},
+              {label:"Turmas",value:academicOverview.isPending ? "—" : (academicOverview.data?.classrooms ?? 0),caption:currentTerm,Icon:LayoutDashboard,tab:"academico"},
               {label:"Aprovações",value:roleRequests.data?.filter(item=>item.status==="pending").length??0,caption:"Solicitações aguardando análise",Icon:UserRoundCheck,tab:"pessoas"},
             ].map(({label,value,caption,Icon,tab})=><button key={label} type="button" onClick={()=>setAdminTab(tab as AdminTab)} className="sina-card group p-5 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between gap-3"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><span className="text-xs font-semibold text-primary opacity-0 transition group-hover:opacity-100">Abrir →</span></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p><p className="mt-1 text-xs text-muted-foreground">{caption}</p></button>) }
           </section>
