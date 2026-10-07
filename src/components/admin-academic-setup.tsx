@@ -464,6 +464,16 @@ export function AdminAcademicSetup() {
                   <p className="mt-1 text-sm text-muted-foreground">O primeiro professor é o responsável pelas notas oficiais. Professores adicionais continuam vinculados e podem atuar conforme suas permissões.</p>
                 </div>
               </div>
+              {(() => {
+                const selectedLinks = (subjectTeacherMatrix.data ?? []).filter(row =>
+                  row.classroom_id === linkClassroomId && row.subject_id === linkSubjectId
+                );
+                const selectedTeacherIds = new Set(selectedLinks.map(row => row.teacher_id).filter(Boolean));
+                const availableLinkTeachers = (assignments.data ?? []).filter(a =>
+                  a.classroom_id === linkClassroomId && !selectedTeacherIds.has(a.teacher_id)
+                );
+                const firstLink = selectedLinks.length === 0;
+                return (
               <div className="mt-4 rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4">
                 <p className="font-semibold">Criar novo vínculo</p>
                 <p className="mt-1 text-xs text-muted-foreground">Use quando uma disciplina ainda não possui professor nesta turma. O primeiro vínculo pode ser definido como responsável depois.</p>
@@ -478,7 +488,7 @@ export function AdminAcademicSetup() {
                   </select>
                   <select value={linkTeacherId} onChange={e => setLinkTeacherId(e.target.value)} disabled={!linkClassroomId} className="h-10 rounded-xl border border-input bg-background px-3 text-sm">
                     <option value="">Selecione o professor</option>
-                    {(assignments.data ?? []).filter(a => a.classroom_id === linkClassroomId).map(a => <option key={a.teacher_id} value={a.teacher_id}>{a.teacher_name || a.teacher_email}</option>)}
+                    {availableLinkTeachers.map(a => <option key={a.teacher_id} value={a.teacher_id}>{a.teacher_name || a.teacher_email}</option>)}
                   </select>
                 </div>
                 <Button
@@ -487,7 +497,7 @@ export function AdminAcademicSetup() {
                   onClick={async () => {
                     setBusyAction("create-subject-link");
                     try {
-                      await adminSetSubjectTeacherLink(linkClassroomId, linkSubjectId, linkTeacherId, false);
+                      await adminSetSubjectTeacherLink(linkClassroomId, linkSubjectId, linkTeacherId, firstLink);
                       await qc.invalidateQueries({ queryKey: ["admin-subject-teacher-matrix"] });
                       await qc.invalidateQueries({ queryKey: ["admin-academic-setup"] });
                       setLinkTeacherId("");
@@ -502,6 +512,9 @@ export function AdminAcademicSetup() {
                   {busyAction === "create-subject-link" ? "Criando…" : "Criar vínculo"}
                 </Button>
               </div>
+              </div>
+                );
+              })()}
               {subjectTeacherMatrix.isPending ? (
                 <p className="mt-4 text-sm text-muted-foreground">Carregando responsáveis…</p>
               ) : subjectTeacherMatrix.error ? (
