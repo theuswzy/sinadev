@@ -1438,6 +1438,35 @@ export async function acceptInstitutionInvitation(token: string) {
   return data?.[0] ?? null;
 }
 
+export type AcademicPeriodLock = {
+  period: number;
+  is_closed: boolean;
+  closed_at: string | null;
+  closed_by: string | null;
+};
+
+export async function loadTeacherGradebookPeriodStatus(period: number): Promise<AcademicPeriodLock> {
+  const { data, error } = await supabase.rpc("teacher_get_gradebook_period_status", { _period: period });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row ?? { period, is_closed: false, closed_at: null, closed_by: null }) as AcademicPeriodLock;
+}
+
+export async function loadAdminAcademicPeriodLocks(): Promise<AcademicPeriodLock[]> {
+  const { data, error } = await supabase.rpc("admin_list_academic_period_locks");
+  if (error) throw error;
+  return (data ?? []) as AcademicPeriodLock[];
+}
+
+export async function setAdminAcademicPeriodLock(period: number, closed: boolean): Promise<boolean> {
+  const { data, error } = await supabase.rpc("admin_set_academic_period_lock", {
+    _period: period,
+    _closed: closed,
+  });
+  if (error) throw error;
+  return data ?? false;
+}
+
 export async function loadAdminAcademicSetup(): Promise<AdminAcademicSetup> {
   const { data, error } = await supabase.rpc("admin_list_academic_setup");
   if (error) throw error;
