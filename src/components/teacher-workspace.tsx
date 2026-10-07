@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, GraduationCap, Megaphone, Plus, School, Users, BarChart3, Paperclip, Pencil, Trash2, X, FileText, Download, RefreshCw } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, GraduationCap, Megaphone, Plus, School, Users, BarChart3, Paperclip, Pencil, Trash2, X, FileText, Download, RefreshCw, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 import { AcademicShell } from "@/components/academic-shell";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
