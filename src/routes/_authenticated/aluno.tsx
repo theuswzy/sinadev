@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight, RefreshCw } from "lucide-react";
+import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight, RefreshCw, Clock } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { StudentModulePage, type StudentModule } from "@/components/student-module-page";
 import { StudentNotifications } from "@/routes/_authenticated/aluno/notificacoes";
@@ -219,6 +219,7 @@ function StudentDashboard() {
   const upcomingEvents = (calendar.data ?? []).filter(item => new Date(item.start_at).getTime() >= Date.now()).slice(0,5);
   const unreadCount = notifications.data?.length ?? 0;
   const academicStatus = !student.data.classroom_id ? "Aguardando vínculo" : pending.length ? "Acompanhar pendências" : "Em dia";
+  const timetableDays = [{ value: 1, label: "Segunda" }, { value: 2, label: "Terça" }, { value: 3, label: "Quarta" }, { value: 4, label: "Quinta" }, { value: 5, label: "Sexta" }];
 
   return (
     <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico">
@@ -272,6 +273,46 @@ function StudentDashboard() {
           {studentSubjects.isPending && <p className="text-sm text-muted-foreground">Carregando matérias e professores…</p>}
           {!studentSubjects.isPending && !(studentSubjects.data ?? []).length && <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Nenhuma disciplina foi vinculada à sua turma ainda.</p>}
         </div>
+      </section>
+
+      <section className="mt-5 sina-card p-5 sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">Cronograma</p>
+            <h2 className="mt-1 text-lg font-semibold">Horários da minha turma</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Veja as aulas da semana, os professores e as salas cadastradas pela escola.</p>
+          </div>
+          <span className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Clock className="size-4" /> Segunda a sexta</span>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {timetableDays.map(day => {
+            const dayEntries = (timetable.data ?? [])
+              .filter(item => item.weekday === day.value)
+              .sort((a, b) => a.start_time.localeCompare(b.start_time));
+            return (
+              <div key={day.value} className="rounded-2xl border border-border bg-muted/20 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold">{day.label}</p>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">{dayEntries.length}</span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {dayEntries.map(item => (
+                    <div key={item.id} className="rounded-xl border border-border bg-background p-3">
+                      <p className="text-xs font-bold text-primary">{item.start_time.slice(0, 5)}–{item.end_time.slice(0, 5)}</p>
+                      <p className="mt-1 text-sm font-semibold leading-tight">{item.subject_name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Prof. {item.teacher_name || "não informado"}</p>
+                      {item.room && <p className="mt-1 text-[11px] text-muted-foreground">Sala {item.room}</p>}
+                      {item.notes && <p className="mt-2 text-[11px] text-muted-foreground">{item.notes}</p>}
+                    </div>
+                  ))}
+                  {!dayEntries.length && <p className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">Sem aula cadastrada.</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {timetable.isPending && <p className="mt-3 text-xs text-muted-foreground">Carregando cronograma…</p>}
+        {timetable.error && <p className="mt-3 text-xs text-destructive">Não foi possível carregar o cronograma. Tente atualizar o dashboard.</p>}
       </section>
 
       <section className="mt-5 sina-card p-5 sm:p-6">
