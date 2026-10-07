@@ -1592,7 +1592,7 @@ export async function adminImportAcademicCsv(rows: Record<string, string>[]) {
 
 export type AdminClassroomHub = {
   classroom: { id: string; name: string; code: string | null; status: string };
-  students: { id: string; full_name: string; enrollment: string | null; status: string }[];
+  students: { id: string; full_name: string; enrollment: string | null }[];
   teachers: { user_id: string; name: string }[];
   subjects: { id: string; name: string; code: string | null; teacher_id: string | null; teacher_name: string }[];
   metrics: {
