@@ -7,7 +7,7 @@ import { StudentModulePage, type StudentModule } from "@/components/student-modu
 import { StudentNotifications } from "@/routes/_authenticated/aluno/notificacoes";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { errorText, getRole, loadGrades, loadMyStudent, loadStudentAcademicMaterialsDetailed, loadStudentCalendar, loadStudentAssessmentsDetailed, loadStudentSubjects, loadStudentTasksDetailed, loadStudentAnnouncementsDetailed, loadStudentAttendanceDetailed, loadNotifications } from "@/lib/sina-data";
+import { errorText, getRole, loadGrades, loadMyStudent, loadStudentAcademicMaterialsDetailed, loadStudentCalendar, loadStudentAssessmentsDetailed, loadStudentSubjects, loadStudentTasksDetailed, loadStudentAnnouncementsDetailed, loadStudentAttendanceDetailed, loadStudentTimetable, loadNotifications } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({ meta: [{ title: "Dashboard do aluno — SINA" }, { name: "description", content: "Visão geral da vida acadêmica do aluno." }] }),
@@ -42,13 +42,14 @@ function StudentDashboard() {
   const grades = useQuery({ queryKey: ["dashboard-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id, ...liveOptions });
   const assessments = useQuery({ queryKey: ["dashboard-assessments"], queryFn: loadStudentAssessmentsDetailed, enabled: !!student.data, ...liveOptions });
   const studentSubjects = useQuery({ queryKey: ["dashboard-student-subjects"], queryFn: loadStudentSubjects, enabled: !!student.data, ...liveOptions });
+  const timetable = useQuery({ queryKey: ["dashboard-timetable", student.data?.classroom_id], queryFn: loadStudentTimetable, enabled: !!student.data?.classroom_id, ...liveOptions });
   const announcements = useQuery({ queryKey: ["dashboard-announcements"], queryFn: loadStudentAnnouncementsDetailed, enabled: !!student.data, ...liveOptions });
   const attendance = useQuery({ queryKey: ["dashboard-attendance"], queryFn: loadStudentAttendanceDetailed, enabled: !!student.data, ...liveOptions });
   const materials = useQuery({ queryKey: ["dashboard-materials"], queryFn: loadStudentAcademicMaterialsDetailed, enabled: !!student.data, ...liveOptions });
   const calendarRange = { from: new Date().toISOString(), to: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString() };
   const calendar = useQuery({ queryKey: ["dashboard-calendar", calendarRange.from.slice(0,10), calendarRange.to.slice(0,10)], queryFn: () => loadStudentCalendar(calendarRange.from, calendarRange.to), enabled: !!student.data, ...liveOptions });
   const notifications = useQuery({ queryKey: ["dashboard-notifications"], queryFn: () => loadNotifications(true), enabled: !!student.data, ...liveOptions });
-  const dashboardQueries = [tasks, grades, assessments, studentSubjects, announcements, attendance, materials, calendar, notifications];
+  const dashboardQueries = [tasks, grades, assessments, studentSubjects, timetable, announcements, attendance, materials, calendar, notifications];
 
   useEffect(() => {
     if (role.data !== "student") return;
@@ -74,6 +75,13 @@ function StudentDashboard() {
         () => {
           void qc.invalidateQueries({ queryKey: ["my-student"] });
           void qc.invalidateQueries({ queryKey: ["dashboard"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "classroom_timetable" },
+        () => {
+          void qc.invalidateQueries({ queryKey: ["dashboard-timetable", student.data?.classroom_id] });
         },
       )
       .subscribe();
