@@ -101,7 +101,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
     setSending(taskId);
     try {
       await submitTask(taskId, content);
-      await Promise.all([submissions.refetch(), tasks.refetch(), queryClient.invalidateQueries({ queryKey: ["student-dashboard"] })]);
+      await Promise.all([submissions.refetch(), tasks.refetch()]);
       toast.success("Entrega enviada para correção.");
     } catch (error) {
       toast.error(errorText(error));
