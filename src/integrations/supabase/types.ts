@@ -1586,6 +1586,21 @@ export type Database = {
         Args: { _student_id: string }
         Returns: boolean
       }
+      admin_update_profile: {
+        Args: {
+          _avatar_url?: string
+          _display_name: string
+          _user_id: string
+        }
+        Returns: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+      }
       admin_update_student_profile: {
         Args: {
           _avatar_url?: string
