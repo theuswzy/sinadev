@@ -50,6 +50,7 @@ function useData(section: Section){
   const students=useQuery({queryKey:["teacher-new-students"],queryFn:loadTeacherInstitutionStudents,staleTime:30000,enabled:needsStudents});
   const subjects=useQuery({queryKey:["teacher-new-subjects"],queryFn:loadTeacherSubjects,staleTime:30000,enabled:needsSubjects});
   const assignments=useQuery({queryKey:["teacher-new-assignments"],queryFn:async()=>{const {data,error}=await supabase.rpc("teacher_list_subject_assignments");if(error)throw error;return data??[]},staleTime:30000,enabled:needsAssignments});
+  const responsibilities=useQuery({queryKey:["teacher-subject-responsibilities"],queryFn:async()=>{const {data,error}=await supabase.rpc("teacher_list_subject_responsibilities");if(error)throw error;return data??[]},staleTime:15000,refetchOnWindowFocus:true});
   const unassignedClasses=useQuery({queryKey:["teacher-new-unassigned-classes"],queryFn:loadTeacherUnassignedClassrooms,staleTime:15000,enabled:needsUnassignedClasses});
   async function refresh(){
     await Promise.all([
@@ -60,6 +61,7 @@ function useData(section: Section){
       qc.invalidateQueries({queryKey:["teacher-new-students-page"]}),
       qc.invalidateQueries({queryKey:["teacher-new-subjects"]}),
       qc.invalidateQueries({queryKey:["teacher-new-assignments"]}),
+      qc.invalidateQueries({queryKey:["teacher-subject-responsibilities"]}),
     ]);
   }
   return {classes,institutionClasses,students,subjects,assignments,unassignedClasses,refresh};
@@ -101,7 +103,33 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
     {label:"Sem turma",value:pending.length,desc:"Resolver vínculos pendentes",icon:School,go:"alunos" as Section},
   ];
 
+  const responsibilitySummary = responsibilities.data ?? [];
+  const responsibleCount = responsibilitySummary.filter((item:any)=>item.is_primary).length;
+  const additionalCount = responsibilitySummary.filter((item:any)=>!item.is_primary).length;
+
   return <div className="space-y-6">
+    <section className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-primary">Responsabilidade acadêmica</p>
+          <h2 className="mt-1 text-lg font-semibold">Seus vínculos por disciplina</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Responsável = referência principal da disciplina. Adicional = professor vinculado à mesma disciplina sem substituir o responsável.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:min-w-[240px]">
+          <div className="rounded-xl border border-border bg-background p-3"><p className="text-xs text-muted-foreground">Responsável</p><b className="text-xl">{responsibleCount}</b></div>
+          <div className="rounded-xl border border-border bg-background p-3"><p className="text-xs text-muted-foreground">Adicional</p><b className="text-xl">{additionalCount}</b></div>
+        </div>
+      </div>
+      {responsibilitySummary.length > 0 && <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {responsibilitySummary.slice(0,6).map((item:any)=><div key={item.classroom_id+":"+item.subject_id} className="rounded-xl border border-border bg-background p-3">
+          <p className="truncate font-medium">{item.subject_name}</p>
+          <p className="truncate text-xs text-muted-foreground">{item.classroom_name}</p>
+          <span className={"mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-semibold "+(item.is_primary?"bg-primary/10 text-primary":"bg-secondary text-muted-foreground")}>{item.is_primary?"Professor responsável":"Professor adicional"}</span>
+        </div>)}
+      </div>}
+      {responsibilities.error && <p className="mt-3 text-xs text-destructive">Não foi possível atualizar seus vínculos de responsabilidade.</p>}
+    </section>
+
     <section className="overflow-hidden rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm sm:p-8">
       <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
