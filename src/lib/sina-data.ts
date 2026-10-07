@@ -662,7 +662,7 @@ export type AcademicOptions = {
   terms: { id: string; name: string; starts_at: string | null; ends_at: string | null; is_current: boolean }[];
 };
 
-export type AdminStudentClassroom = { id: string; user_id: string; full_name: string; enrollment: string | null; classroom_id: string | null; classroom_name: string | null; status: string };
+export type AdminStudentClassroom = { id: string; user_id: string; full_name: string; enrollment: string | null; avatar_url: string | null; classroom_id: string | null; classroom_name: string | null; status: string };
 export type PaginatedResult<T> = { items: T[]; total: number; page: number; page_size: number };
 
 export async function loadAdminStudentsPage(
@@ -686,6 +686,22 @@ export async function loadAdminStudentsPage(
     page_size: Number(result.page_size ?? pageSize),
   };
 }
+export async function adminUpdateStudentProfile(
+  studentId: string,
+  fullName: string,
+  enrollment: string,
+  avatarUrl: string | null,
+) {
+  const { data, error } = await supabase.rpc("admin_update_student_profile", {
+    _student_id: studentId,
+    _full_name: fullName,
+    _enrollment: enrollment || null,
+    _avatar_url: avatarUrl,
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function adminAssignStudentToClassroom(studentId:string,classroomId:string,enrollment:string) { const {data,error}=await supabase.rpc("admin_assign_student_to_classroom",{_student_id:studentId,_classroom_id:classroomId,...(enrollment ? {_enrollment:enrollment} : {})}); if(error) throw error; return data??false; }
 export async function adminRemoveStudentFromClassroom(studentId:string) { const {data,error}=await supabase.rpc("admin_remove_student_from_classroom",{_student_id:studentId}); if(error) throw error; return data??false; }
 
