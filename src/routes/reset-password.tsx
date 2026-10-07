@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { ArrowRight, CheckCircle2, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { authErrorMessage } from "@/lib/auth-messages";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/reset-password")({
@@ -14,30 +15,11 @@ export const Route = createFileRoute("/reset-password")({
       { property: "og:description", content: "Recuperação de acesso ao SINA." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "robots", content: "noindex, nofollow, noarchive" },
     ],
   }),
   component: ResetPassword,
 });
-
-function authErrorMessage(error: unknown) {
-  const message = error instanceof Error ? error.message : "";
-  const normalized = message.toLowerCase();
-
-  if (normalized.includes("otp_expired") || normalized.includes("token has expired") || normalized.includes("invalid or has expired")) {
-    return "Este link de recuperação expirou ou já foi usado. Solicite outro link no SINA.";
-  }
-  if (normalized.includes("code verifier") || normalized.includes("pkce")) {
-    return "Este link foi aberto em outro navegador ou sessão. Solicite um novo link de recuperação.";
-  }
-  if (normalized.includes("password should be at least")) {
-    return "A senha precisa ter pelo menos 6 caracteres.";
-  }
-  if (normalized.includes("same password") || normalized.includes("different")) {
-    return "Escolha uma senha diferente da anterior.";
-  }
-
-  return message || "Não foi possível atualizar sua senha.";
-}
 
 function readRedirectError() {
   const url = new URL(window.location.href);
@@ -49,7 +31,7 @@ function readRedirectError() {
   const error = params.get("error_description") || params.get("error");
   if (!error) return null;
 
-  return authErrorMessage(new Error(error));
+  return new Error(error);
 }
 
 function passwordChecks(password: string) {
@@ -93,7 +75,7 @@ function ResetPassword() {
     async function initializeRecovery() {
       try {
         const redirectError = readRedirectError();
-        if (redirectError) throw new Error(redirectError);
+        if (redirectError) throw redirectError;
 
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -128,7 +110,7 @@ function ResetPassword() {
         }
       } catch (error) {
         if (!cancelled) {
-          setMessage(authErrorMessage(error));
+          setMessage(authErrorMessage(error, "recovery"));
           setBusy(false);
         }
       }
@@ -167,7 +149,7 @@ function ResetPassword() {
       setUpdated(true);
       setMessage("Senha atualizada com sucesso. Agora entre novamente no SINA.");
     } catch (error) {
-      setMessage(authErrorMessage(error));
+      setMessage(authErrorMessage(error, "recovery"));
     } finally {
       setBusy(false);
     }
@@ -248,7 +230,7 @@ function ResetPassword() {
             </Button>
           </form>
         ) : (
-          <div className="mt-7 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm leading-6 text-destructive">
+          <div role="alert" className="mt-7 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm leading-6 text-destructive">
             {message || "Abra o link de recuperação recebido por e-mail para continuar."}
           </div>
         )}

@@ -2296,6 +2296,14 @@ export type Database = {
         Args: { _feedback: string; _score: number; _submission_id: string }
         Returns: boolean
       }
+      teacher_join_classroom: {
+        Args: { _classroom_id: string }
+        Returns: boolean
+      }
+      teacher_leave_classroom: {
+        Args: { _classroom_id: string }
+        Returns: boolean
+      }
       teacher_link_roster_student: {
         Args: { _classroom: string; _enrollment: string; _student_id: string }
         Returns: {
@@ -2464,6 +2472,18 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      teacher_list_institution_classrooms: {
+        Args: never
+        Returns: {
+          code: string
+          id: string
+          is_linked: boolean
+          name: string
+          status: string
+          student_count: number
+          teacher_count: number
+        }[]
       }
       teacher_list_institution_students: {
         Args: never

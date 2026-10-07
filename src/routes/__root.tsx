@@ -135,7 +135,7 @@ function RootComponent() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
         queryClient.clear();
-        if (router.state.location.pathname !== "/auth") {
+        if (router.state.location.pathname !== "/auth" && router.state.location.pathname !== "/reset-password") {
           void router.navigate({ to: "/auth", replace: true });
         }
         return;

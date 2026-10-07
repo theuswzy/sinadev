@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import type { EmailOtpType } from "@supabase/supabase-js";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,6 +83,10 @@ export const Route = createFileRoute("/auth-continue")({
         name: "description",
         content: "Confirme seu e-mail para concluir o cadastro no SINA.",
       },
+      { property: "og:title", content: "Confirmar e-mail — SINA" },
+      { property: "og:description", content: "Confirme seu e-mail com segurança no SINA." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex, nofollow, noarchive" },
     ],
   }),
@@ -92,18 +95,25 @@ export const Route = createFileRoute("/auth-continue")({
 
 function AuthContinuePage() {
   const navigate = useNavigate();
-  const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const tokenHash = params.get("token_hash");
-  const tokenType = params.get("type") as EmailOtpType | null;
-  const legacyTarget = useMemo(
-    () => validateLegacyConfirmationUrl(readLegacyConfirmationUrl()),
-    [],
-  );
+  const [tokenHash, setTokenHash] = useState<string | null>(null);
+  const [tokenType, setTokenType] = useState<string | null>(null);
+  const [legacyTarget, setLegacyTarget] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setTokenHash(params.get("token_hash"));
+    setTokenType(params.get("type"));
+    setLegacyTarget(validateLegacyConfirmationUrl(readLegacyConfirmationUrl()));
+    setReady(true);
+  }, []);
 
   const [started, setStarted] = useState(false);
   const [error, setError] = useState("");
 
-  const hasSafeTokenHash = Boolean(tokenHash && tokenType === "email");
+  const confirmationType = tokenType === "email" || tokenType === "signup" || tokenType === "invite"
+    ? tokenType : null;
+  const hasSafeTokenHash = Boolean(tokenHash && confirmationType);
   const hasSafeLegacyTarget = Boolean(legacyTarget);
 
   async function continueConfirmation() {
@@ -113,10 +123,10 @@ function AuthContinuePage() {
     setError("");
 
     try {
-      if (hasSafeTokenHash && tokenHash) {
+      if (hasSafeTokenHash && tokenHash && confirmationType) {
         const { error: verifyError } = await supabase.auth.verifyOtp({
           token_hash: tokenHash,
-          type: "email",
+          type: confirmationType,
         });
 
         if (verifyError) throw verifyError;
@@ -177,16 +187,18 @@ function AuthContinuePage() {
           <ShieldCheck className="size-7" />
         </div>
 
-        <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+        <Link to="/auth" className="mt-5 inline-block font-display text-2xl font-bold">SINA</Link>
+
+        <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
           Segurança SINA
         </p>
 
         <h1 className="mt-2 font-display text-2xl font-semibold">
-          {usable ? "Confirme seu e-mail" : "Link de confirmação inválido"}
+          {!ready ? "Verificando seu link…" : usable ? "Confirme seu e-mail" : "Link de confirmação inválido"}
         </h1>
 
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          {usable
+          {!ready ? "Aguarde enquanto o SINA verifica seu link de confirmação." : usable
             ? "Seu cadastro está quase concluído. Clique no botão abaixo para confirmar seu endereço de e-mail."
             : "Este link não pôde ser validado. Solicite um novo e-mail de confirmação no SINA."}
         </p>
@@ -204,7 +216,7 @@ function AuthContinuePage() {
           <Button
             type="button"
             className="mt-7 h-11 w-full font-semibold"
-            disabled={started}
+            disabled={started || !ready}
             onClick={() => void continueConfirmation()}
           >
             {started ? "Confirmando…" : "Confirmar meu e-mail"}

@@ -7,6 +7,11 @@ export const Route = createFileRoute("/convite")({
     meta: [
       { title: "Convite institucional — SINA" },
       { name: "description", content: "Aceite seu convite para uma instituição no SINA." },
+      { property: "og:title", content: "Convite institucional — SINA" },
+      { property: "og:description", content: "Acesse sua instituição com um convite do SINA." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: InvitationPage,
@@ -33,8 +38,9 @@ function InvitationPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <section className="sina-card w-full max-w-md p-6 text-center">
+        <p className="mb-4 font-display text-2xl font-bold">SINA</p>
         <h1 className="text-xl font-semibold">Convite institucional</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+        <p role="status" className="mt-2 text-sm text-muted-foreground">{message}</p>
         <Button className="mt-5" onClick={() => void navigate({ to: "/auth", replace: true })}>Ir para o acesso</Button>
       </section>
     </main>
