@@ -21,6 +21,8 @@ import {
   loadAdminAcademicSetup,
   loadAdminInstitutionTeachers,
   loadAdminTeacherAssignments,
+  loadAdminSubjectTeacherMatrix,
+  adminSetSubjectResponsible,
   adminAssignTeacherToClassroom,
   adminUnassignTeacherFromClassroom,
   adminImportAcademicCsv,
@@ -66,6 +68,7 @@ export function AdminAcademicSetup() {
   const setup = useQuery({ queryKey: ["admin-academic-setup"], queryFn: loadAdminAcademicSetup });
   const teachers = useQuery({ queryKey: ["admin-institution-teachers"], queryFn: loadAdminInstitutionTeachers });
   const assignments = useQuery({ queryKey: ["admin-teacher-classroom-assignments"], queryFn: loadAdminTeacherAssignments });
+  const subjectTeacherMatrix = useQuery({ queryKey: ["admin-subject-teacher-matrix"], queryFn: loadAdminSubjectTeacherMatrix, staleTime: 10000 });
   const invitations = useQuery({ queryKey: ["admin-institution-invitations"], queryFn: loadAdminInstitutionInvitations });
   const periodLocks = useQuery({ queryKey: ["admin-academic-period-locks"], queryFn: loadAdminAcademicPeriodLocks, staleTime: 10000 });
   const gradeAudit = useQuery({ queryKey: ["admin-grade-change-audit"], queryFn: () => loadAdminGradeChangeAudit(50), staleTime: 10000, refetchOnWindowFocus: true });
@@ -106,6 +109,7 @@ export function AdminAcademicSetup() {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["admin-academic-setup"] }),
       qc.invalidateQueries({ queryKey: ["admin-teacher-classroom-assignments"] }),
+      qc.invalidateQueries({ queryKey: ["admin-subject-teacher-matrix"] }),
       qc.invalidateQueries({ queryKey: ["admin-institution-teachers"] }),
       qc.invalidateQueries({ queryKey: ["admin-institution-invitations"] }),
     ]);
@@ -117,6 +121,20 @@ export function AdminAcademicSetup() {
     catch (error) { toast.error(errorText(error)); }
     finally { setBusyAction(null); }
   }
+  async function setSubjectResponsible(classroomId: string, subjectId: string, teacherId: string | null) {
+    setBusyAction("responsible:" + classroomId + ":" + subjectId);
+    try {
+      await adminSetSubjectResponsible(classroomId, subjectId, teacherId);
+      await qc.invalidateQueries({ queryKey: ["admin-subject-teacher-matrix"] });
+      await qc.invalidateQueries({ queryKey: ["admin-academic-setup"] });
+      toast.success(teacherId ? "Professor responsável atualizado." : "Responsável removido.");
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   async function unassignTeacher(teacher: string, classroom: string) {
     setBusyAction("unassign:"+teacher+":"+classroom);
     try { await adminUnassignTeacherFromClassroom(teacher, classroom); await refresh(); toast.success("Professor desvinculado da turma."); }
@@ -398,6 +416,72 @@ export function AdminAcademicSetup() {
                 <option value="all">Todos os professores</option>
                 {Array.from(new Map((setup.data?.matrix ?? []).filter(row => row.teacher_id).map(row => [row.teacher_id, row.teacher_name])).entries()).map(([id, name]) => <option key={id ?? "none"} value={id ?? ""}>{name}</option>)}
               </select>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-border bg-background p-4">
+              <div className="flex items-start gap-3">
+                <Users className="mt-0.5 size-5 text-primary" />
+                <div>
+                  <p className="font-semibold">Professor responsável por disciplina</p>
+                  <p className="mt-1 text-sm text-muted-foreground">O primeiro professor é o responsável pelas notas oficiais. Professores adicionais continuam vinculados e podem atuar conforme suas permissões.</p>
+                </div>
+              </div>
+              {subjectTeacherMatrix.isPending ? (
+                <p className="mt-4 text-sm text-muted-foreground">Carregando responsáveis…</p>
+              ) : subjectTeacherMatrix.error ? (
+                <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
+                  <p className="font-semibold">Não foi possível carregar os responsáveis.</p>
+                  <p className="mt-1 text-muted-foreground">{errorText(subjectTeacherMatrix.error)}</p>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {Array.from(new Map((subjectTeacherMatrix.data ?? [])
+                    .filter(row => matrixClassroomFilter === "all" || row.classroom_id === matrixClassroomFilter)
+                    .filter(row => matrixSubjectFilter === "all" || row.subject_id === matrixSubjectFilter)
+                    .reduce((groups, row) => {
+                      const key = row.classroom_id + ":" + row.subject_id;
+                      const current = groups.get(key) ?? [];
+                      current.push(row);
+                      groups.set(key, current);
+                      return groups;
+                    }, new Map<string, typeof subjectTeacherMatrix.data>())).values()).map((rows) => {
+                    const items = (rows ?? []).filter(Boolean) as NonNullable<typeof subjectTeacherMatrix.data>;
+                    if (!items.length) return null;
+                    const first = items[0];
+                    const responsible = items.find(item => item.is_primary);
+                    const choices = items.filter(item => item.teacher_id);
+                    return (
+                      <div key={first.classroom_id + ":" + first.subject_id} className="rounded-xl border border-border p-4">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                          <div>
+                            <p className="font-medium">{first.classroom_name} · {first.subject_name}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{items.length} professor{items.length === 1 ? "" : "es"} vinculado{items.length === 1 ? "" : "s"}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {responsible && <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">Responsável: {responsible.teacher_name}</span>}
+                            {!responsible && <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">Sem responsável</span>}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <select
+                            value={responsible?.teacher_id ?? ""}
+                            onChange={e => void setSubjectResponsible(first.classroom_id, first.subject_id, e.target.value || null)}
+                            disabled={busyAction !== null || choices.length === 0}
+                            className="h-10 flex-1 rounded-xl border border-input bg-background px-3 text-sm"
+                          >
+                            <option value="">Sem responsável</option>
+                            {choices.map(item => (
+                              <option key={item.teacher_id} value={item.teacher_id!}>{item.teacher_name}{item.is_primary ? " · atual" : ""}</option>
+                            ))}
+                          </select>
+                          {choices.length === 0 && <span className="text-xs text-muted-foreground">Vincule um professor à disciplina primeiro.</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {!subjectTeacherMatrix.data?.length && <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Nenhum vínculo professor/disciplina encontrado.</div>}
+                </div>
+              )}
             </div>
 
             <div className="mt-5 overflow-x-auto rounded-2xl border border-border bg-background">
