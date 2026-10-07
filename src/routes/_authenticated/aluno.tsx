@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight, RefreshCw } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { StudentModulePage, type StudentModule } from "@/components/student-module-page";
 import { StudentNotifications } from "@/routes/_authenticated/aluno/notificacoes";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { errorText, getRole, loadGrades, loadMyStudent, loadStudentAcademicMaterialsDetailed, loadStudentCalendar, loadStudentAssessmentsDetailed, loadStudentSubjects, loadStudentTasksDetailed, loadStudentAnnouncementsDetailed, loadStudentAttendanceDetailed, loadNotifications } from "@/lib/sina-data";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
@@ -32,6 +34,7 @@ function StudentArea() {
 }
 
 function StudentDashboard() {
+  const qc = useQueryClient();
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole });
   const student = useQuery({ queryKey: ["my-student"], queryFn: loadMyStudent, enabled: role.data === "student" });
   const liveOptions = { refetchOnWindowFocus: true, refetchInterval: 30000 };
@@ -46,6 +49,41 @@ function StudentDashboard() {
   const calendar = useQuery({ queryKey: ["dashboard-calendar", calendarRange.from.slice(0,10), calendarRange.to.slice(0,10)], queryFn: () => loadStudentCalendar(calendarRange.from, calendarRange.to), enabled: !!student.data, ...liveOptions });
   const notifications = useQuery({ queryKey: ["dashboard-notifications"], queryFn: () => loadNotifications(true), enabled: !!student.data, ...liveOptions });
   const dashboardQueries = [tasks, grades, assessments, studentSubjects, announcements, attendance, materials, calendar, notifications];
+
+  useEffect(() => {
+    if (role.data !== "student") return;
+
+    const channel = supabase
+      .channel(`student-academic-live-${student.data?.id ?? "pending"}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "classrooms" },
+        () => {
+          void qc.invalidateQueries({ queryKey: ["my-student"] });
+          void qc.invalidateQueries({ queryKey: ["dashboard"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "students",
+          ...(student.data?.id ? { filter: `id=eq.${student.data.id}` } : {}),
+        },
+        () => {
+          void qc.invalidateQueries({ queryKey: ["my-student"] });
+          void qc.invalidateQueries({ queryKey: ["dashboard"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [qc, role.data, student.data?.id]);
+
+
   const dashboardHasError = dashboardQueries.some((query) => !!query.error);
   const dashboardRefreshing = dashboardQueries.some((query) => query.isFetching);
 
