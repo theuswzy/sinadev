@@ -1979,6 +1979,24 @@ export type Database = {
           task_id: string
         }[]
       }
+      student_list_timetable: {
+        Args: never
+        Returns: {
+          classroom_id: string
+          classroom_name: string
+          classroom_subject_id: string
+          end_time: string
+          id: string
+          notes: string | null
+          room: string | null
+          start_time: string
+          subject_id: string
+          subject_name: string
+          teacher_id: string | null
+          teacher_name: string | null
+          weekday: number
+        }[]
+      }
       student_list_tasks: {
         Args: never
         Returns: {
