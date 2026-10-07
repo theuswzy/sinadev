@@ -1424,52 +1424,6 @@ export type Database = {
         Returns: boolean
       }
       admin_list_academic_setup: { Args: never; Returns: Json }
-      admin_list_classroom_timetable: {
-        Args: { _classroom_id: string }
-        Returns: {
-          id: string
-          classroom_id: string
-          classroom_subject_id: string
-          weekday: number
-          start_time: string
-          end_time: string
-          room: string | null
-          notes: string | null
-          subject_id: string
-          subject_name: string
-          teacher_id: string | null
-          teacher_name: string | null
-        }[]
-      }
-      admin_upsert_classroom_timetable: {
-        Args: {
-          _id: string
-          _classroom_id: string
-          _classroom_subject_id: string
-          _weekday: number
-          _start_time: string
-          _end_time: string
-          _room?: string | null
-          _notes?: string | null
-        }
-        Returns: {
-          id: string
-          institution_id: string
-          classroom_id: string
-          classroom_subject_id: string
-          weekday: number
-          start_time: string
-          end_time: string
-          room: string | null
-          notes: string | null
-          created_at: string
-          updated_at: string
-        }
-      }
-      admin_delete_classroom_timetable: {
-        Args: { _id: string }
-        Returns: boolean
-      }
       admin_list_accounts: {
         Args: never
         Returns: {
@@ -2023,24 +1977,6 @@ export type Database = {
           status: string
           submitted_at: string
           task_id: string
-        }[]
-      }
-      student_list_timetable: {
-        Args: never
-        Returns: {
-          classroom_id: string
-          classroom_name: string
-          classroom_subject_id: string
-          end_time: string
-          id: string
-          notes: string | null
-          room: string | null
-          start_time: string
-          subject_id: string
-          subject_name: string
-          teacher_id: string | null
-          teacher_name: string | null
-          weekday: number
         }[]
       }
       student_list_tasks: {
