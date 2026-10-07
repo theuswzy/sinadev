@@ -1,5 +1,9 @@
 # SINA — Roadmap
 
+## Revisão cirúrgica da autenticação
+- [ ] Revisar marca, mensagens, Google, confirmação, recuperação e convites sem alterar regras acadêmicas.
+- [ ] Validar telas e erros; registrar limitações do Google gerenciado e do cliente gerado.
+
 ## Fundação da plataforma
 - [x] Preservar a identidade visual institucional do SINA.
 - [x] Autenticação, recuperação de senha e áreas protegidas por função.
