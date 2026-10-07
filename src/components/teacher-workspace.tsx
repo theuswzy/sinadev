@@ -483,6 +483,8 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
   const assignments=(d.assignments.data??[]).filter(a=>a.classroom_id===classroom);
   const subjectOptions=assignments.filter((a,index,self)=>self.findIndex(x=>x.subject_id===a.subject_id)===index);
   const selectedSubject=subjectOptions.find(a=>a.subject_id===subject);
+  const responsibility=useQuery({queryKey:["teacher-grade-responsibility",classroom,subject],queryFn:async()=>{const {data,error}=await supabase.rpc("teacher_list_subject_responsibilities");if(error)throw error;return (data??[]).find((item:any)=>item.classroom_id===classroom&&item.subject_id===subject)??null},enabled:!!classroom&&!!subject,staleTime:15000});
+  const selectedResponsibility=responsibility.data;
   const configuredTerms=(options.data?.terms??[]).slice(0,4);
   const periodOptions=configuredTerms.length
     ? configuredTerms.map((term,index)=>({value:String(index+1),label:term.name}))
@@ -619,8 +621,17 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
       {periodClosed&&<div className="mt-4 rounded-xl border border-destructive/25 bg-destructive/5 p-4 text-sm"><div className="flex items-start gap-3"><LockKeyhole className="mt-0.5 size-4 text-destructive"/><div><p className="font-semibold">Período encerrado</p><p className="mt-1 text-muted-foreground">As notas oficiais deste período estão protegidas contra alterações. O diário permanece disponível para consulta.</p>{periodStatus.data?.closed_at&&<p className="mt-1 text-xs text-muted-foreground">Encerrado em {new Date(periodStatus.data.closed_at).toLocaleString("pt-BR")}.</p>}</div></div></div>}
 
       {selectedSubject&&<div className="mt-4 rounded-xl border border-primary/15 bg-primary/5 p-3 text-sm">
-        <b>{selectedSubject.subject_name}</b>
-        <span className="text-muted-foreground"> · {selectedSubject.classroom_name} · professor responsável: você</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <b>{selectedSubject.subject_name}</b>
+          <span className={selectedResponsibility?.is_primary ? "rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary" : "rounded-full bg-secondary px-2 py-1 text-[11px] font-semibold text-muted-foreground"}>
+            {selectedResponsibility?.is_primary ? "Professor responsável" : "Professor adicional"}
+          </span>
+        </div>
+        <p className="mt-1 text-muted-foreground">
+          {selectedResponsibility?.is_primary
+            ? "Você é o responsável principal desta disciplina nesta turma."
+            : "Você está vinculado como professor adicional. O responsável principal continua definido pela instituição."}
+        </p>
       </div>}
 
       {classroom&&subject&&(
