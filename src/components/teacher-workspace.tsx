@@ -444,6 +444,7 @@ function Subjects({d}:{d:ReturnType<typeof useData>}){
 }
 
 function Grades({d}:{d:ReturnType<typeof useData>}){
+  const qc=useQueryClient();
   const [classroom,setClassroom]=useState("");
   const [subject,setSubject]=useState("");
   const [period,setPeriod]=useState("1");
@@ -726,6 +727,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
 }
 
 function Attendance({d}:{d:ReturnType<typeof useData>}){
+  const qc=useQueryClient();
   const [classroom,setClassroom]=useState("");
   const [subject,setSubject]=useState("");
   const [date,setDate]=useState(new Date().toISOString().slice(0,10));
@@ -837,6 +839,7 @@ function Assessments({d}:{d:ReturnType<typeof useData>}){
 }
 
 function Tasks({d}:{d:ReturnType<typeof useData>}){
+  const qc=useQueryClient();
   const [classroom,setClassroom]=useState("");const [subject,setSubject]=useState("");const [title,setTitle]=useState("");const [description,setDescription]=useState("");const [due,setDue]=useState("");const [selected,setSelected]=useState("");const [busy,setBusy]=useState(false);const [scores,setScores]=useState<Record<string,string>>({});const [feedback,setFeedback]=useState<Record<string,string>>({});
   const [attachment,setAttachment]=useState<File|null>(null);const [editing,setEditing]=useState<string|null>(null);
   const [confirmDelete,setConfirmDelete]=useState<string|null>(null);
