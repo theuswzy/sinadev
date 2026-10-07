@@ -83,6 +83,7 @@ export function AdminAcademicSetup() {
   const [termEnd, setTermEnd] = useState("");
   const [termCurrent, setTermCurrent] = useState(true);
   const [periodBusy, setPeriodBusy] = useState<number | null>(null);
+  const [periodAction, setPeriodAction] = useState<{ period: number; closed: boolean } | null>(null);
   const [teacherId, setTeacherId] = useState("");
   const [teacherClassroomId, setTeacherClassroomId] = useState("");
   const [importing, setImporting] = useState(false);
@@ -317,8 +318,8 @@ export function AdminAcademicSetup() {
                     {item.is_closed ? <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-1 text-[11px] font-semibold text-destructive"><LockKeyhole className="size-3" /> Encerrado</span> : <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary"><UnlockKeyhole className="size-3" /> Aberto</span>}
                   </div>
                   <p className="mt-3 min-h-10 text-xs leading-5 text-muted-foreground">{item.is_closed ? "Este período está bloqueado para alterações oficiais no diário." : "Professores autorizados podem lançar e corrigir notas."}</p>
-                  <Button className="mt-3 w-full" size="sm" variant={item.is_closed ? "outline" : "default"} disabled={periodBusy !== null} onClick={async () => { setPeriodBusy(item.period); try { await setAdminAcademicPeriodLock(item.period, !item.is_closed); await periodLocks.refetch(); toast.success(item.is_closed ? "Período reaberto." : "Período encerrado."); } catch (error) { toast.error(errorText(error)); } finally { setPeriodBusy(null); } }}>
-                    {periodBusy === item.period ? "Salvando…" : item.is_closed ? "Reabrir período" : "Encerrar período"}
+                  <Button className="mt-3 w-full" size="sm" variant={item.is_closed ? "outline" : "default"} disabled={periodBusy !== null} onClick={() => setPeriodAction({ period: item.period, closed: !item.is_closed })}>
+                    {item.is_closed ? "Reabrir período" : "Encerrar período"}
                   </Button>
                 </article>)}
               </div>}
@@ -565,6 +566,33 @@ export function AdminAcademicSetup() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          <ConfirmActionDialog
+            open={!!periodAction}
+            onOpenChange={open => { if (!open && periodBusy === null) setPeriodAction(null); }}
+            title={periodAction?.closed ? "Encerrar período acadêmico?" : "Reabrir período acadêmico?"}
+            description={periodAction?.closed
+              ? "Ao encerrar este período, professores não poderão criar, alterar ou limpar notas oficiais do diário. Os dados continuarão disponíveis para consulta. A operação fica registrada no histórico administrativo."
+              : "Ao reabrir este período, professores autorizados voltarão a poder lançar e corrigir as notas oficiais. Faça isso somente após conferir a necessidade de ajuste."
+            }
+            actionLabel={periodAction?.closed ? "Encerrar período" : "Reabrir período"}
+            loading={periodBusy !== null}
+            onConfirm={async () => {
+              if (!periodAction) return;
+              const action = periodAction;
+              setPeriodBusy(action.period);
+              try {
+                await setAdminAcademicPeriodLock(action.period, action.closed);
+                await periodLocks.refetch();
+                setPeriodAction(null);
+                toast.success(action.closed ? "Período encerrado." : "Período reaberto.");
+              } catch (error) {
+                toast.error(errorText(error));
+              } finally {
+                setPeriodBusy(null);
+              }
+            }}
+          />
 
           <ConfirmActionDialog
             open={!!confirmDeleteClassroom}
