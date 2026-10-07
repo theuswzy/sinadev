@@ -39,7 +39,7 @@ BEGIN
   UPDATE public.students
   SET
     full_name = trim(_full_name),
-    enrollment = nullif(trim(coalesce(_enrollment, '')), ''),
+    enrollment = coalesce(nullif(trim(coalesce(_enrollment, '')), ''), v_student.enrollment),
     avatar_url = nullif(trim(coalesce(_avatar_url, '')), ''),
     updated_at = now()
   WHERE id = _student_id
