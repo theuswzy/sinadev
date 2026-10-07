@@ -145,10 +145,9 @@ function StudentDashboard() {
   })).sort((a, b) => a.subject.localeCompare(b.subject, "pt-BR") || a.teacher.localeCompare(b.teacher, "pt-BR"));
   const uniqueSubjectCount = new Set((studentSubjects.data ?? []).map(item => item.id)).size;
   const uniqueTeacherCount = new Set((studentSubjects.data ?? []).map(item => item.teacher_id)).size;
-  const gradedAssessments = (assessments.data ?? []).filter(item => item.score != null && Number(item.max_score) > 0 && Number(item.weight) > 0);
-  const totalAssessmentWeight = gradedAssessments.reduce((sum, item) => sum + Number(item.weight), 0);
-  const weightedAverage = totalAssessmentWeight > 0 ? gradedAssessments.reduce((sum, item) => sum + ((Number(item.score) / Number(item.max_score)) * 10 * Number(item.weight)), 0) / totalAssessmentWeight : null;
-  const overallAverage = weightedAverage ?? (scoredGrades.length ? scoredGrades.reduce((sum, g) => sum + Number(g.score), 0) / scoredGrades.length : null);
+  // Period grades are the official gradebook result. Assessment scores are shown separately
+  // so the dashboard never silently mixes two different academic calculations.
+  const overallAverage = scoredGrades.length ? scoredGrades.reduce((sum, g) => sum + Number(g.score), 0) / scoredGrades.length : null;
   const presentCount = attendance.data?.filter(item => item.status === "present").length ?? 0;
   const absentCount = attendance.data?.filter(item => item.status === "absent").length ?? 0;
   const lateCount = attendance.data?.filter(item => item.status === "late").length ?? 0;
@@ -201,7 +200,7 @@ function StudentDashboard() {
 
       <section className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          {to:"/aluno/notas",icon:BarChart3,label:"Média geral",value:grades.isPending ? "—" : overallAverage == null ? "—" : overallAverage.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2}),desc:weightedAverage != null ? "Média ponderada das avaliações" : "Notas registradas"},
+          {to:"/aluno/notas",icon:BarChart3,label:"Média geral",value:grades.isPending ? "—" : overallAverage == null ? "—" : overallAverage.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2}),desc:overallAverage != null ? "Média dos lançamentos registrados" : "Sem notas registradas"},
           {to:"/aluno/frequencia",icon:CheckCircle2,label:"Frequência",value:attendance.isPending ? "—" : attendancePercent == null ? "—" : attendancePercent.toLocaleString("pt-BR",{maximumFractionDigits:0})+"%",desc:attendanceTotal ? (presentCount+" presença(s), "+absentCount+" falta(s).") : "Sem registros ainda"},
           {to:"/aluno/tarefas",icon:ClipboardList,label:"Pendências",value:tasks.isPending ? "—" : pending.length,desc:pending.length?"Atividade(s) aguardando você":"Tudo em dia"},
           {to:"/aluno/disciplinas",icon:BookOpen,label:"Disciplinas",value:studentSubjects.isPending ? "—" : uniqueSubjectCount,desc:studentSubjects.isPending ? "Carregando vínculos" : uniqueTeacherCount + (uniqueTeacherCount === 1 ? " professor vinculado" : " professores vinculados")},
