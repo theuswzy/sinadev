@@ -238,6 +238,11 @@ function AuthPage() {
           setBusy(false);
         }
       }
+    }).catch((error: unknown) => {
+      if (cancelled) return;
+      setMessage(authErrorMessage(error));
+      setCheckingSession(false);
+      setBusy(false);
     });
 
     return () => { cancelled = true; };
