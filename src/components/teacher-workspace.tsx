@@ -734,6 +734,11 @@ function Attendance({d}:{d:ReturnType<typeof useData>}){
       <div className="rounded-xl bg-secondary p-3"><p className="text-xs text-muted-foreground">Atrasados</p><b>{late}</b></div>
       <div className="rounded-xl bg-secondary p-3"><p className="text-xs text-muted-foreground">Justificados</p><b>{excused}</b></div>
     </div>}
+    {rows.length>0&&<div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/20 p-3">
+      <span className="mr-1 text-xs font-semibold text-muted-foreground">Ações rápidas:</span>
+      <Button size="sm" variant="outline" disabled={busy||loading} onClick={()=>setRows(current=>current.map(row=>({...row,status:"present" as const})))}>Marcar todos presentes</Button>
+      <span className="text-xs text-muted-foreground">Confira a lista antes de salvar.</span>
+    </div>}
 
     <div className="mt-4 space-y-2">
       {rows.map((r,i)=><div key={r.student_id} className="grid gap-2 rounded-xl border border-border p-3 md:grid-cols-[1fr_160px_1fr]">
@@ -870,7 +875,21 @@ function Tasks({d}:{d:ReturnType<typeof useData>}){
       loading={busy}
       onConfirm={remove}
     />
-    {selected&&<div className="mt-5 space-y-2">{submissions.error&&<div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar as entregas. <Button size="sm" variant="outline" onClick={()=>void submissions.refetch()}>Tentar novamente</Button></div>}{(submissions.data??[]).map(s=><div key={s.id} className="rounded-xl border border-border p-4"><b>{s.student_name}</b><p className="text-xs text-muted-foreground">{s.enrollment} · {s.status}</p><p className="mt-2 text-sm">{s.content||"Sem resposta textual."}</p>{s.attachment_name&&<p className="mt-1 text-xs text-muted-foreground">Anexo enviado: {s.attachment_name}</p>}<div className="mt-3 grid gap-2 sm:grid-cols-[120px_1fr_auto]"><Input type="number" min="0" max="10" step=".01" placeholder="Nota" value={scores[s.id]??(s.score==null?"":String(s.score))} onChange={e=>setScores(v=>({...v,[s.id]:e.target.value}))}/><Input placeholder="Feedback para o aluno" value={feedback[s.id]??(s.feedback??"")} onChange={e=>setFeedback(v=>({...v,[s.id]:e.target.value}))}/><Button disabled={scores[s.id]===""&&s.score==null} onClick={()=>void grade(s.id)}>Corrigir</Button></div></div>)}</div>}
+    {selected&&<div className="mt-5 space-y-3">
+      {submissions.error&&<div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar as entregas. <Button size="sm" variant="outline" onClick={()=>void submissions.refetch()}>Tentar novamente</Button></div>}
+      {!submissions.isPending&&!submissions.error&&<div className="grid gap-2 sm:grid-cols-3">
+        <div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Entregas</p><b className="mt-1 block text-xl">{submissions.data?.length??0}</b></div>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3"><p className="text-xs text-muted-foreground">Aguardando correção</p><b className="mt-1 block text-xl">{(submissions.data??[]).filter(s=>s.status==="submitted"||s.status==="in_progress").length}</b></div>
+        <div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Corrigidas</p><b className="mt-1 block text-xl">{(submissions.data??[]).filter(s=>s.status==="graded").length}</b></div>
+      </div>}
+      {submissions.isPending&&<div className="rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">Carregando entregas…</div>}
+      {(submissions.data??[]).map(s=><div key={s.id} className="rounded-xl border border-border p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><b>{s.student_name}</b><p className="text-xs text-muted-foreground">{s.enrollment}</p></div><span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">{s.status==="graded"?"Corrigida":s.status==="submitted"?"Entregue":s.status==="in_progress"?"Em andamento":"Sem entrega"}</span></div>
+        <p className="mt-2 text-sm">{s.content||"Sem resposta textual."}</p>{s.attachment_name&&<p className="mt-1 text-xs text-muted-foreground">Anexo enviado: {s.attachment_name}</p>}
+        <div className="mt-3 grid gap-2 sm:grid-cols-[120px_1fr_auto]"><Input type="number" min="0" max="10" step=".01" placeholder="Nota" value={scores[s.id]??(s.score==null?"":String(s.score))} onChange={e=>setScores(v=>({...v,[s.id]:e.target.value}))}/><Input placeholder="Feedback para o aluno" value={feedback[s.id]??(s.feedback??"")} onChange={e=>setFeedback(v=>({...v,[s.id]:e.target.value}))}/><Button disabled={scores[s.id]===""&&s.score==null} onClick={()=>void grade(s.id)}>Corrigir</Button></div>
+      </div>)}
+      {selected&&!submissions.isPending&&!submissions.error&&!(submissions.data??[]).length&&<div className="rounded-xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">Nenhum aluno enviou uma entrega para esta atividade ainda.</div>}
+    </div>}
   </Card>;
 }
 
