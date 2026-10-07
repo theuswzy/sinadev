@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, BookOpen, CalendarRange, Layers3, Save, Archive, RotateCcw, Users, FileUp, Mail, Copy, X, Pencil, Trash2, SlidersHorizontal, Eye } from "lucide-react";
+import { AlertTriangle, BookOpen, CalendarRange, Layers3, Save, Archive, RotateCcw, Users, FileUp, Mail, Copy, X, Pencil, Trash2, SlidersHorizontal, Eye, LockKeyhole, UnlockKeyhole } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import {
   deleteAdminSubject,
   adminUpsertSubject,
   adminUpsertTerm,
+  loadAdminAcademicPeriodLocks,
+  setAdminAcademicPeriodLock,
   errorText,
   loadAdminAcademicSetup,
   loadAdminInstitutionTeachers,
@@ -64,6 +66,7 @@ export function AdminAcademicSetup() {
   const teachers = useQuery({ queryKey: ["admin-institution-teachers"], queryFn: loadAdminInstitutionTeachers });
   const assignments = useQuery({ queryKey: ["admin-teacher-classroom-assignments"], queryFn: loadAdminTeacherAssignments });
   const invitations = useQuery({ queryKey: ["admin-institution-invitations"], queryFn: loadAdminInstitutionInvitations });
+  const periodLocks = useQuery({ queryKey: ["admin-academic-period-locks"], queryFn: loadAdminAcademicPeriodLocks, staleTime: 10000 });
   const [classroomHubId, setClassroomHubId] = useState<string | null>(null);
   const classroomHub = useQuery({
     queryKey: ["admin-classroom-hub", classroomHubId],
@@ -79,6 +82,7 @@ export function AdminAcademicSetup() {
   const [termStart, setTermStart] = useState("");
   const [termEnd, setTermEnd] = useState("");
   const [termCurrent, setTermCurrent] = useState(true);
+  const [periodBusy, setPeriodBusy] = useState<number | null>(null);
   const [teacherId, setTeacherId] = useState("");
   const [teacherClassroomId, setTeacherClassroomId] = useState("");
   const [importing, setImporting] = useState(false);
@@ -293,6 +297,32 @@ export function AdminAcademicSetup() {
             <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><CalendarRange className="size-4 text-primary" /><p className="font-semibold">Períodos</p></div><div className="mt-4 space-y-2"><Input placeholder="Ex.: 1º Bimestre" value={termName} onChange={e => setTermName(e.target.value)} /><div className="grid grid-cols-2 gap-2"><Input type="date" value={termStart} onChange={e => setTermStart(e.target.value)} /><Input type="date" value={termEnd} onChange={e => setTermEnd(e.target.value)} /></div><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={termCurrent} onChange={e => setTermCurrent(e.target.checked)} /> Marcar como período atual</label><Button onClick={() => void saveTerm()} disabled={busyAction !== null || !termName.trim()}><Save className="mr-2 size-4" />{busyAction === "term" ? "Salvando…" : "Criar período"}</Button></div><div className="mt-4 space-y-2">{setup.data?.terms.map(t => <div key={t.id} className="rounded-xl bg-secondary/50 p-3 text-sm"><div className="flex items-center justify-between gap-2"><p className="font-medium">{t.name}</p>{t.is_current && <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">Atual</span>}</div><p className="text-xs text-muted-foreground">{t.starts_at || "Sem início"} · {t.ends_at || "Sem fim"}</p></div>)}</div></div>
           </div>
 
+          <section className="rounded-2xl border border-border bg-background p-5 sm:p-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex items-start gap-3">
+                <LockKeyhole className="mt-0.5 size-5 text-primary" />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-primary">Controle acadêmico</p>
+                  <h3 className="mt-1 text-lg font-semibold">Fechamento de períodos</h3>
+                  <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Encerre o lançamento oficial de notas de um período quando a conferência estiver concluída. O histórico continua disponível para consulta e somente um administrador pode reabrir.</p>
+                </div>
+              </div>
+              <span className="rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-semibold">{(periodLocks.data ?? []).filter(item => item.is_closed).length}/4 fechados</span>
+            </div>
+            {periodLocks.isPending ? <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[1,2,3,4].map(item => <div key={item} className="sina-skeleton h-32 rounded-2xl" />)}</div> :
+              periodLocks.error ? <div className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm"><p className="font-semibold">Não foi possível carregar o status dos períodos.</p><p className="mt-1 text-muted-foreground">{errorText(periodLocks.error)}</p><Button className="mt-3" size="sm" variant="outline" onClick={() => void periodLocks.refetch()}>Tentar novamente</Button></div> :
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {(periodLocks.data ?? []).map(item => <article key={item.period} className="rounded-2xl border border-border bg-card p-4">
+                  <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{item.period}º período</p><p className="mt-1 font-semibold">{setup.data?.terms.find(t => t.name.toLowerCase().includes(String(item.period)))?.name ?? `Período ${item.period}`}</p></div>
+                    {item.is_closed ? <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-1 text-[11px] font-semibold text-destructive"><LockKeyhole className="size-3" /> Encerrado</span> : <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary"><UnlockKeyhole className="size-3" /> Aberto</span>}
+                  </div>
+                  <p className="mt-3 min-h-10 text-xs leading-5 text-muted-foreground">{item.is_closed ? "Este período está bloqueado para alterações oficiais no diário." : "Professores autorizados podem lançar e corrigir notas."}</p>
+                  <Button className="mt-3 w-full" size="sm" variant={item.is_closed ? "outline" : "default"} disabled={periodBusy !== null} onClick={async () => { setPeriodBusy(item.period); try { await setAdminAcademicPeriodLock(item.period, !item.is_closed); await periodLocks.refetch(); toast.success(item.is_closed ? "Período reaberto." : "Período encerrado."); } catch (error) { toast.error(errorText(error)); } finally { setPeriodBusy(null); } }}>
+                    {periodBusy === item.period ? "Salvando…" : item.is_closed ? "Reabrir período" : "Encerrar período"}
+                  </Button>
+                </article>)}
+              </div>}
+          </section>
           <section className="rounded-2xl border border-primary/15 bg-primary/5 p-5 sm:p-6">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex items-start gap-3">
