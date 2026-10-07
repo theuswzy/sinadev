@@ -54,7 +54,7 @@ export function AdminStudentClassroom() {
 
   const items = students.data?.items ?? [];
   const total = students.data?.total ?? 0;
-  const activeClassroomCount = classes.length;
+  const activeClassroomCount = new Set(classes.map(classroom => classroom.id)).size;
   const pendingClass = items.filter(s => !s.classroom_id).length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const waitingSchool = schoolLinks.data?.filter(s => s.status === "sem_escola").length ?? 0;
