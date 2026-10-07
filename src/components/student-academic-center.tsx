@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarDays, CheckCircle2, ClipboardCheck, Clock3, FileText, Download, RefreshCw } from "lucide-react";
+import { CalendarDays, CheckCircle2, ClipboardCheck, Clock3, FileText, Download, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,12 @@ export function StudentAcademicCenter() {
   }, [assessments.data]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [sending, setSending] = useState<string | null>(null);
+  const [materialSearch, setMaterialSearch] = useState("");
+  const filteredMaterials = useMemo(() => {
+    const query = materialSearch.trim().toLocaleLowerCase("pt-BR");
+    if (!query) return materials.data ?? [];
+    return (materials.data ?? []).filter(item => [item.title, item.description, item.file_name, item.classroom_name, item.subject_name, item.teacher_name, item.term_name].filter(Boolean).some(value => value!.toLocaleLowerCase("pt-BR").includes(query)));
+  }, [materials.data, materialSearch]);
 
   async function send(taskId: string) {
     setSending(taskId);
@@ -66,10 +72,7 @@ export function StudentAcademicCenter() {
             <h2 className="mt-1 font-display text-2xl font-bold">Atividades, avaliações, frequência e agenda</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Tudo que você precisa acompanhar fica reunido em uma única área, com contexto de disciplina, professor, turma e data.</p>
           </div>
-          <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => void Promise.all([tasks.refetch(), assessments.refetch(), attendance.refetch(), calendar.refetch(), submissions.refetch(), materials.refetch()])} disabled={tasks.isFetching || assessments.isFetching || attendance.isFetching || calendar.isFetching || submissions.isFetching || materials.isFetching}>
-            <RefreshCw className={"mr-2 size-4 " + ((tasks.isFetching || assessments.isFetching || attendance.isFetching || calendar.isFetching || submissions.isFetching || materials.isFetching) ? "animate-spin" : "")} />
-            {tasks.isFetching || assessments.isFetching || attendance.isFetching || calendar.isFetching || submissions.isFetching || materials.isFetching ? "Atualizando…" : "Atualizar dados"}
-          </Button>
+
         </div>
       </div>
 
@@ -94,27 +97,31 @@ export function StudentAcademicCenter() {
         </div>
       </div>
 
-      <div className="sina-card p-6">
-        <div className="flex items-center justify-between gap-3">
-          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Materiais de estudo</p><h3 className="font-semibold">Arquivos das suas turmas</h3></div>
-          <FileText className="size-5 text-primary" />
+      <div className="sina-card overflow-hidden p-0">
+        <div className="bg-gradient-to-br from-primary/10 via-background to-secondary/40 p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Materiais de estudo</p><h3 className="mt-1 font-semibold">Arquivos das suas turmas</h3><p className="mt-1 text-sm text-muted-foreground">Acesse materiais publicados pelos seus professores.</p></div>
+            <div className="relative w-full sm:max-w-xs"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input value={materialSearch} onChange={e => setMaterialSearch(e.target.value)} placeholder="Buscar material..." aria-label="Buscar material" className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></div>
+          </div>
         </div>
-        {materials.error && <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os materiais. <Button size="sm" variant="outline" className="ml-2" onClick={() => void materials.refetch()}>Tentar novamente</Button></div>}
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {(materials.data ?? []).slice(0, 12).map(item => (
-            <article key={item.id} className="rounded-2xl border border-border p-4">
-              <div className="flex items-start gap-3"><FileText className="mt-0.5 size-4 shrink-0 text-primary" /><div className="min-w-0">
-                <p className="font-semibold">{item.title}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{item.classroom_name}{item.subject_name ? " · " + item.subject_name : ""}{item.teacher_name ? " · Prof. " + item.teacher_name : ""}{item.term_name ? " · " + item.term_name : ""}</p>
-                {item.description && <p className="mt-2 text-sm text-muted-foreground">{item.description}</p>}
-                <p className="mt-2 text-xs text-muted-foreground">{item.file_name} · {(item.file_size / 1024 / 1024).toFixed(1)} MB</p>
-                {item.file_url && <a href={item.file_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary underline"><Download className="size-4" />Abrir material</a>}
-              </div></div>
-            </article>
-          ))}
+        <div className="p-6">
+          {materials.error && <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os materiais.</div>}
+          <div className="mt-1 grid gap-3 md:grid-cols-2">
+            {filteredMaterials.map(item => (
+              <article key={item.id} className="group rounded-2xl border border-border bg-background p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+                <div className="flex items-start gap-3"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><FileText className="size-5" /></div><div className="min-w-0">
+                  <p className="font-semibold">{item.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{item.classroom_name}{item.subject_name ? " · " + item.subject_name : ""}{item.teacher_name ? " · Prof. " + item.teacher_name : ""}{item.term_name ? " · " + item.term_name : ""}</p>
+                  {item.description && <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>}
+                  <p className="mt-2 truncate text-xs text-muted-foreground">{item.file_name} · {(item.file_size / 1024 / 1024).toFixed(1)} MB</p>
+                  {item.file_url && <a href={item.file_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"><Download className="size-4" />Abrir material</a>}
+                </div></div>
+              </article>
+            ))}
+          </div>
+          {materials.isPending && <p className="mt-4 text-sm text-muted-foreground">Carregando materiais…</p>}
+          {!materials.isPending && !materials.error && !filteredMaterials.length && <div className="mt-2 rounded-2xl border border-dashed border-border p-8 text-center"><FileText className="mx-auto size-8 text-muted-foreground/60" /><p className="mt-3 text-sm font-medium">{materialSearch ? "Nenhum material encontrado" : "Nenhum material foi publicado para suas turmas ainda."}</p><p className="mt-1 text-xs text-muted-foreground">{materialSearch ? "Tente outro termo de busca." : "Quando um professor publicar, ele aparecerá aqui."}</p></div>}
         </div>
-        {materials.isPending && <p className="mt-3 text-sm text-muted-foreground">Carregando materiais…</p>}
-        {!materials.isPending && !materials.error && !(materials.data ?? []).length && <p className="mt-3 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum material foi publicado para suas turmas ainda.</p>}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
