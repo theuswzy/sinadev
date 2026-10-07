@@ -126,14 +126,23 @@ function StudentDashboard() {
       .values(),
   ).sort((a, b) => a.subject.localeCompare(b.subject, "pt-BR") || a.teacher.localeCompare(b.teacher, "pt-BR"));
   const scoredGrades = (grades.data ?? []).filter(g => Number.isFinite(Number(g.score)));
-  const subjectTeachers = (subject: string) => Array.from(new Set((studentSubjects.data ?? []).filter(item => item.name === subject).map(item => item.teacher_name).filter(Boolean)));
   const teacherNamesById = new Map((studentSubjects.data ?? []).map(item => [item.teacher_id, item.teacher_name] as const));
-  const gradeTeacherNames = (subject: string) => {
-    const exact = Array.from(new Set(
-      scoredGrades.filter(g => g.subject === subject && g.teacher_id).map(g => g.teacher_id ? teacherNamesById.get(g.teacher_id) : null).filter(Boolean),
-    )) as string[];
-    return exact.length ? exact : subjectTeachers(subject);
-  };
+  const subjectPerformance = Array.from(
+    scoredGrades.reduce((map, grade) => {
+      const key = `${grade.subject_id ?? grade.subject}::${grade.teacher_id ?? ""}`;
+      const current = map.get(key);
+      if (current) current.items.push(grade);
+      else map.set(key, {
+        subject: grade.subject,
+        teacher: grade.teacher_id ? (teacherNamesById.get(grade.teacher_id) ?? "Professor não informado") : "Professor não informado",
+        items: [grade],
+      });
+      return map;
+    }, new Map<string, { subject: string; teacher: string; items: typeof scoredGrades }>())
+  ).map(([, group]) => ({
+    ...group,
+    average: group.items.length ? group.items.reduce((sum, item) => sum + Number(item.score), 0) / group.items.length : null,
+  })).sort((a, b) => a.subject.localeCompare(b.subject, "pt-BR") || a.teacher.localeCompare(b.teacher, "pt-BR"));
   const uniqueSubjectCount = new Set((studentSubjects.data ?? []).map(item => item.id)).size;
   const uniqueTeacherCount = new Set((studentSubjects.data ?? []).map(item => item.teacher_id)).size;
   const gradedAssessments = (assessments.data ?? []).filter(item => item.score != null && Number(item.max_score) > 0 && Number(item.weight) > 0);
@@ -146,6 +155,19 @@ function StudentDashboard() {
   const excusedCount = attendance.data?.filter(item => item.status === "excused").length ?? 0;
   const attendanceTotal = attendance.data?.length ?? 0;
   const attendancePercent = attendanceTotal ? (presentCount / attendanceTotal) * 100 : null;
+  const attendanceBySubject = Array.from(
+    (attendance.data ?? []).reduce((map, item) => {
+      const key = `${item.subject_id ?? item.subject_name ?? "sem-disciplina"}::${item.teacher_id ?? ""}`;
+      const current = map.get(key);
+      if (current) current.rows.push(item);
+      else map.set(key, { subject: item.subject_name || "Sem disciplina", teacher: item.teacher_name || "Professor não informado", rows: [item] });
+      return map;
+    }, new Map<string, { subject: string; teacher: string; rows: NonNullable<typeof attendance.data> }>())
+  ).map(([, group]) => {
+    const present = group.rows.filter(item => item.status === "present").length;
+    const total = group.rows.length;
+    return { ...group, present, absent: group.rows.filter(item => item.status === "absent").length, total, percentage: total ? (present / total) * 100 : null };
+  }).sort((a, b) => (a.percentage ?? 0) - (b.percentage ?? 0));
   const subjects = Array.from(new Set((grades.data ?? []).map(g => g.subject))).filter(Boolean);
   const upcomingTasks = pending.filter(t => t.due_at && new Date(t.due_at).getTime() >= Date.now()).sort((a,b) => new Date(a.due_at!).getTime() - new Date(b.due_at!).getTime()).slice(0,5);
   const overdueTasks = pending.filter(t => t.due_at && new Date(t.due_at).getTime() < Date.now());
@@ -221,6 +243,23 @@ function StudentDashboard() {
           <div className="rounded-2xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-2xl font-semibold">{attendance.isPending ? "—" : absentCount}</p></div>
           <div className="rounded-2xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Outros registros</p><p className="mt-1 text-2xl font-semibold">{attendance.isPending ? "—" : lateCount + excusedCount}</p><p className="mt-1 text-[11px] text-muted-foreground">atrasos + justificativas</p></div>
         </div>
+        {!attendance.isPending && attendanceBySubject.length > 0 && (
+          <div className="mt-5 border-t border-border pt-5">
+            <div className="flex items-center justify-between gap-3">
+              <div><p className="text-sm font-semibold">Por disciplina</p><p className="mt-1 text-xs text-muted-foreground">A mesma turma pode ter vários professores; cada disciplina mantém seu próprio vínculo.</p></div>
+              <Link to="/aluno/frequencia" className="text-xs font-semibold text-primary">Detalhes →</Link>
+            </div>
+            <div className="mt-3 space-y-2">
+              {attendanceBySubject.slice(0, 5).map(item => (
+                <Link key={item.subject + item.teacher} to="/aluno/frequencia" className="flex items-center gap-3 rounded-xl border border-border p-3 transition hover:border-primary/40 hover:bg-primary/5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><CheckCircle2 className="size-4"/></span>
+                  <span className="min-w-0 flex-1"><b className="block truncate text-sm">{item.subject}</b><span className="text-xs text-muted-foreground">Prof. {item.teacher} · {item.total} registro(s)</span></span>
+                  <span className="shrink-0 text-sm font-semibold">{item.percentage == null ? "—" : item.percentage.toLocaleString("pt-BR",{maximumFractionDigits:0}) + "%"}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
@@ -271,7 +310,7 @@ function StudentDashboard() {
         </div>
       </section>
 
-      <section className="mt-5 sina-card p-5 sm:p-6"><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-lg font-semibold">Como estão suas disciplinas?</h2></div><Link to="/aluno/notas" className="text-sm font-semibold text-primary">Ver notas completas</Link></div><div className="mt-4 grid gap-3 md:grid-cols-2">{subjects.map(subject=>{const items=scoredGrades.filter(g=>g.subject===subject);const average=items.length?items.reduce((sum,g)=>sum+Number(g.score),0)/items.length:null;const percent=average==null?0:Math.max(0,Math.min(100,average*10));const teachers=gradeTeacherNames(subject);return <div key={subject} className="rounded-2xl border border-border p-4"><div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="truncate font-semibold">{subject}</p><p className="mt-1 truncate text-xs text-muted-foreground">{teachers.length ? "Prof. "+teachers.join(", ") : "Professor não informado"}</p></div><b>{average==null?"—":average.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})}</b></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all duration-500" style={{width:String(percent)+"%"}}/></div><p className="mt-2 text-[11px] text-muted-foreground">{items.length} lançamento(s) · média calculada sobre notas disponíveis</p></div>;})}{grades.isPending&&<p className="text-sm text-muted-foreground">Carregando desempenho…</p>}{!grades.isPending&&!subjects.length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Ainda não há lançamentos de notas suficientes para montar seu desempenho.</p>}</div></section>
+      <section className="mt-5 sina-card p-5 sm:p-6"><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p><h2 className="mt-1 text-lg font-semibold">Como estão suas disciplinas?</h2><p className="mt-1 text-sm text-muted-foreground">Cada disciplina é calculada no contexto da sua turma e do professor responsável.</p></div><Link to="/aluno/notas" className="text-sm font-semibold text-primary">Ver notas completas</Link></div><div className="mt-4 grid gap-3 md:grid-cols-2">{subjectPerformance.map(group=>{const percent=group.average==null?0:Math.max(0,Math.min(100,group.average*10));return <div key={group.subject + "::" + group.teacher} className="rounded-2xl border border-border p-4"><div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="truncate font-semibold">{group.subject}</p><p className="mt-1 truncate text-xs text-muted-foreground">Prof. {group.teacher}</p></div><b>{group.average==null?"—":group.average.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})}</b></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all duration-500" style={{width:String(percent)+"%"}}/></div><p className="mt-2 text-[11px] text-muted-foreground">{group.items.length} lançamento(s) · somente notas deste vínculo acadêmico</p></div>;})}{grades.isPending&&<p className="text-sm text-muted-foreground">Carregando desempenho…</p>}{!grades.isPending&&!subjectPerformance.length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Ainda não há lançamentos de notas suficientes para montar seu desempenho.</p>}</div></section>
 
       <section className="mt-5 sina-card p-5 sm:p-6"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Estudo</p><h2 className="mt-1 text-lg font-semibold">Materiais recentes</h2></div><FileText className="size-5 text-primary"/></div>{materials.error&&<div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os materiais. <Button size="sm" variant="outline" className="ml-2" onClick={() => void materials.refetch()}>Tentar novamente</Button></div>}<div className="mt-4 grid gap-3 md:grid-cols-2">{(materials.data ?? []).slice(0,4).map(item => item.file_url ? <a key={item.id} href={item.file_url} target="_blank" rel="noreferrer" className="group rounded-2xl border border-border p-4 transition hover:border-primary/40 hover:bg-primary/5"><div className="flex items-start gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileText className="size-4"/></span><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-primary">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.classroom_name}{item.subject_name ? " · "+item.subject_name : ""}{item.teacher_name ? " · Prof. "+item.teacher_name : ""}</p><p className="mt-2 truncate text-xs text-muted-foreground">📎 {item.file_name}</p></div></div></a> : <div key={item.id} className="rounded-2xl border border-border bg-muted/30 p-4"><p className="truncate text-sm font-semibold">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">O arquivo está publicado, mas o link seguro precisa ser renovado.</p></div>)}{materials.isPending&&<p className="text-sm text-muted-foreground">Carregando materiais…</p>}{!materials.isPending&&!materials.error&&!(materials.data ?? []).length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum material publicado para sua turma.</p>}</div></section>
     </AcademicShell>
