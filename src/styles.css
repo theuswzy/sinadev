@@ -71,10 +71,18 @@
   --color-brand-muted: var(--brand-muted);
   --color-brand-panel: var(--brand-panel);
   --color-brand-border: var(--brand-border);
+  --color-google-blue: var(--google-blue);
+  --color-google-green: var(--google-green);
+  --color-google-yellow: var(--google-yellow);
+  --color-google-red: var(--google-red);
 }
 
 
 :root {
+  --google-blue: oklch(0.63 0.18 260);
+  --google-green: oklch(0.59 0.16 151);
+  --google-yellow: oklch(0.82 0.17 85);
+  --google-red: oklch(0.61 0.20 28);
   --radius: 0.375rem;
   --background: oklch(0.961 0.005 135);
   --foreground: oklch(0.235 0.006 230);
