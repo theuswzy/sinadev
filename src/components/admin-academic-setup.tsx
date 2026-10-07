@@ -512,7 +512,6 @@ export function AdminAcademicSetup() {
                   {busyAction === "create-subject-link" ? "Criando…" : "Criar vínculo"}
                 </Button>
               </div>
-              </div>
                 );
               })()}
               {subjectTeacherMatrix.isPending ? (

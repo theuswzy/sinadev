@@ -539,7 +539,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                 <p className="mt-1 text-xs text-muted-foreground">{performance ? performance.periods + " lançamento(s)" : "Ainda sem lançamento"}</p>
                 {assessment && <div className="mt-3 rounded-xl bg-muted/40 p-3"><p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Média das avaliações</p><p className="mt-1 text-lg font-semibold">{assessment.average == null ? "—" : formatScore(assessment.average)}</p><p className="mt-1 text-[11px] text-muted-foreground">{assessment.count} avaliação(ões) com nota · pesos considerados</p></div>}
                 <p className="mt-3 text-xs font-semibold text-primary">Abrir detalhes →</p>
-              </a>;
+              </Link>;
             })}
             {!studentSubjects.data?.length && <div className="sina-card p-6 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Nenhuma disciplina vinculada ainda.</div>}
           </div>
