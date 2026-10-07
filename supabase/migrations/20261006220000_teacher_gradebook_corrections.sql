@@ -88,7 +88,13 @@ BEGIN
     WHERE student_id = v_student
       AND institution_id = v_institution
       AND period = _period
-      AND subject_id = _subject_id;
+      AND (
+        subject_id = _subject_id
+        OR (
+          subject_id IS NULL
+          AND lower(trim(subject)) = lower(trim(v_subject_name))
+        )
+      );
 
     v_count := v_count + CASE WHEN FOUND THEN 1 ELSE 0 END;
   END LOOP;
