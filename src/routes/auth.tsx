@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, GraduationCap, LockKeyhole, MailCheck, Shield
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { GoogleAuthButton } from "@/components/google-auth-button";
 import { authErrorMessage } from "@/lib/auth-messages";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -388,24 +389,21 @@ function AuthPage() {
 
     setGoogleBusy(true);
     try {
-      // Use Supabase Auth directly so the SINA authentication experience
-      // remains independent from any editor/platform authentication layer.
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth`,
-        },
+      // The Google provider is managed by the SINA hosting/auth layer.
+      // Keep this infrastructure integration here while the user-facing
+      // experience remains fully branded as SINA.
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/auth`,
       });
-
-      if (error) throw error;
-
-      // In the browser Supabase redirects to Google. When the user returns,
-      // /auth restores the session and finishAuth continues the SINA
-      // onboarding flow, including school/role context stored above.
+      if (result.error) throw result.error;
+      if (result.redirected) return;
+      await finishAuth(
+        isSignup ? requestedRole ?? undefined : undefined,
+        isSignup ? selectedSchool?.id : undefined,
+      );
     } catch (error) {
-      window.localStorage.removeItem("sina-requested-role");
-      window.localStorage.removeItem("sina-school-directory-id");
       setMessage(authErrorMessage(error));
+    } finally {
       setGoogleBusy(false);
       setBusy(false);
     }
