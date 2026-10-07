@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ClipboardCheck, ClipboardList, FileSpreadsheet, Save, UsersRound } from "lucide-react";
+import { CalendarDays, ClipboardCheck, ClipboardList, FileSpreadsheet, Save, UsersRound, Pencil, Trash2, Paperclip } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,10 @@ import { Input } from "@/components/ui/input";
 import {
   createAssessment,
   createTeacherCalendarEvent,
+  createTeacherTask,
+  updateTeacherTask,
+  deleteTeacherTask,
+  uploadAcademicAttachment,
   loadTeacherSubjectAssignments,
   errorText,
   gradeTaskSubmission,
@@ -162,6 +166,13 @@ export function TeacherAcademicCenter() {
     },
   });
   const [taskId, setTaskId] = useState("");
+  const [taskTitle, setTaskTitle] = useState("");
+  const [taskDescription, setTaskDescription] = useState("");
+  const [taskSubjectId, setTaskSubjectId] = useState("");
+  const [taskDueAt, setTaskDueAt] = useState("");
+  const [taskEditingId, setTaskEditingId] = useState<string | null>(null);
+  const [taskFile, setTaskFile] = useState<File | null>(null);
+  const [taskSaving, setTaskSaving] = useState(false);
   const submissions = useQuery({
     queryKey: ["task-submissions", taskId],
     queryFn: () => loadTaskSubmissions(taskId),
@@ -177,6 +188,82 @@ export function TeacherAcademicCenter() {
       toast.success("Entrega corrigida.");
     } catch (error) { toast.error(errorText(error)); }
   }
+
+  function resetTaskForm() {
+    setTaskEditingId(null);
+    setTaskTitle("");
+    setTaskDescription("");
+    setTaskSubjectId("");
+    setTaskDueAt("");
+    setTaskFile(null);
+  }
+
+  function startEditTask(task: TeacherTask) {
+    setTaskEditingId(task.id);
+    setTaskTitle(task.title);
+    setTaskDescription(task.description ?? "");
+    const assignment = classSubjects.find(item => item.subject_name === task.subject);
+    setTaskSubjectId(assignment?.subject_id ?? task.subject_id ?? "");
+    setTaskDueAt(task.due_at ? new Date(task.due_at).toISOString().slice(0, 16) : "");
+    setTaskFile(null);
+    document.getElementById("atividade-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function saveTask() {
+    if (!classroomId || !taskTitle.trim() || !taskSubjectId) {
+      toast.error("Selecione a turma, a disciplina e informe o título da atividade.");
+      return;
+    }
+    const assignment = classSubjects.find(item => item.subject_id === taskSubjectId);
+    if (!assignment) {
+      toast.error("A disciplina selecionada não está vinculada à turma.");
+      return;
+    }
+    setTaskSaving(true);
+    try {
+      if (taskEditingId) {
+        await updateTeacherTask({
+          id: taskEditingId,
+          classroom: classroomId,
+          subject: assignment.subject_name,
+          title: taskTitle.trim(),
+          description: taskDescription.trim(),
+          dueAt: taskDueAt ? new Date(taskDueAt).toISOString() : null,
+        });
+        toast.success("Atividade atualizada.");
+      } else {
+        const attachment = taskFile ? await uploadAcademicAttachment(taskFile, "tasks") : null;
+        await createTeacherTask({
+          classroom: classroomId,
+          subject: assignment.subject_name,
+          title: taskTitle.trim(),
+          description: taskDescription.trim(),
+          dueAt: taskDueAt ? new Date(taskDueAt).toISOString() : null,
+          attachment,
+        });
+        toast.success("Atividade publicada para a turma.");
+      }
+      resetTaskForm();
+      await tasks.refetch();
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setTaskSaving(false);
+    }
+  }
+
+  async function removeTask(id: string) {
+    if (!window.confirm("Excluir esta atividade? As entregas vinculadas também serão removidas.")) return;
+    try {
+      await deleteTeacherTask(id);
+      if (taskId === id) setTaskId("");
+      await Promise.all([tasks.refetch(), submissions.refetch()]);
+      toast.success("Atividade excluída.");
+    } catch (error) {
+      toast.error(errorText(error));
+    }
+  }
+
 
   const calendar = useQuery({
     queryKey: ["teacher-calendar-center"],
@@ -288,6 +375,36 @@ export function TeacherAcademicCenter() {
         <div className="sina-card p-6">
           <div className="flex items-center gap-3"><FileSpreadsheet className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Lançamento</p><h3 className="font-semibold">{selectedAssessment?.title ?? "Selecione uma avaliação"}</h3></div></div>
           {selectedAssessment ? <><div className="mt-4 overflow-x-auto rounded-xl border border-border"><table className="w-full min-w-[620px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-3 text-left">Aluno</th><th className="w-28 p-3 text-left">Nota</th><th className="p-3 text-left">Feedback</th></tr></thead><tbody>{(attendance.data ?? []).map(student => <tr key={student.student_id} className="border-t border-border"><td className="p-3 font-medium">{student.full_name}</td><td className="p-3"><Input type="number" min="0" max={selectedAssessment.max_score} step="0.01" value={scores[student.student_id] ?? ""} onChange={e => setScores(v => ({ ...v, [student.student_id]: e.target.value }))} /></td><td className="p-3"><Input value={feedback[student.student_id] ?? ""} onChange={e => setFeedback(v => ({ ...v, [student.student_id]: e.target.value }))} placeholder="Comentário" /></td></tr>)}</tbody></table></div><Button className="mt-4" onClick={() => void saveScores()}><Save className="mr-2 size-4" />Salvar notas preenchidas</Button></> : <p className="mt-5 text-sm text-muted-foreground">Crie ou selecione uma avaliação para lançar as notas.</p>}
+        </div>
+      </div>
+
+      <div id="atividade-form" className="sina-card p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-3"><ClipboardList className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Atividades</p><h3 className="font-semibold">{taskEditingId ? "Editar atividade" : "Publicar atividade"}</h3></div></div>
+            <p className="mt-2 text-sm text-muted-foreground">Crie atividades para a turma, defina prazo e anexe um arquivo.</p>
+          </div>
+          {taskEditingId && <Button variant="outline" onClick={resetTaskForm}>Cancelar edição</Button>}
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          <Input placeholder="Título da atividade" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} />
+          <select value={taskSubjectId} onChange={e => setTaskSubjectId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Selecione a disciplina</option>{classSubjects.map(s => <option key={s.id} value={s.subject_id}>{s.subject_name}</option>)}</select>
+          <Input type="datetime-local" value={taskDueAt} onChange={e => setTaskDueAt(e.target.value)} aria-label="Prazo da atividade" />
+          {!taskEditingId && <label className="flex h-10 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm"><Paperclip className="size-4 text-muted-foreground" /><span className="truncate">{taskFile?.name ?? "Anexar arquivo (até 20 MB)"}</span><input type="file" className="sr-only" onChange={e => setTaskFile(e.target.files?.[0] ?? null)} /></label>}
+          <textarea value={taskDescription} onChange={e => setTaskDescription(e.target.value)} placeholder="Instruções da atividade" className="min-h-28 rounded-md border border-input bg-background px-3 py-2 text-sm md:col-span-2" />
+          <Button className="md:col-span-2" onClick={() => void saveTask()} disabled={taskSaving || !taskTitle.trim() || !taskSubjectId}>{taskSaving ? "Salvando..." : taskEditingId ? "Salvar alterações" : "Publicar atividade"}</Button>
+        </div>
+        <div className="mt-6 space-y-2">
+          <div className="flex items-center justify-between"><h4 className="font-semibold">Atividades publicadas</h4><span className="text-xs text-muted-foreground">{tasks.data?.length ?? 0} cadastrada{tasks.data?.length === 1 ? "" : "s"}</span></div>
+          {(tasks.data ?? []).map((task: TeacherTask) => (
+            <article key={task.id} className="rounded-xl border border-border p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0"><p className="font-semibold">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.subject} · {task.classroom} · {task.due_at ? new Date(task.due_at).toLocaleString("pt-BR") : "Sem prazo"}</p>{task.description && <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{task.description}</p>}{task.attachment_name && <p className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-primary"><Paperclip className="size-3.5" />{task.attachment_name}</p>}</div>
+                <div className="flex shrink-0 gap-2"><Button variant="outline" size="sm" onClick={() => startEditTask(task)}><Pencil className="mr-1.5 size-3.5" />Editar</Button><Button variant="outline" size="sm" onClick={() => void removeTask(task.id)}><Trash2 className="mr-1.5 size-3.5" />Excluir</Button></div>
+              </div>
+            </article>
+          ))}
+          {!tasks.data?.length && <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Nenhuma atividade publicada nesta instituição.</p>}
         </div>
       </div>
 
