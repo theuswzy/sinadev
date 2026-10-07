@@ -221,7 +221,7 @@ function StudentDashboard() {
               <p className="mt-1 text-xs text-muted-foreground">Prof. {item.teacher_name || "não informado"}</p>
               <p className="mt-2 text-[11px] text-muted-foreground">{item.classroom_name}</p>
               <p className="mt-3 text-xs font-semibold text-primary">Abrir disciplina →</p>
-            </a>;
+            </Link>;
           })}
           {studentSubjects.isPending && <p className="text-sm text-muted-foreground">Carregando matérias e professores…</p>}
           {!studentSubjects.isPending && !(studentSubjects.data ?? []).length && <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Nenhuma disciplina foi vinculada à sua turma ainda.</p>}
