@@ -701,6 +701,16 @@ export async function adminUpdateStudentProfile(
   if (error) throw error;
   return data;
 }
+export async function adminUpdateProfile(userId: string, displayName: string, avatarUrl: string | null) {
+  const { data, error } = await supabase.rpc("admin_update_profile", {
+    _user_id: userId,
+    _display_name: displayName,
+    _avatar_url: avatarUrl,
+  });
+  if (error) throw error;
+  return data;
+}
+
 
 export async function adminAssignStudentToClassroom(studentId:string,classroomId:string,enrollment:string) { const {data,error}=await supabase.rpc("admin_assign_student_to_classroom",{_student_id:studentId,_classroom_id:classroomId,...(enrollment ? {_enrollment:enrollment} : {})}); if(error) throw error; return data??false; }
 export async function adminRemoveStudentFromClassroom(studentId:string) { const {data,error}=await supabase.rpc("admin_remove_student_from_classroom",{_student_id:studentId}); if(error) throw error; return data??false; }
