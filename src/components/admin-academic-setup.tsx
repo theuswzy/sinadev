@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, BookOpen, CalendarRange, Layers3, Save, Archive, RotateCcw, Users, FileUp, Mail, Copy, X, Pencil, Trash2, SlidersHorizontal, Eye, LockKeyhole, UnlockKeyhole } from "lucide-react";
+import { AlertTriangle, BookOpen, CalendarRange, Layers3, Save, Archive, RotateCcw, Users, FileUp, Mail, Copy, X, Pencil, Trash2, SlidersHorizontal, Eye, History, LockKeyhole, UnlockKeyhole } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   adminUpsertSubject,
   adminUpsertTerm,
   loadAdminAcademicPeriodLocks,
+  loadAdminGradeChangeAudit,
   setAdminAcademicPeriodLock,
   errorText,
   loadAdminAcademicSetup,
@@ -67,6 +68,7 @@ export function AdminAcademicSetup() {
   const assignments = useQuery({ queryKey: ["admin-teacher-classroom-assignments"], queryFn: loadAdminTeacherAssignments });
   const invitations = useQuery({ queryKey: ["admin-institution-invitations"], queryFn: loadAdminInstitutionInvitations });
   const periodLocks = useQuery({ queryKey: ["admin-academic-period-locks"], queryFn: loadAdminAcademicPeriodLocks, staleTime: 10000 });
+  const gradeAudit = useQuery({ queryKey: ["admin-grade-change-audit"], queryFn: () => loadAdminGradeChangeAudit(50), staleTime: 10000, refetchOnWindowFocus: true });
   const [classroomHubId, setClassroomHubId] = useState<string | null>(null);
   const classroomHub = useQuery({
     queryKey: ["admin-classroom-hub", classroomHubId],
@@ -324,6 +326,52 @@ export function AdminAcademicSetup() {
                 </article>)}
               </div>}
           </section>
+          <section className="rounded-2xl border border-border bg-background p-5 sm:p-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex items-start gap-3">
+                <History className="mt-0.5 size-5 text-primary" />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-primary">Rastreabilidade</p>
+                  <h3 className="mt-1 text-lg font-semibold">Histórico de alterações de notas</h3>
+                  <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Registra inclusões, alterações e exclusões de notas oficiais por instituição, mantendo o contexto necessário para conferência administrativa.</p>
+                </div>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => void gradeAudit.refetch()} disabled={gradeAudit.isFetching}>
+                {gradeAudit.isFetching ? "Atualizando…" : "Atualizar histórico"}
+              </Button>
+            </div>
+            {gradeAudit.isPending ? <div className="mt-5 sina-skeleton h-44 rounded-2xl" /> :
+              gradeAudit.error ? <div className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm"><p className="font-semibold">Não foi possível carregar o histórico.</p><p className="mt-1 text-muted-foreground">{errorText(gradeAudit.error)}</p></div> :
+              !(gradeAudit.data ?? []).length ? <div className="mt-5 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Nenhuma alteração de nota registrada ainda.</div> :
+              <div className="mt-5 overflow-x-auto rounded-2xl border border-border">
+                <table className="w-full min-w-[760px] text-sm">
+                  <thead className="bg-secondary/50 text-left">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Aluno</th>
+                      <th className="px-4 py-3 font-semibold">Disciplina</th>
+                      <th className="px-4 py-3 font-semibold">Período</th>
+                      <th className="px-4 py-3 font-semibold">Alteração</th>
+                      <th className="px-4 py-3 font-semibold">Antes → depois</th>
+                      <th className="px-4 py-3 font-semibold">Data</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {(gradeAudit.data ?? []).map(item => {
+                      const actionLabel = item.action === "insert" ? "Lançamento" : item.action === "delete" ? "Exclusão" : "Alteração";
+                      return <tr key={item.id}>
+                        <td className="px-4 py-3"><p className="font-medium">{item.student_name || "Aluno não identificado"}</p><p className="text-[11px] text-muted-foreground">{item.student_id.slice(0, 8)}…</p></td>
+                        <td className="px-4 py-3">{item.subject || "Sem disciplina"}</td>
+                        <td className="px-4 py-3">{item.period}º</td>
+                        <td className="px-4 py-3"><span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">{actionLabel}</span></td>
+                        <td className="px-4 py-3 tabular-nums">{item.old_score == null ? "—" : Number(item.old_score).toFixed(1)} → {item.new_score == null ? "—" : Number(item.new_score).toFixed(1)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">{new Date(item.changed_at).toLocaleString("pt-BR")}</td>
+                      </tr>;
+                    })}
+                  </tbody>
+                </table>
+              </div>}
+          </section>
+
           <section className="rounded-2xl border border-primary/15 bg-primary/5 p-5 sm:p-6">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex items-start gap-3">
