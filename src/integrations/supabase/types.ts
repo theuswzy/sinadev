@@ -2259,6 +2259,21 @@ export type Database = {
           subject_name: string
         }[]
       }
+      teacher_get_attendance_report: {
+        Args: { _classroom_id: string; _subject_id: string }
+        Returns: {
+          absent_count: number
+          attendance_percent: number | null
+          enrollment: string
+          excused_count: number
+          last_attendance_date: string | null
+          late_count: number
+          present_count: number
+          student_id: string
+          student_name: string
+          total_records: number
+        }[]
+      }
       teacher_get_class_report: {
         Args: { _classroom_id: string }
         Returns: {
