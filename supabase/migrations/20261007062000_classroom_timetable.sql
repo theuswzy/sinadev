@@ -136,4 +136,16 @@ GRANT EXECUTE ON FUNCTION public.admin_upsert_classroom_timetable(uuid,uuid,uuid
 GRANT EXECUTE ON FUNCTION public.admin_delete_classroom_timetable(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.student_list_timetable() TO authenticated;
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.classroom_timetable;
+DO $
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication p
+    JOIN pg_publication_rel pr ON pr.prpubid = p.oid
+    JOIN pg_class c ON c.oid = pr.prrelid
+    WHERE p.pubname = 'supabase_realtime'
+      AND c.relname = 'classroom_timetable'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.classroom_timetable;
+  END IF;
+END $;
