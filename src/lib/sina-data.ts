@@ -1438,6 +1438,28 @@ export async function acceptInstitutionInvitation(token: string) {
   return data?.[0] ?? null;
 }
 
+export type GradeChangeAuditEntry = {
+  id: string;
+  grade_id: string | null;
+  student_id: string;
+  subject_id: string | null;
+  subject: string | null;
+  period: number;
+  action: "insert" | "update" | "delete";
+  changed_by: string | null;
+  changed_at: string;
+  old_score: number | null;
+  new_score: number | null;
+  old_absences: number | null;
+  new_absences: number | null;
+};
+
+export async function loadAdminGradeChangeAudit(limit = 50): Promise<GradeChangeAuditEntry[]> {
+  const { data, error } = await supabase.rpc("admin_list_grade_change_audit", { _limit: limit });
+  if (error) throw error;
+  return (data ?? []) as GradeChangeAuditEntry[];
+}
+
 export type AcademicPeriodLock = {
   period: number;
   is_closed: boolean;
