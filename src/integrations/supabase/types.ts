@@ -561,6 +561,7 @@ export type Database = {
           institution_id: string
           subject_id: string
           teacher_id: string
+          is_primary: boolean
         }
         Insert: {
           classroom_id: string
@@ -569,6 +570,7 @@ export type Database = {
           institution_id: string
           subject_id: string
           teacher_id: string
+          is_primary?: boolean
         }
         Update: {
           classroom_id?: string
@@ -577,6 +579,7 @@ export type Database = {
           institution_id?: string
           subject_id?: string
           teacher_id?: string
+          is_primary?: boolean
         }
         Relationships: [
           {
