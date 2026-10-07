@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ClipboardCheck, ClipboardList, FileSpreadsheet, Save, UsersRound, Pencil, Trash2, Paperclip, FileText, Search, Archive, ExternalLink } from "lucide-react";
+import { CalendarDays, ClipboardCheck, ClipboardList, FileSpreadsheet, Save, UsersRound, Pencil, Trash2, Paperclip, FileText, Search, Archive, ExternalLink, GraduationCap } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ import {
   loadTeacherAcademicMaterials,
   createTeacherAcademicMaterial,
   deleteTeacherAcademicMaterial,
+  loadTeacherGradebook,
+  saveTeacherGradebook,
   loadTeacherClassReport,
   loadTeacherClassrooms,
   saveAttendance,
@@ -124,6 +126,48 @@ export function TeacherAcademicCenter() {
   }, [selectedAssessmentId, assessments.data]);
 
   const selectedAssessment: TeacherAssessment | null = assessments.data?.find(a => a.id === selectedAssessmentId) ?? null;
+  const [gradeSubjectId, setGradeSubjectId] = useState("");
+  const [gradePeriod, setGradePeriod] = useState("1");
+  const [gradeDraft, setGradeDraft] = useState<Record<string, { score: string; absences: string }>>({});
+  const [gradeSaving, setGradeSaving] = useState(false);
+  const gradebook = useQuery({
+    queryKey: ["teacher-gradebook", classroomId, gradeSubjectId, gradePeriod],
+    queryFn: () => loadTeacherGradebook(classroomId, gradeSubjectId, Number(gradePeriod)),
+    enabled: !!classroomId && !!gradeSubjectId,
+  });
+
+  useEffect(() => {
+    const next: Record<string, { score: string; absences: string }> = {};
+    (gradebook.data ?? []).forEach(row => {
+      next[row.student_id] = { score: row.score == null ? "" : String(row.score), absences: String(row.absences ?? 0) };
+    });
+    setGradeDraft(next);
+  }, [gradebook.data]);
+
+  useEffect(() => {
+    if (classroomId && gradeSubjectId && !classSubjects.some(item => item.subject_id === gradeSubjectId)) setGradeSubjectId("");
+  }, [classroomId, classSubjects, gradeSubjectId]);
+
+  async function saveGradebook() {
+    if (!classroomId || !gradeSubjectId) { toast.error("Selecione a disciplina para lançar as notas."); return; }
+    const invalid = Object.values(gradeDraft).find(value => {
+      const score = Number(value.score.replace(",", "."));
+      const absences = Number(value.absences);
+      return value.score !== "" && (!Number.isFinite(score) || score < 0 || score > 10 || !Number.isInteger(absences) || absences < 0);
+    });
+    if (invalid) { toast.error("Confira as notas (0 a 10) e as faltas (números inteiros)."); return; }
+    const rows = Object.entries(gradeDraft).filter(([, value]) => value.score.trim() !== "").map(([student_id, value]) => ({
+      student_id, score: Number(value.score.replace(",", ".")), absences: Number(value.absences || 0),
+    }));
+    if (!rows.length) { toast.error("Informe pelo menos uma nota antes de salvar."); return; }
+    setGradeSaving(true);
+    try {
+      const saved = await saveTeacherGradebook({ classroomId, subjectId: gradeSubjectId, period: Number(gradePeriod), rows });
+      await qc.invalidateQueries({ queryKey: ["teacher-gradebook", classroomId, gradeSubjectId, gradePeriod] });
+      toast.success(String(saved) + (saved === 1 ? " nota salva." : " notas salvas."));
+    } catch (error) { toast.error(errorText(error)); } finally { setGradeSaving(false); }
+  }
+
 
   async function createNewAssessment() {
     if (!classroomId || !assessmentTitle.trim()) return;
@@ -406,6 +450,25 @@ export function TeacherAcademicCenter() {
           }} disabled={!classReport.data?.length}><FileSpreadsheet className="mr-2 size-4" />Exportar CSV</Button>
         </div>
         <div className="mt-5 overflow-x-auto rounded-xl border border-border"><table className="w-full min-w-[700px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-3 text-left">Aluno</th><th className="p-3 text-left">Matrícula</th><th className="p-3 text-left">Frequência</th><th className="p-3 text-left">Média</th><th className="p-3 text-left">Avaliações</th></tr></thead><tbody>{(classReport.data ?? []).map(item => <tr key={item.student_id} className="border-t border-border"><td className="p-3 font-medium">{item.student_name}</td><td className="p-3 text-muted-foreground">{item.enrollment}</td><td className="p-3">{item.attendance_percent == null ? "—" : `${item.attendance_percent.toLocaleString("pt-BR")}%`}</td><td className="p-3 font-semibold">{item.grade_average ? item.grade_average.toLocaleString("pt-BR") : "—"}</td><td className="p-3">{item.assessment_count}</td></tr>)}</tbody></table></div>
+      </div>
+
+      <div className="sina-card p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div><div className="flex items-center gap-3"><GraduationCap className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Notas</p><h3 className="font-semibold">Diário de notas</h3></div></div><p className="mt-2 text-sm text-muted-foreground">Lance a nota e as faltas por aluno, disciplina e período.</p></div>
+          <div className="flex flex-wrap gap-2">
+            <select value={gradeSubjectId} onChange={e => setGradeSubjectId(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Disciplina</option>{classSubjects.map(s => <option key={s.id} value={s.subject_id}>{s.subject_name}</option>)}</select>
+            <select value={gradePeriod} onChange={e => setGradePeriod(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">{[1,2,3,4].map(period => <option key={period} value={period}>{period}º período</option>)}</select>
+          </div>
+        </div>
+        {!gradeSubjectId ? <div className="mt-5 rounded-2xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Selecione uma disciplina para abrir o diário de notas.</div> :
+          gradebook.isPending ? <p className="mt-5 text-sm text-muted-foreground">Carregando diário…</p> :
+          gradebook.isError ? <div className="mt-5 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">Não foi possível carregar o diário desta disciplina.</div> :
+          <>
+            <div className="mt-5 overflow-x-auto rounded-2xl border border-border"><table className="w-full min-w-[620px] text-sm"><thead className="bg-secondary/50"><tr><th className="p-3 text-left">Aluno</th><th className="p-3 text-left">Matrícula</th><th className="w-36 p-3 text-left">Nota</th><th className="w-36 p-3 text-left">Faltas</th></tr></thead><tbody>
+              {(gradebook.data ?? []).map(row => { const value = gradeDraft[row.student_id] ?? { score: row.score == null ? "" : String(row.score), absences: String(row.absences ?? 0) }; return <tr key={row.student_id} className="border-t border-border"><td className="p-3 font-medium">{row.full_name}</td><td className="p-3 text-muted-foreground">{row.enrollment}</td><td className="p-3"><Input type="number" min="0" max="10" step="0.1" placeholder="0–10" value={value.score} onChange={e => setGradeDraft(v => ({ ...v, [row.student_id]: { ...value, score: e.target.value } }))} /></td><td className="p-3"><Input type="number" min="0" step="1" placeholder="0" value={value.absences} onChange={e => setGradeDraft(v => ({ ...v, [row.student_id]: { ...value, absences: e.target.value } }))} /></td></tr>; })}
+            </tbody></table></div>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs text-muted-foreground">{gradebook.data?.length ?? 0} aluno(s) · nota de 0 a 10 · faltas inteiras</p><Button onClick={() => void saveGradebook()} disabled={gradeSaving || gradebook.isFetching || !(gradebook.data?.length)}><Save className="mr-2 size-4" />{gradeSaving ? "Salvando…" : "Salvar notas"}</Button></div>
+          </>}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
