@@ -392,9 +392,6 @@ export function AdminAcademicSetup() {
                   <p className="mt-1 max-w-2xl text-sm text-muted-foreground">Registra inclusões, alterações e exclusões de notas oficiais por instituição, mantendo o contexto necessário para conferência administrativa.</p>
                 </div>
               </div>
-              <Button size="sm" variant="outline" onClick={() => void gradeAudit.refetch()} disabled={gradeAudit.isFetching}>
-                {gradeAudit.isFetching ? "Atualizando…" : "Atualizar histórico"}
-              </Button>
             </div>
             {gradeAudit.isPending ? <div className="mt-5 sina-skeleton h-44 rounded-2xl" /> :
               gradeAudit.error ? <div className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm"><p className="font-semibold">Não foi possível carregar o histórico.</p><p className="mt-1 text-muted-foreground">{errorText(gradeAudit.error)}</p></div> :
