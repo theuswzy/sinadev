@@ -376,6 +376,23 @@ export async function saveTeacherGradebook(args: {
   if (error) throw error;
   return data ?? 0;
 }
+
+export async function clearTeacherGradebookScores(args: {
+  classroomId: string;
+  subjectId: string;
+  period: number;
+  studentIds: string[];
+}): Promise<number> {
+  if (!args.studentIds.length) return 0;
+  const { data, error } = await supabase.rpc("teacher_clear_gradebook_scores", {
+    _classroom_id: args.classroomId,
+    _subject_id: args.subjectId,
+    _period: args.period,
+    _student_ids: args.studentIds,
+  });
+  if (error) throw error;
+  return data ?? 0;
+}
 export const formatScore = (n: number) => n.toFixed(1).replace(".", ",");
 export const errorText = (err: unknown) => err instanceof Error ? err.message : "Não foi possível concluir. Tente novamente.";
 
