@@ -327,14 +327,19 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
   return (
     <AcademicShell title={title.title} subtitle={title.subtitle}>
-      <div className="mt-6 flex justify-end">
-        <Button type="button" variant="outline" size="sm" onClick={() => void refreshModuleData()} disabled={moduleRefreshing}>
+      <div className="mt-6 flex flex-col gap-3 border-b border-border/70 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Área do aluno</p>
+          <h2 className="mt-1 font-display text-xl font-bold tracking-tight">{title.title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{title.subtitle}</p>
+        </div>
+        <Button type="button" variant="outline" size="sm" onClick={() => void refreshModuleData()} disabled={moduleRefreshing} className="shrink-0 rounded-xl">
           <RefreshCw className={"mr-2 size-4 " + (moduleRefreshing ? "animate-spin" : "")} />
           {moduleRefreshing ? "Atualizando…" : "Atualizar dados"}
         </Button>
       </div>
 
-
+      <div className="mt-6 space-y-6">
       {module === "tarefas" && (
         <section className="mt-6 space-y-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -743,7 +748,7 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
           </article>) : <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhum aviso novo. Os comunicados da escola e dos professores aparecerão aqui.</div>}
         </section>
       )}
-
+      </div>
     </AcademicShell>
   );
 }
