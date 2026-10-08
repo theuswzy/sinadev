@@ -116,9 +116,9 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
 
   const taskState = (task: NonNullable<typeof tasks.data>[number], submission?: NonNullable<typeof submissions.data>[number]) => {
     if (submission?.status === "graded") return "graded" as const;
-    if (task.completed) return "completed" as const;
     if (submission?.status === "submitted") return "submitted" as const;
     if (submission?.status === "in_progress") return "in_progress" as const;
+    if (task.completed) return "completed" as const;
     if (task.due_at && new Date(task.due_at).getTime() < Date.now()) return "overdue" as const;
     return "pending" as const;
   };
@@ -404,11 +404,24 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                         onChange={(e) => setDrafts((v) => ({...v, [task.id]: e.target.value}))}
                         placeholder="Digite sua resposta ou observação..."
                         maxLength={5000}
+                        disabled={taskState(task, submission) === "graded"}
                         aria-label={"Resposta para " + task.title}
                         className="min-h-24 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
                       />
                       <Button onClick={() => void sendTask(task.id)} disabled={sending === task.id || taskState(task, submission) === "graded"}>{sending === task.id ? "Enviando..." : taskState(task, submission) === "graded" ? "Entrega corrigida" : submission ? "Atualizar entrega" : "Enviar entrega"}</Button>
-                      {submission?.feedback && <p className="text-sm text-muted-foreground">Feedback: {submission.feedback}</p>}
+                      {submission?.status === "graded" && (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div className="rounded-xl border border-primary/15 bg-primary/5 p-3">
+                            <p className="text-[11px] font-bold uppercase tracking-wide text-primary">Resultado</p>
+                            <p className="mt-1 text-lg font-bold">{submission.score == null ? "Sem nota" : formatScore(submission.score)}</p>
+                          </div>
+                          <div className="rounded-xl border border-border bg-muted/20 p-3">
+                            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Entregue em</p>
+                            <p className="mt-1 text-sm font-medium">{submission.submitted_at ? new Date(submission.submitted_at).toLocaleString("pt-BR") : "—"}</p>
+                          </div>
+                        </div>
+                      )}
+                      {submission?.feedback && <p className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">Feedback:</span> {submission.feedback}</p>}
                     </div>
                   </article>
                 );
