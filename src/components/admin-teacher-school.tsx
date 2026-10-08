@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { School, Users, Save, RefreshCw, Search, UserCheck, UserX, Pencil, Camera, X, UserRound } from "lucide-react";
+import { School, Users, Save, Search, UserCheck, UserX, Pencil, Camera, X, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,10 +109,7 @@ export function AdminTeacherSchool() {
             <p className="mt-1 text-sm text-muted-foreground">Associe cada professor cadastrado a uma escola. O vínculo fica salvo no Supabase e passa a definir o contexto institucional do professor.</p>
           </div>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={() => void Promise.all([teachers.refetch(), institutions.refetch()])} disabled={teachers.isFetching || institutions.isFetching}>
-          <RefreshCw className={"mr-2 size-4 " + ((teachers.isFetching || institutions.isFetching) ? "animate-spin" : "")} />
-          {teachers.isFetching || institutions.isFetching ? "Atualizando…" : "Atualizar"}
-        </Button>
+
       </div>
 
       {!teachers.isPending && !teachers.error && !institutions.isPending && !institutions.error && (
