@@ -117,28 +117,6 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
   const additionalCount = responsibilitySummary.filter((item:any)=>!item.is_primary).length;
 
   return <div className="space-y-6">
-    <section className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-primary">Responsabilidade acadêmica</p>
-          <h2 className="mt-1 text-lg font-semibold">Seus vínculos por disciplina</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Responsável = referência principal da disciplina. Adicional = professor vinculado à mesma disciplina sem substituir o responsável.</p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:min-w-[240px]">
-          <div className="rounded-xl border border-border bg-background p-3"><p className="text-xs text-muted-foreground">Responsável</p><b className="text-xl">{responsibleCount}</b></div>
-          <div className="rounded-xl border border-border bg-background p-3"><p className="text-xs text-muted-foreground">Adicional</p><b className="text-xl">{additionalCount}</b></div>
-        </div>
-      </div>
-      {responsibilitySummary.length > 0 && <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {responsibilitySummary.slice(0,6).map((item:any)=><div key={item.classroom_id+":"+item.subject_id} className="rounded-xl border border-border bg-background p-3">
-          <p className="truncate font-medium">{item.subject_name}</p>
-          <p className="truncate text-xs text-muted-foreground">{item.classroom_name}</p>
-          <span className={"mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-semibold "+(item.is_primary?"bg-primary/10 text-primary":"bg-secondary text-muted-foreground")}>{item.is_primary?"Professor responsável":"Professor adicional"}</span>
-        </div>)}
-      </div>}
-      {d.responsibilities.error && <p className="mt-3 text-xs text-destructive">Não foi possível atualizar seus vínculos de responsabilidade.</p>}
-    </section>
-
     <section className="overflow-hidden rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm sm:p-8">
       <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
@@ -166,27 +144,7 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
       </button>)}
     </section>
 
-    <Card title="Fluxo recomendado" description="O SINA foi pensado para acompanhar o trabalho do professor na ordem em que ele acontece.">
-      <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
-        {([
-          ["1","Turmas","Organize seus vínculos.","turmas",Users],
-          ["2","Alunos","Confira matrículas.","alunos",GraduationCap],
-          ["3","Notas","Lance resultados.","notas",BarChart3],
-          ["4","Frequência","Registre presença.","frequencia",CheckCircle2],
-          ["5","Avaliações","Crie e corrija.","avaliacoes",ClipboardCheck],
-          ["6","Comunicação","Avise suas turmas.","comunicacao",Megaphone],
-        ] as [string,string,string,Section,LucideIcon][]).map(([step,title,desc,go,StepIcon])=>{
-          return <button key={String(step)} type="button" onClick={()=>onNavigate(go as Section)} className="rounded-2xl border border-border p-4 text-left transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5">
-            <div className="flex items-center justify-between gap-2"><span className="text-[11px] font-bold text-primary">ETAPA {step}</span><StepIcon className="size-4 text-primary"/></div>
-            <b className="mt-2 block">{title}</b>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">{desc}</p>
-          </button>;
-        })}
-      </div>
-    </Card>
-
-    <div className="grid gap-5 xl:grid-cols-[1.3fr_.7fr]">
-      <Card title="Prioridades de hoje" description="Veja primeiro aquilo que realmente pede uma ação.">
+    <Card title="Prioridades de hoje" description="Veja primeiro aquilo que realmente pede uma ação.">
         <div className="grid gap-3 md:grid-cols-2">
           <button type="button" onClick={()=>onNavigate("alunos")} className="rounded-2xl border border-border p-4 text-left transition hover:border-primary/40 hover:bg-primary/5">
             <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Alunos sem turma</p>
