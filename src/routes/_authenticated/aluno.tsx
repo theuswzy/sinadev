@@ -248,6 +248,73 @@ function StudentDashboard() {
         ].map(({to,icon:Icon,label,value,desc})=><Link key={label} to={to} className="sina-card group p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-center justify-between"><span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><Icon className="size-5"/></span><ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary"/></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 font-display text-3xl font-semibold tabular-nums">{value}</p><p className="mt-1 text-xs text-muted-foreground">{desc}</p></Link>)}
       </section>
 
+      <section className="mt-5 sina-card overflow-hidden">
+        <div className="border-b border-border px-5 py-4 sm:px-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-primary">Central de pendências</p>
+              <h2 className="mt-1 text-lg font-semibold">O que precisa da sua atenção</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Uma visão rápida do que merece prioridade antes de você entrar em cada área.</p>
+            </div>
+            <span className="w-fit rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold">
+              {overdueTasks.length + pending.length + unreadCount} item{overdueTasks.length + pending.length + unreadCount === 1 ? "" : "ns"} para acompanhar
+            </span>
+          </div>
+        </div>
+        <div className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4 sm:p-5">
+          {overdueTasks.length > 0 && (
+            <Link to="/aluno/tarefas" className="group rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 transition hover:border-amber-500/50 hover:bg-amber-500/10">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Urgente</span>
+                <ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1" />
+              </div>
+              <p className="mt-2 text-2xl font-semibold tabular-nums">{overdueTasks.length}</p>
+              <p className="mt-1 text-sm font-medium">atividade{overdueTasks.length === 1 ? "" : "s"} vencida{overdueTasks.length === 1 ? "" : "s"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Confira as entregas e os prazos.</p>
+            </Link>
+          )}
+          {pending.length > 0 && (
+            <Link to="/aluno/tarefas" className="group rounded-xl border border-primary/20 bg-primary/5 p-4 transition hover:border-primary/40 hover:bg-primary/10">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-primary">Pendências</span>
+                <ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1" />
+              </div>
+              <p className="mt-2 text-2xl font-semibold tabular-nums">{pending.length}</p>
+              <p className="mt-1 text-sm font-medium">atividade{pending.length === 1 ? "" : "s"} para fazer</p>
+              <p className="mt-1 text-xs text-muted-foreground">{upcomingTasks.length ? upcomingTasks.length + " com prazo futuro." : "Sem prazo futuro registrado."}</p>
+            </Link>
+          )}
+          {unreadCount > 0 && (
+            <Link to="/aluno/notificacoes" className="group rounded-xl border border-primary/20 bg-primary/5 p-4 transition hover:border-primary/40 hover:bg-primary/10">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-primary">Comunicação</span>
+                <Bell className="size-4 text-muted-foreground" />
+              </div>
+              <p className="mt-2 text-2xl font-semibold tabular-nums">{unreadCount}</p>
+              <p className="mt-1 text-sm font-medium">notificaç{unreadCount === 1 ? "ão" : "ões"} não lida{unreadCount === 1 ? "" : "s"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Avisos e atualizações aguardando leitura.</p>
+            </Link>
+          )}
+          {upcomingEvents.length > 0 && (
+            <Link to="/aluno/agenda" className="group rounded-xl border border-border p-4 transition hover:border-primary/40 hover:bg-muted/40">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Próximo evento</span>
+                <CalendarDays className="size-4 text-primary" />
+              </div>
+              <p className="mt-2 truncate text-sm font-semibold">{upcomingEvents[0].title}</p>
+              <p className="mt-1 text-xs font-medium text-primary">{new Date(upcomingEvents[0].start_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</p>
+              <p className="mt-1 truncate text-xs text-muted-foreground">{upcomingEvents[0].classroom_name || "Compromisso acadêmico"}</p>
+            </Link>
+          )}
+          {overdueTasks.length === 0 && pending.length === 0 && unreadCount === 0 && upcomingEvents.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border bg-muted/20 p-4 sm:col-span-2 lg:col-span-4">
+              <p className="font-semibold">Você está em dia.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Não há tarefas vencidas, pendências ou notificações não lidas no momento.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
       <section className="sina-dashboard-section mt-7 sina-card p-5 sm:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Minha turma</p><h2 className="mt-1 text-lg font-semibold">Matérias e professores</h2><p className="mt-1 text-sm text-muted-foreground">Cada vínculo aparece separado para evitar misturar atividades, notas e avisos de professores diferentes.</p></div>
