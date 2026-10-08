@@ -198,6 +198,15 @@ export function AcademicShell({
     };
   }, [queryClient]);
 
+  const authUser = useQuery({
+    queryKey: ["my-auth-user"],
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return data.user ?? null;
+    },
+    staleTime: 5 * 60_000,
+  });
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole, staleTime: 5 * 60_000 });
   const notifications = useQuery({
     queryKey: ["shell-notifications", role.data],
@@ -439,12 +448,27 @@ export function AcademicShell({
               <Button
                 type="button"
                 variant="outline"
-                className="sina-action-button h-9 rounded-xl px-3"
+                className="sina-action-button h-9 rounded-xl px-2.5"
                 onClick={() => void navigate({ to: "/perfil" })}
                 aria-label="Meu perfil"
                 title="Meu perfil"
               >
-                <UserRound className="size-4" />
+                {(() => {
+                  const avatar =
+                    (authUser.data?.user_metadata?.avatar_url as string | undefined) ||
+                    (authUser.data?.user_metadata?.picture as string | undefined) ||
+                    (authUser.data?.user_metadata?.avatar as string | undefined);
+                  return avatar ? (
+                    <img
+                      src={avatar}
+                      alt=""
+                      className="size-6 rounded-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <UserRound className="size-4" />
+                  );
+                })()}
                 <span className="hidden lg:inline">Perfil</span>
               </Button>
               <Button type="button" variant="outline" size="sm" onClick={logout} className="rounded-xl">
