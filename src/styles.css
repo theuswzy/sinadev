@@ -360,3 +360,68 @@
     }
   }
 }
+
+
+/* SINA information architecture: make page sections read as a hierarchy, not a stack of cards. */
+@layer utilities {
+  .sina-student-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .sina-student-hero {
+    border-radius: 1rem;
+    box-shadow: 0 10px 28px color-mix(in oklch, var(--color-foreground) 7%, transparent);
+  }
+
+  .sina-dashboard-metrics {
+    position: relative;
+  }
+
+  .sina-dashboard-metrics .sina-card {
+    min-height: 142px;
+    border-radius: 0.7rem;
+    background: var(--color-card);
+  }
+
+  .sina-dashboard-metrics .sina-card:first-child {
+    border-color: color-mix(in oklch, var(--color-primary) 22%, var(--color-border));
+  }
+
+  .sina-dashboard-section {
+    position: relative;
+  }
+
+  .sina-dashboard-section > div:first-child h2,
+  .sina-dashboard-section > div:first-child h3 {
+    letter-spacing: -0.025em;
+  }
+
+  .sina-dashboard-section > div:first-child p:first-child {
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+  }
+
+  .sina-dashboard-section + .sina-dashboard-section {
+    margin-top: 1.75rem;
+  }
+
+  .sina-dashboard-section .rounded-2xl.border {
+    background: color-mix(in oklch, var(--color-card) 98%, var(--color-muted));
+  }
+
+  .sina-dashboard-section .rounded-xl.border {
+    background: var(--color-background);
+  }
+
+  @media (max-width: 768px) {
+    .sina-student-hero {
+      border-radius: 0.8rem;
+    }
+
+    .sina-dashboard-metrics .sina-card {
+      min-height: 0;
+    }
+  }
+}
