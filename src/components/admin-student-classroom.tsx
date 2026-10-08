@@ -16,6 +16,7 @@ import {
   loadAdminLinkableInstitutions,
   adminLinkStudentToInstitution,
   adminUpdateStudentProfile,
+  type AdminStudentClassroom as AdminStudentRecord,
 } from "@/lib/sina-data";
 
 export function AdminStudentClassroom() {
@@ -51,7 +52,7 @@ export function AdminStudentClassroom() {
   }, [onlyWithoutClass]);
   const [onlyWithoutSchool, setOnlyWithoutSchool] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
-  const [editingStudent, setEditingStudent] = useState<AdminStudentClassroom | null>(null);
+  const [editingStudent, setEditingStudent] = useState<AdminStudentRecord | null>(null);
   const [editFullName, setEditFullName] = useState("");
   const [editEnrollment, setEditEnrollment] = useState("");
   const [editAvatarUrl, setEditAvatarUrl] = useState<string | null>(null);
@@ -106,7 +107,7 @@ export function AdminStudentClassroom() {
     }
   }
 
-  function openEdit(student: AdminStudentClassroom) {
+  function openEdit(student: AdminStudentRecord) {
     setEditingStudent(student);
     setEditFullName(student.full_name);
     setEditEnrollment(student.enrollment ?? "");

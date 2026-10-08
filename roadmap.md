@@ -1,5 +1,10 @@
 # SINA — Roadmap
 
+## Correção da prévia
+- [x] Corrigir erros JSX e de tipagem sem alterar dados reais.
+- [x] Verificar compilação automática e abertura das páginas.
+- [ ] Disponibilizar RPCs de responsabilidade por disciplina, auditoria de notas e fechamento de períodos: migrações existentes não estão aplicadas no banco conectado; fora desta correção de compilação.
+
 ## Revisão cirúrgica da autenticação
 - [x] Revisar marca, mensagens, Google, confirmação, recuperação e convites sem alterar regras acadêmicas.
 - [x] Validar telas e erros; registrar limitações do Google gerenciado e do cliente gerado.

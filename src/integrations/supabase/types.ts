@@ -399,7 +399,7 @@ export type Database = {
           note: string | null
           status: string
           student_id: string
-          subject_id: string | null
+          subject_id: string
           teacher_id: string
           updated_at: string
         }
@@ -412,7 +412,7 @@ export type Database = {
           note?: string | null
           status: string
           student_id: string
-          subject_id?: string | null
+          subject_id: string
           teacher_id: string
           updated_at?: string
         }
@@ -425,7 +425,7 @@ export type Database = {
           note?: string | null
           status?: string
           student_id?: string
-          subject_id?: string | null
+          subject_id?: string
           teacher_id?: string
           updated_at?: string
         }
@@ -561,7 +561,6 @@ export type Database = {
           institution_id: string
           subject_id: string
           teacher_id: string
-          is_primary: boolean
         }
         Insert: {
           classroom_id: string
@@ -570,7 +569,6 @@ export type Database = {
           institution_id: string
           subject_id: string
           teacher_id: string
-          is_primary?: boolean
         }
         Update: {
           classroom_id?: string
@@ -579,7 +577,6 @@ export type Database = {
           institution_id?: string
           subject_id?: string
           teacher_id?: string
-          is_primary?: boolean
         }
         Relationships: [
           {
@@ -627,6 +624,70 @@ export type Database = {
             columns: ["classroom_id"]
             isOneToOne: false
             referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classroom_timetable: {
+        Row: {
+          classroom_id: string
+          classroom_subject_id: string
+          created_at: string
+          end_time: string
+          id: string
+          institution_id: string
+          notes: string | null
+          room: string | null
+          start_time: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          classroom_id: string
+          classroom_subject_id: string
+          created_at?: string
+          end_time: string
+          id?: string
+          institution_id: string
+          notes?: string | null
+          room?: string | null
+          start_time: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          classroom_id?: string
+          classroom_subject_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          institution_id?: string
+          notes?: string | null
+          room?: string | null
+          start_time?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classroom_timetable_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classroom_timetable_classroom_subject_id_fkey"
+            columns: ["classroom_subject_id"]
+            isOneToOne: false
+            referencedRelation: "classroom_subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classroom_timetable_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
             referencedColumns: ["id"]
           },
         ]
@@ -917,6 +978,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           display_name: string
           status: string
@@ -924,6 +986,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           display_name?: string
           status?: string
@@ -931,6 +994,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           display_name?: string
           status?: string
@@ -1404,6 +1468,10 @@ export type Database = {
       }
       admin_delete_account: { Args: { _user_id: string }; Returns: boolean }
       admin_delete_classroom: { Args: { _id: string }; Returns: boolean }
+      admin_delete_classroom_timetable: {
+        Args: { _id: string }
+        Returns: boolean
+      }
       admin_delete_institution: {
         Args: { _institution_id: string }
         Returns: boolean
@@ -1453,6 +1521,23 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      admin_list_classroom_timetable: {
+        Args: { _classroom_id: string }
+        Returns: {
+          classroom_id: string
+          classroom_subject_id: string
+          end_time: string
+          id: string
+          notes: string
+          room: string
+          start_time: string
+          subject_id: string
+          subject_name: string
+          teacher_id: string
+          teacher_name: string
+          weekday: number
+        }[]
       }
       admin_list_institution_invitations: {
         Args: never
@@ -1565,6 +1650,7 @@ export type Database = {
       admin_list_teacher_school_links: {
         Args: never
         Returns: {
+          avatar_url: string
           display_name: string
           email: string
           institution_id: string
@@ -1585,44 +1671,6 @@ export type Database = {
       admin_remove_student_from_classroom: {
         Args: { _student_id: string }
         Returns: boolean
-      }
-      admin_update_profile: {
-        Args: {
-          _avatar_url?: string
-          _display_name: string
-          _user_id: string
-        }
-        Returns: {
-          avatar_url: string | null
-          created_at: string
-          display_name: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-      }
-      admin_update_student_profile: {
-        Args: {
-          _avatar_url?: string
-          _enrollment?: string
-          _full_name: string
-          _student_id: string
-        }
-        Returns: {
-          attendance: number | null
-          avatar_url: string | null
-          claim_code: string
-          classroom: string
-          classroom_id: string | null
-          created_at: string
-          enrollment: string | null
-          full_name: string
-          id: string
-          institution_id: string | null
-          teacher_id: string | null
-          updated_at: string
-          user_id: string | null
-        }
       }
       admin_restore_classroom: { Args: { _id: string }; Returns: boolean }
       admin_review_role_request: {
@@ -1671,9 +1719,86 @@ export type Database = {
         Args: { _institution_id: string; _name: string; _slug: string }
         Returns: boolean
       }
+      admin_update_profile: {
+        Args: { _avatar_url?: string; _display_name: string; _user_id: string }
+        Returns: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_update_student_profile: {
+        Args: {
+          _avatar_url?: string
+          _enrollment?: string
+          _full_name: string
+          _student_id: string
+        }
+        Returns: {
+          attendance: number | null
+          avatar_url: string | null
+          claim_code: string
+          classroom: string
+          classroom_id: string | null
+          created_at: string
+          enrollment: string
+          full_name: string
+          id: string
+          institution_id: string | null
+          teacher_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "students"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_upsert_classroom: {
         Args: { _code: string; _id: string; _name: string }
         Returns: string
+      }
+      admin_upsert_classroom_timetable: {
+        Args: {
+          _classroom_id: string
+          _classroom_subject_id: string
+          _end_time: string
+          _id: string
+          _notes?: string
+          _room?: string
+          _start_time: string
+          _weekday: number
+        }
+        Returns: {
+          classroom_id: string
+          classroom_subject_id: string
+          created_at: string
+          end_time: string
+          id: string
+          institution_id: string
+          notes: string | null
+          room: string | null
+          start_time: string
+          updated_at: string
+          weekday: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "classroom_timetable"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       admin_upsert_subject: {
         Args: { _code: string; _id: string; _name: string }
@@ -2017,6 +2142,24 @@ export type Database = {
           title: string
         }[]
       }
+      student_list_timetable: {
+        Args: never
+        Returns: {
+          classroom_id: string
+          classroom_name: string
+          classroom_subject_id: string
+          end_time: string
+          id: string
+          notes: string
+          room: string
+          start_time: string
+          subject_id: string
+          subject_name: string
+          teacher_id: string
+          teacher_name: string
+          weekday: number
+        }[]
+      }
       student_mark_all_notifications_read: { Args: never; Returns: number }
       student_mark_notification_read: {
         Args: { _id: string }
@@ -2301,10 +2444,10 @@ export type Database = {
         Args: { _classroom_id: string; _subject_id: string }
         Returns: {
           absent_count: number
-          attendance_percent: number | null
+          attendance_percent: number
           enrollment: string
           excused_count: number
-          last_attendance_date: string | null
+          last_attendance_date: string
           late_count: number
           present_count: number
           student_id: string
