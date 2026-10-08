@@ -89,6 +89,8 @@ export function AdminAcademicSetup() {
   const [termStart, setTermStart] = useState("");
   const [termEnd, setTermEnd] = useState("");
   const [termCurrent, setTermCurrent] = useState(true);
+  const [editingSubject, setEditingSubject] = useState<{ id: string; name: string; code: string } | null>(null);
+  const [editingTerm, setEditingTerm] = useState<{ id: string; name: string; startsAt: string; endsAt: string; isCurrent: boolean } | null>(null);
   const [periodBusy, setPeriodBusy] = useState<number | null>(null);
   const [periodAction, setPeriodAction] = useState<{ period: number; closed: boolean } | null>(null);
   const [teacherId, setTeacherId] = useState("");
@@ -233,10 +235,20 @@ export function AdminAcademicSetup() {
   }
   async function saveSubject() {
     if (!subjectName.trim()) { toast.error("Informe o nome da disciplina."); return; }
-    setBusyAction("subject");
-    try { await adminUpsertSubject(null, subjectName.trim(), subjectCode.trim()); setSubjectName(""); setSubjectCode(""); await refresh(); toast.success("Disciplina criada."); }
-    catch (error) { toast.error(errorText(error)); }
+    setBusyAction(editingSubject ? "edit-subject:" + editingSubject.id : "subject");
+    try {
+      await adminUpsertSubject(editingSubject?.id ?? null, subjectName.trim(), subjectCode.trim());
+      setSubjectName(""); setSubjectCode(""); setEditingSubject(null);
+      await refresh();
+      toast.success(editingSubject ? "Disciplina atualizada." : "Disciplina criada.");
+    } catch (error) { toast.error(errorText(error)); }
     finally { setBusyAction(null); }
+  }
+
+  function startEditSubject(subject: { id: string; name: string; code?: string | null }) {
+    setEditingSubject({ id: subject.id, name: subject.name, code: subject.code ?? "" });
+    setSubjectName(subject.name);
+    setSubjectCode(subject.code ?? "");
   }
 
   async function deleteSubject() {
@@ -256,10 +268,32 @@ export function AdminAcademicSetup() {
   async function saveTerm() {
     if (!termName.trim()) { toast.error("Informe o nome do período."); return; }
     if (termStart && termEnd && termStart > termEnd) { toast.error("A data de início não pode ser posterior à data final."); return; }
-    setBusyAction("term");
-    try { await adminUpsertTerm(null, termName.trim(), termStart || null, termEnd || null, termCurrent); setTermName(""); setTermStart(""); setTermEnd(""); await refresh(); toast.success("Período acadêmico salvo."); }
-    catch (error) { toast.error(errorText(error)); }
+    setBusyAction(editingTerm ? "edit-term:" + editingTerm.id : "term");
+    try {
+      await adminUpsertTerm(editingTerm?.id ?? null, termName.trim(), termStart || null, termEnd || null, termCurrent);
+      setTermName(""); setTermStart(""); setTermEnd(""); setTermCurrent(true); setEditingTerm(null);
+      await refresh();
+      toast.success(editingTerm ? "Período atualizado." : "Período acadêmico criado.");
+    } catch (error) { toast.error(errorText(error)); }
     finally { setBusyAction(null); }
+  }
+
+  function startEditTerm(term: { id: string; name: string; starts_at?: string | null; ends_at?: string | null; is_current?: boolean }) {
+    setEditingTerm({ id: term.id, name: term.name, startsAt: term.starts_at ?? "", endsAt: term.ends_at ?? "", isCurrent: term.is_current === true });
+    setTermName(term.name);
+    setTermStart(term.starts_at ?? "");
+    setTermEnd(term.ends_at ?? "");
+    setTermCurrent(term.is_current === true);
+  }
+
+  function cancelTermEdit() {
+    setEditingTerm(null);
+    setTermName(""); setTermStart(""); setTermEnd(""); setTermCurrent(true);
+  }
+
+  function cancelSubjectEdit() {
+    setEditingSubject(null);
+    setSubjectName(""); setSubjectCode("");
   }
 
   const matrixRows = (setup.data?.matrix ?? []).filter((row) => (
@@ -351,9 +385,9 @@ export function AdminAcademicSetup() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><BookOpen className="size-4 text-primary" /><p className="font-semibold">Disciplinas</p></div><div className="mt-4 space-y-2"><Input placeholder="Nome da disciplina" value={subjectName} onChange={e => setSubjectName(e.target.value)} /><Input placeholder="Código (opcional)" value={subjectCode} onChange={e => setSubjectCode(e.target.value)} /><Button onClick={() => void saveSubject()} disabled={busyAction !== null || !subjectName.trim()}><Save className="mr-2 size-4" />{busyAction === "subject" ? "Salvando…" : "Criar disciplina"}</Button></div><div className="mt-4 space-y-2">{setup.data?.subjects.map(s => <div key={s.id} className="flex items-center justify-between gap-3 rounded-xl bg-secondary/50 p-3 text-sm"><div><p className="font-medium">{s.name}</p><p className="text-xs text-muted-foreground">{s.code || "Sem código"} · {s.status === "active" ? "Ativa" : "Inativa"}</p></div><Button size="sm" variant="ghost" className="text-destructive" disabled={busyAction !== null} onClick={() => setConfirmDeleteSubject({ id: s.id, name: s.name })}>{busyAction === "delete-subject:"+s.id ? "Excluindo…" : "Excluir"}</Button></div>)}</div></div>
+            <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><BookOpen className="size-4 text-primary" /><p className="font-semibold">Disciplinas</p></div><div className="mt-4 space-y-2"><Input placeholder="Nome da disciplina" value={subjectName} onChange={e => setSubjectName(e.target.value)} /><Input placeholder="Código (opcional)" value={subjectCode} onChange={e => setSubjectCode(e.target.value)} /><div className="flex flex-wrap gap-2"><Button onClick={() => void saveSubject()} disabled={busyAction !== null || !subjectName.trim()}><Save className="mr-2 size-4" />{editingSubject ? "Salvar alterações" : "Criar disciplina"}</Button>{editingSubject && <Button type="button" variant="outline" onClick={cancelSubjectEdit} disabled={busyAction !== null}>Cancelar</Button>}</div></div><div className="mt-4 space-y-2">{setup.data?.subjects.map(s => <div key={s.id} className="flex items-center justify-between gap-3 rounded-xl bg-secondary/50 p-3 text-sm"><div><p className="font-medium">{s.name}</p><p className="text-xs text-muted-foreground">{s.code || "Sem código"} · {s.status === "active" ? "Ativa" : "Inativa"}</p></div><div className="flex shrink-0 gap-1"><Button size="sm" variant="ghost" disabled={busyAction !== null} onClick={() => startEditSubject(s)}><Pencil className="size-3" /> <span className="sr-only">Editar</span></Button><Button size="sm" variant="ghost" className="text-destructive" disabled={busyAction !== null} onClick={() => setConfirmDeleteSubject({ id: s.id, name: s.name })}>{busyAction === "delete-subject:"+s.id ? "Excluindo…" : "Excluir"}</Button></div></div>)}</div></div>
 
-            <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><CalendarRange className="size-4 text-primary" /><p className="font-semibold">Períodos</p></div><div className="mt-4 space-y-2"><Input placeholder="Ex.: 1º Bimestre" value={termName} onChange={e => setTermName(e.target.value)} /><div className="grid grid-cols-2 gap-2"><Input type="date" value={termStart} onChange={e => setTermStart(e.target.value)} /><Input type="date" value={termEnd} onChange={e => setTermEnd(e.target.value)} /></div><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={termCurrent} onChange={e => setTermCurrent(e.target.checked)} /> Marcar como período atual</label><Button onClick={() => void saveTerm()} disabled={busyAction !== null || !termName.trim()}><Save className="mr-2 size-4" />{busyAction === "term" ? "Salvando…" : "Criar período"}</Button></div><div className="mt-4 space-y-2">{setup.data?.terms.map(t => <div key={t.id} className="rounded-xl bg-secondary/50 p-3 text-sm"><div className="flex items-center justify-between gap-2"><p className="font-medium">{t.name}</p>{t.is_current && <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">Atual</span>}</div><p className="text-xs text-muted-foreground">{t.starts_at || "Sem início"} · {t.ends_at || "Sem fim"}</p></div>)}</div></div>
+            <div className="rounded-2xl border border-border p-4"><div className="flex items-center gap-2"><CalendarRange className="size-4 text-primary" /><p className="font-semibold">Períodos</p></div><div className="mt-4 space-y-2"><Input placeholder="Ex.: 1º Bimestre" value={termName} onChange={e => setTermName(e.target.value)} /><div className="grid grid-cols-2 gap-2"><Input type="date" value={termStart} onChange={e => setTermStart(e.target.value)} /><Input type="date" value={termEnd} onChange={e => setTermEnd(e.target.value)} /></div><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={termCurrent} onChange={e => setTermCurrent(e.target.checked)} /> Marcar como período atual</label><div className="flex flex-wrap gap-2"><Button onClick={() => void saveTerm()} disabled={busyAction !== null || !termName.trim()}><Save className="mr-2 size-4" />{editingTerm ? "Salvar alterações" : "Criar período"}</Button>{editingTerm && <Button type="button" variant="outline" onClick={cancelTermEdit} disabled={busyAction !== null}>Cancelar</Button>}</div></div><div className="mt-4 space-y-2">{setup.data?.terms.map(t => <div key={t.id} className="flex items-center justify-between gap-2 rounded-xl bg-secondary/50 p-3 text-sm"><div><p className="font-medium">{t.name}</p>{t.is_current && <span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold text-primary">Atual</span>}<p className="text-xs text-muted-foreground">{t.starts_at || "Sem início"} · {t.ends_at || "Sem fim"}</p></div><Button size="sm" variant="ghost" disabled={busyAction !== null} onClick={() => startEditTerm(t)}><Pencil className="size-3" /><span className="sr-only">Editar período</span></Button></div>)}</div></div>
           </div>
 
           <section className="rounded-2xl border border-border bg-background p-5 sm:p-6">
