@@ -148,6 +148,7 @@ export function AdminTeacherSchool() {
       ) : institutions.error ? (
         <p className="mt-5 text-sm text-destructive">{errorText(institutions.error)}</p>
       ) : (
+        <>
         <div className="mt-5 space-y-3">
           {filteredTeachers.map(teacher => {
             const value = selectedSchool[teacher.user_id] ?? teacher.institution_id ?? "";
@@ -201,7 +202,7 @@ export function AdminTeacherSchool() {
           <DialogFooter><Button variant="outline" onClick={closeProfile} disabled={savingProfile}>Cancelar</Button><Button onClick={() => void saveProfile()} disabled={savingProfile || !editName.trim()}>{savingProfile ? "Salvando…" : "Salvar alterações"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-
+        </>
       )}
     </section>
   );
