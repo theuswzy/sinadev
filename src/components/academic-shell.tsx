@@ -105,6 +105,7 @@ export function AcademicShell({
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [navGroup, setNavGroup] = useState<"academic" | "content" | null>(null);
+  const [switchingInstitution, setSwitchingInstitution] = useState(false);
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -315,6 +316,41 @@ export function AcademicShell({
     ]);
   }
 
+  async function changeInstitution(institutionId: string) {
+    if (!institutionId || switchingInstitution) return;
+
+    setSwitchingInstitution(true);
+    try {
+      const { error } = await supabase.rpc("account_set_institution", { _institution_id: institutionId });
+      if (error) throw error;
+
+      // The active tenant changes the result of nearly every academic query.
+      // Invalidate the whole SINA query family so the new context is reflected
+      // consistently in the header, dashboard and current module.
+      await queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = (query.queryKey as readonly unknown[])[0];
+          return typeof key === "string" && [
+            "my-", "dashboard-", "teacher-", "student-", "admin-", "shell-",
+          ].some((prefix) => key === prefix || key.startsWith(prefix));
+        },
+      });
+
+      await Promise.all([
+        role.refetch(),
+        institutions.refetch(),
+      ]);
+
+      toast.success("Instituição ativa atualizada.");
+    } catch (error) {
+      console.error("[SINA] Não foi possível trocar a instituição:", error);
+      toast.error("Não foi possível trocar de instituição.");
+      await institutions.refetch();
+    } finally {
+      setSwitchingInstitution(false);
+    }
+  }
+
   const renderNavItem = (item: ShellLink) => {
     const active = isActive(item);
     const className = active
@@ -392,28 +428,11 @@ export function AcademicShell({
                   ) : (
                     <select
                       aria-label="Instituição ativa"
+                      aria-busy={switchingInstitution || undefined}
+                      disabled={switchingInstitution || institutions.isFetching}
                       value={institutions.data.find((institution) => institution.is_active)?.id ?? institutions.data[0]?.id ?? ""}
-                      onChange={async (event) => {
-                        if (!event.target.value) return;
-                        const { error } = await supabase.rpc("account_set_institution", { _institution_id: event.target.value });
-                        if (error) {
-                          console.error("[SINA] Não foi possível trocar a instituição:", error);
-                          toast.error("Não foi possível trocar de instituição.");
-                          return;
-                        }
-                        await Promise.all([
-                          queryClient.invalidateQueries({ queryKey: ["my-role"] }),
-                          queryClient.invalidateQueries({ queryKey: ["my-institutions"] }),
-                          queryClient.invalidateQueries({
-                            predicate: (query) => {
-                              const key = String(query.queryKey[0] ?? "");
-                              return key.startsWith("teacher-") || key.startsWith("student-") || key.startsWith("admin-");
-                            },
-                          }),
-                        ]);
-                        toast.success("Instituição ativa atualizada.");
-                      }}
-                      className="max-w-[120px] bg-transparent text-xs font-semibold outline-none sm:max-w-48"
+                      onChange={(event) => void changeInstitution(event.target.value)}
+                      className="max-w-[120px] bg-transparent text-xs font-semibold outline-none disabled:cursor-wait sm:max-w-48"
                     >
                       {institutions.data.map((institution) => (
                         <option key={institution.id} value={institution.id}>{institution.name}</option>
