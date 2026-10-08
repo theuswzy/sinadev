@@ -326,38 +326,38 @@ export function AcademicShell({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-50 border-b border-border/80 bg-background/90 shadow-sm backdrop-blur-xl">
-        <div className="mx-auto max-w-[1440px] px-3 sm:px-5 lg:px-8">
-          <div className="flex min-h-[68px] items-center gap-3">
+      <header className="sina-shell-header sticky top-0 z-50">
+        <div className="sina-shell-container mx-auto max-w-[1440px] px-3 sm:px-5 lg:px-8">
+          <div className="flex min-h-[64px] items-center gap-3">
             <Link
               to={area.href}
               aria-label="SINA — Dashboard"
-              className="flex shrink-0 items-center gap-2.5 font-display text-xl font-bold tracking-tight"
+              className="sina-brand flex shrink-0 items-center gap-2.5 font-display text-xl font-bold tracking-tight"
             >
-              <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <span className="sina-brand-mark flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
                 <GraduationCap className="size-5" />
               </span>
               <span className="hidden sm:inline">SINA</span>
             </Link>
 
-            <div className="hidden h-8 w-px bg-border md:block" />
+            <div className="hidden h-7 w-px bg-border md:block" />
 
-            <div className="min-w-0 flex-1">
+            <div className="sina-shell-context min-w-0 flex-1">
               <div className="flex min-w-0 items-center gap-2">
                 <p className="truncate text-sm font-semibold">{title}</p>
-                <span className="hidden shrink-0 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground lg:inline-flex">
+                <span className="hidden shrink-0 text-[10px] font-bold uppercase tracking-[0.16em] text-primary lg:inline-flex">
                   Portal acadêmico
                 </span>
               </div>
               <p className="hidden truncate text-xs text-muted-foreground sm:block">{subtitle}</p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="sina-shell-actions flex items-center gap-2">
               {institutions.data && institutions.data.length > 0 && (() => {
                 const institution = institutions.data[0];
                 if (!institution) return null;
                 return (
-                  <div className="flex max-w-[220px] items-center gap-2 rounded-xl border border-border bg-card px-2 py-1.5">
+                  <div className="sina-institution flex max-w-[220px] items-center gap-2 rounded-xl px-2 py-1.5">
                     <Building2 className="size-4 shrink-0 text-primary" />
                     {institutions.data.length === 1 ? (
                       <span className="truncate text-xs font-semibold" title={institution.name}>
@@ -397,14 +397,14 @@ export function AcademicShell({
                   </div>
                 );
               })()}
-              <span className="hidden rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground sm:inline-flex">
+              <span className="sina-role-badge hidden rounded-full px-3 py-1.5 text-xs font-semibold sm:inline-flex">
                 {roleShort}
               </span>
               <ThemeToggle />
               <Button
                 type="button"
                 variant="outline"
-                className="h-9 rounded-xl px-3"
+                className="sina-action-button h-9 rounded-xl px-3"
                 onClick={() => void navigate({ to: "/perfil" })}
                 aria-label="Meu perfil"
                 title="Meu perfil"
@@ -424,7 +424,7 @@ export function AcademicShell({
                 type="button"
                 variant="outline"
                 size="icon"
-                className="rounded-xl"
+                className="sina-action-button rounded-xl"
                 aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
                 onClick={() => setMobileOpen((value) => !value)}
               >
@@ -436,8 +436,8 @@ export function AcademicShell({
           <nav
             aria-label="Navegação principal"
             className={(role.data === "teacher" || role.data === "student")
-              ? "relative -mx-3 hidden gap-1 px-3 pb-3 md:mx-0 md:flex md:px-0"
-              : "scrollbar-none -mx-3 hidden gap-1 overflow-x-auto px-3 pb-3 md:mx-0 md:flex md:px-0"}
+              ? "sina-main-nav relative -mx-3 hidden gap-1 px-3 pb-2 md:mx-0 md:flex md:px-0"
+              : "sina-main-nav scrollbar-none -mx-3 hidden gap-1 overflow-x-auto px-3 pb-2 md:mx-0 md:flex md:px-0"}
           >
             {role.data === "teacher" || role.data === "student" ? (
               <>
@@ -561,8 +561,8 @@ export function AcademicShell({
         </div>
       </header>
 
-      <main className="min-h-[calc(100vh-116px)]">
-        <div className="mx-auto w-full max-w-[1440px] px-3 py-5 sm:px-5 sm:py-7 lg:px-8 lg:py-9">
+      <main className="sina-shell-main min-h-[calc(100vh-108px)]">
+        <div className="sina-shell-content mx-auto w-full max-w-[1440px] px-3 py-5 sm:px-5 sm:py-7 lg:px-8 lg:py-8">
           <div className="mb-5 md:hidden">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">{roleLabel}</p>
             <h1 className="mt-1 font-display text-xl font-bold tracking-tight">{subtitle}</h1>
