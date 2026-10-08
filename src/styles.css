@@ -242,3 +242,22 @@
     .sina-interactive { transition: none; }
   }
 }
+
+
+/* SINA visual refinement: cleaner institutional shell, less visual noise. */
+@layer utilities {
+  .sina-shell-header { background: color-mix(in oklch, var(--color-card) 94%, transparent); border-bottom: 1px solid color-mix(in oklch, var(--color-border) 82%, transparent); box-shadow: 0 1px 10px color-mix(in oklch, var(--color-foreground) 3%, transparent); backdrop-filter: blur(14px); }
+  .sina-brand { letter-spacing: -0.035em; }
+  .sina-brand-mark { width: 36px; height: 36px; border-radius: 10px; box-shadow: none; }
+  .sina-institution { background: var(--color-muted); color: var(--color-foreground); }
+  .sina-role-badge { background: var(--color-accent); color: var(--color-accent-foreground); }
+  .sina-action-button { border-color: transparent; background: transparent; box-shadow: none; }
+  .sina-action-button:hover { background: var(--color-muted); }
+  .sina-main-nav { border-top: 1px solid color-mix(in oklch, var(--color-border) 55%, transparent); padding-top: 6px; }
+  .sina-main-nav a, .sina-main-nav button { border-radius: 9px; box-shadow: none !important; }
+  .sina-main-nav a.bg-primary, .sina-main-nav button.bg-primary { background: var(--color-accent); color: var(--color-accent-foreground); }
+  .sina-main-nav a:hover:not(.bg-primary), .sina-main-nav button:hover:not(.bg-primary) { background: var(--color-muted); }
+  .sina-shell-main { background: radial-gradient(circle at 50% -15%, color-mix(in oklch, var(--color-primary) 7%, transparent), transparent 34rem), var(--color-background); }
+  .sina-shell-content { min-height: calc(100vh - 108px); }
+  .sina-card { border-radius: 0.8rem; box-shadow: 0 1px 2px color-mix(in oklch, var(--color-foreground) 4%, transparent); }
+}
