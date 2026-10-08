@@ -1,4 +1,6 @@
-create or replace function public.teacher_list_task_submissions(_task_id uuid)
+drop function if exists public.teacher_list_task_submissions(uuid);
+
+create function public.teacher_list_task_submissions(_task_id uuid)
 returns table(
   id uuid,
   task_id uuid,
@@ -40,3 +42,5 @@ as $function$
     and s.institution_id=t.institution_id
   order by s.full_name;
 $function$;
+
+grant execute on function public.teacher_list_task_submissions(uuid) to authenticated;
