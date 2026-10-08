@@ -7,11 +7,11 @@ import { StudentModulePage, type StudentModule } from "@/components/student-modu
 import { StudentNotifications } from "@/routes/_authenticated/aluno/notificacoes";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { errorText, getRole, loadGrades, loadMyStudent, loadStudentAcademicMaterialsDetailed, loadStudentCalendar, loadStudentAssessmentsDetailed, loadStudentSubjects, loadStudentTasksDetailed, loadStudentAnnouncementsDetailed, loadStudentAttendanceDetailed, loadNotifications } from "@/lib/sina-data";
+import { errorText, getRole, loadGrades, loadMyStudent, loadStudentAcademicMaterialsDetailed, loadStudentCalendar, loadStudentSubjects, loadStudentTasksDetailed, loadStudentAnnouncementsDetailed, loadStudentAttendanceDetailed, loadNotifications } from "@/lib/sina-data";
 
 
 export const Route = createFileRoute("/_authenticated/aluno")({
-  head: () => ({ meta: [{ title: "Dashboard do aluno — SINA" }, { name: "description", content: "Visão geral da vida acadêmica do aluno." }, { property: "og:title", content: "Dashboard do aluno — SINA" }, { property: "og:description", content: "Dados acadêmicos e cronograma semanal da sua turma no SINA." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({ meta: [{ title: "Dashboard do aluno — SINA" }, { name: "description", content: "Visão geral da vida acadêmica do aluno." }, { property: "og:title", content: "Dashboard do aluno — SINA" }, { property: "og:description", content: "Resumo acadêmico, atividades e informações importantes da sua turma no SINA." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: StudentArea,
 });
 
