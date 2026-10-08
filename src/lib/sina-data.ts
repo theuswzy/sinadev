@@ -395,7 +395,18 @@ export async function clearTeacherGradebookScores(args: {
   return data ?? 0;
 }
 export const formatScore = (n: number) => n.toFixed(1).replace(".", ",");
-export const errorText = (err: unknown) => err instanceof Error ? err.message : "Não foi possível concluir. Tente novamente.";
+export const errorText = (err: unknown) => {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "object" && err !== null) {
+    const message = (err as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message;
+    const details = (err as { details?: unknown }).details;
+    if (typeof details === "string" && details.trim()) return details;
+    const hint = (err as { hint?: unknown }).hint;
+    if (typeof hint === "string" && hint.trim()) return hint;
+  }
+  return "Não foi possível concluir. Tente novamente.";
+};
 
 
 export type StudentAnnouncement = Tables<"announcements"> & {
@@ -1686,4 +1697,3 @@ export async function adminUpsertTerm(id: string | null, name: string, startsAt:
   if (error) throw error;
   return data;
 }
-
