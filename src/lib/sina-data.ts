@@ -1729,3 +1729,27 @@ export async function adminUpsertTerm(id: string | null, name: string, startsAt:
   if (error) throw error;
   return data;
 }
+
+
+export type TeacherNotification = StudentNotification;
+
+export async function loadTeacherNotifications(unreadOnly = false): Promise<TeacherNotification[]> {
+  const { data, error } = await supabase.rpc("teacher_list_notifications", {
+    _unread_only: unreadOnly,
+    _limit: 50,
+  });
+  if (error) throw error;
+  return (data ?? []) as TeacherNotification[];
+}
+
+export async function markTeacherNotificationRead(notificationId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("teacher_mark_notification_read", { _id: notificationId });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function markAllTeacherNotificationsRead(): Promise<number> {
+  const { data, error } = await supabase.rpc("teacher_mark_all_notifications_read");
+  if (error) throw error;
+  return data ?? 0;
+}
