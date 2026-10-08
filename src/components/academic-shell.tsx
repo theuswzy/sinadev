@@ -26,7 +26,12 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
-import { getRole, type UserRole } from "@/lib/sina-data";
+import {
+  getRole,
+  loadNotifications,
+  loadTeacherNotifications,
+  type UserRole,
+} from "@/lib/sina-data";
 
 type AcademicNavPath = "/admin" | "/aluno" | "/aluno/tarefas" | "/aluno/disciplinas" | "/aluno/notas" | "/aluno/frequencia" | "/aluno/agenda" | "/aluno/avisos" | "/aluno/materiais" | "/aluno/notificacoes" | "/professor" | "/professor/turmas" | "/professor/alunos" | "/professor/disciplinas" | "/professor/notas" | "/professor/frequencia" | "/professor/avaliacoes" | "/professor/atividades" | "/professor/materiais" | "/professor/agenda" | "/professor/comunicacao" | "/professor/notificacoes";
 
@@ -194,6 +199,17 @@ export function AcademicShell({
   }, [queryClient]);
 
   const role = useQuery({ queryKey: ["my-role"], queryFn: getRole, staleTime: 5 * 60_000 });
+  const notifications = useQuery({
+    queryKey: ["shell-notifications", role.data],
+    queryFn: () => role.data === "teacher" ? loadTeacherNotifications(true) : loadNotifications(true),
+    enabled: role.data === "teacher" || role.data === "student",
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+  });
+
+  const unreadNotifications = notifications.data?.length ?? 0;
+
   const institutions = useQuery({
     queryKey: ["my-institutions"],
     queryFn: async () => {
@@ -401,6 +417,24 @@ export function AcademicShell({
               <span className="sina-role-badge hidden rounded-full px-3 py-1.5 text-xs font-semibold sm:inline-flex">
                 {roleShort}
               </span>
+              {(role.data === "teacher" || role.data === "student") && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="relative rounded-xl"
+                  onClick={() => void navigate({ to: role.data === "teacher" ? "/professor/notificacoes" : "/aluno/notificacoes" })}
+                  aria-label="Notificações"
+                  title="Notificações"
+                >
+                  <Bell className="size-4" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-4 text-destructive-foreground">
+                      {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                    </span>
+                  )}
+                </Button>
+              )}
               <ThemeToggle />
               <Button
                 type="button"
@@ -420,6 +454,24 @@ export function AcademicShell({
             </div>
 
             <div className="flex items-center gap-1 md:hidden">
+              {(role.data === "teacher" || role.data === "student") && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="relative rounded-xl"
+                  onClick={() => void navigate({ to: role.data === "teacher" ? "/professor/notificacoes" : "/aluno/notificacoes" })}
+                  aria-label="Notificações"
+                  title="Notificações"
+                >
+                  <Bell className="size-4" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute -right-1 -top-1 flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-4 text-destructive-foreground">
+                      {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                    </span>
+                  )}
+                </Button>
+              )}
               <ThemeToggle />
               <Button
                 type="button"
