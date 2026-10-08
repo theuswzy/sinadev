@@ -59,7 +59,6 @@ function useData(section: Section){
   const students=useQuery({queryKey:["teacher-new-students"],queryFn:loadTeacherInstitutionStudents,staleTime:30000,enabled:needsStudents});
   const subjects=useQuery({queryKey:["teacher-new-subjects"],queryFn:loadTeacherSubjects,staleTime:30000,enabled:needsSubjects});
   const assignments=useQuery({queryKey:["teacher-new-assignments"],queryFn:async()=>{const {data,error}=await supabase.rpc("teacher_list_subject_assignments");if(error)throw error;return data??[]},staleTime:30000,enabled:needsAssignments});
-  const responsibilities=useQuery({queryKey:["teacher-subject-responsibilities"],queryFn:async()=>{const {data,error}=await academicRpcClient.rpc("teacher_list_subject_responsibilities");if(error)throw error;return data??[]},staleTime:15000,refetchOnWindowFocus:true});
   const unassignedClasses=useQuery({queryKey:["teacher-new-unassigned-classes"],queryFn:loadTeacherUnassignedClassrooms,staleTime:15000,enabled:needsUnassignedClasses});
   async function refresh(){
     await Promise.all([
@@ -70,10 +69,9 @@ function useData(section: Section){
       qc.invalidateQueries({queryKey:["teacher-new-students-page"]}),
       qc.invalidateQueries({queryKey:["teacher-new-subjects"]}),
       qc.invalidateQueries({queryKey:["teacher-new-assignments"]}),
-      qc.invalidateQueries({queryKey:["teacher-subject-responsibilities"]}),
     ]);
   }
-  return {classes,institutionClasses,students,subjects,assignments,responsibilities,unassignedClasses,refresh};
+  return {classes,institutionClasses,students,subjects,assignments,unassignedClasses,refresh};
 }
 
 function DataError({d}:{d:ReturnType<typeof useData>}) {
@@ -111,10 +109,6 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
     {label:"Disciplinas",value:subjects.length,desc:"Gerenciar suas disciplinas",icon:BookOpen,go:"disciplinas" as Section},
     {label:"Sem turma",value:pending.length,desc:"Resolver vínculos pendentes",icon:School,go:"alunos" as Section},
   ];
-
-  const responsibilitySummary = d.responsibilities.data ?? [];
-  const responsibleCount = responsibilitySummary.filter((item:any)=>item.is_primary).length;
-  const additionalCount = responsibilitySummary.filter((item:any)=>!item.is_primary).length;
 
   return <div className="space-y-6">
     <section className="overflow-hidden rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm sm:p-8">
