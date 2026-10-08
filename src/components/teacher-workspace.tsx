@@ -757,7 +757,9 @@ function Attendance({d}:{d:ReturnType<typeof useData>}){
     setBusy(true);
     try{
       await saveAttendance(classroom,date,subject,rows.map(r=>({student_id:r.student_id,status:r.status,note:r.note})));
-      toast.success("Frequência salva.");
+      const refreshed=await loadAttendance(classroom,date,subject);
+      setRows(refreshed);
+      toast.success("Frequência salva e conferida.");
     }catch(e){toast.error(errorText(e))}
     finally{setBusy(false)}
   }
