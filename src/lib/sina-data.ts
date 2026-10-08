@@ -696,7 +696,7 @@ export async function adminUpdateStudentProfile(
   const { data, error } = await supabase.rpc("admin_update_student_profile", {
     _student_id: studentId,
     _full_name: fullName,
-    _enrollment: enrollment || undefined,
+    _enrollment: enrollment,
     _avatar_url: avatarUrl ?? "",
   });
   if (error) throw error;
