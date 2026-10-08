@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, BookOpen, CalendarRange, Layers3, Save, Archive, RotateCcw, Users, FileUp, Mail, Copy, X, Pencil, Trash2, SlidersHorizontal, Eye, History, LockKeyhole, UnlockKeyhole } from "lucide-react";
+import { AlertTriangle, BookOpen, CalendarRange, Clock, Layers3, Save, Archive, RotateCcw, Users, FileUp, Mail, Copy, X, Pencil, Trash2, SlidersHorizontal, Eye, History, LockKeyhole, UnlockKeyhole } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,8 @@ import {
 } from "@/lib/sina-data";
 
 
+
+import { loadAdminClassroomTimetable, adminUpsertClassroomTimetable, adminDeleteClassroomTimetable } from "@/lib/timetable-data";
 
 function parseCsvLine(line: string) {
   const values: string[] = [];
@@ -74,6 +76,15 @@ export function AdminAcademicSetup() {
   const invitations = useQuery({ queryKey: ["admin-institution-invitations"], queryFn: loadAdminInstitutionInvitations });
   const periodLocks = useQuery({ queryKey: ["admin-academic-period-locks"], queryFn: loadAdminAcademicPeriodLocks, staleTime: 10000 });
   const gradeAudit = useQuery({ queryKey: ["admin-grade-change-audit"], queryFn: () => loadAdminGradeChangeAudit(50), staleTime: 10000, refetchOnWindowFocus: true });
+  const [timetableClassroomId, setTimetableClassroomId] = useState("");
+  const [timetableEntry, setTimetableEntry] = useState<{ id: string | null; classroomSubjectId: string; weekday: number; startTime: string; endTime: string; room: string; notes: string }>({
+    id: null, classroomSubjectId: "", weekday: 1, startTime: "13:10", endTime: "14:00", room: "", notes: "",
+  });
+  const classroomTimetable = useQuery({
+    queryKey: ["admin-classroom-timetable", timetableClassroomId],
+    queryFn: () => loadAdminClassroomTimetable(timetableClassroomId),
+    enabled: !!timetableClassroomId,
+  });
   const [classroomHubId, setClassroomHubId] = useState<string | null>(null);
   const classroomHub = useQuery({
     queryKey: ["admin-classroom-hub", classroomHubId],
@@ -262,6 +273,48 @@ export function AdminAcademicSetup() {
     finally { setBusyAction(null); }
   }
 
+  const timetableClassroomRows = (setup.data?.matrix ?? []).filter(row => row.classroom_id === timetableClassroomId && row.teacher_id);
+  const timetableDays = [
+    { value: 1, label: "Seg" },
+    { value: 2, label: "Ter" },
+    { value: 3, label: "Qua" },
+    { value: 4, label: "Qui" },
+    { value: 5, label: "Sex" },
+  ];
+  async function saveTimetableEntry() {
+    if (busyAction !== null) return;
+    if (!timetableClassroomId || !timetableEntry.classroomSubjectId) { toast.error("Selecione a turma e a disciplina."); return; }
+    if (!timetableEntry.startTime || !timetableEntry.endTime || timetableEntry.endTime <= timetableEntry.startTime) { toast.error("Informe um horário válido."); return; }
+    setBusyAction("timetable");
+    try {
+      await adminUpsertClassroomTimetable({
+        id: timetableEntry.id,
+        classroomId: timetableClassroomId,
+        classroomSubjectId: timetableEntry.classroomSubjectId,
+        weekday: timetableEntry.weekday,
+        startTime: timetableEntry.startTime,
+        endTime: timetableEntry.endTime,
+        room: timetableEntry.room,
+        notes: timetableEntry.notes,
+      });
+      await Promise.all([qc.invalidateQueries({ queryKey: ["admin-classroom-timetable", timetableClassroomId] }), qc.invalidateQueries({ queryKey: ["dashboard-timetable"] })]);
+      setTimetableEntry({ id: null, classroomSubjectId: "", weekday: 1, startTime: "13:10", endTime: "14:00", room: "", notes: "" });
+      toast.success(timetableEntry.id ? "Aula atualizada no cronograma." : "Aula adicionada ao cronograma.");
+    } catch (error) { toast.error(errorText(error)); }
+    finally { setBusyAction(null); }
+  }
+  async function removeTimetableEntry(id: string) {
+    if (busyAction !== null) return;
+    setBusyAction("timetable-delete:" + id);
+    try {
+      await adminDeleteClassroomTimetable(id);
+      await Promise.all([qc.invalidateQueries({ queryKey: ["admin-classroom-timetable", timetableClassroomId] }), qc.invalidateQueries({ queryKey: ["dashboard-timetable"] })]);
+      if (timetableEntry.id === id) setTimetableEntry({ id: null, classroomSubjectId: "", weekday: 1, startTime: "13:10", endTime: "14:00", room: "", notes: "" });
+      toast.success("Aula removida do cronograma.");
+    } catch (error) { toast.error(errorText(error)); }
+    finally { setBusyAction(null); }
+  }
+
   const matrixRows = (setup.data?.matrix ?? []).filter((row) => (
     (matrixClassroomFilter === "all" || row.classroom_id === matrixClassroomFilter) &&
     (matrixSubjectFilter === "all" || row.subject_id === matrixSubjectFilter) &&
@@ -334,7 +387,8 @@ export function AdminAcademicSetup() {
                         </div>
                       </div>
                       <div className="flex shrink-0 flex-wrap gap-1">
-                        <Button size="sm" variant="ghost" disabled={busyAction !== null} onClick={() => setClassroomHubId(c.id)} aria-label={`Abrir central de ${c.name}`}><Eye className="size-4" /></Button>
+                        <Button size="sm" variant="ghost" title={`Cronograma de ${c.name}`} aria-label={`Cronograma de ${c.name}`} disabled={busyAction !== null} onClick={() => { setTimetableClassroomId(c.id); setTimetableEntry({ id: null, classroomSubjectId: "", weekday: 1, startTime: "13:10", endTime: "14:00", room: "", notes: "" }); document.getElementById("cronograma-admin")?.scrollIntoView({ behavior: "smooth" }); }}><Clock className="size-4" /></Button>
+                         <Button size="sm" variant="ghost" disabled={busyAction !== null} onClick={() => setClassroomHubId(c.id)} aria-label={`Abrir central de ${c.name}`}><Eye className="size-4" /></Button>
                         <Button size="sm" variant="ghost" disabled={busyAction !== null} onClick={() => setEditingClassroom({ id: c.id, name: c.name, code: c.code || "" })} aria-label={`Editar ${c.name}`}><Pencil className="size-4" /></Button>
                         {c.status === "active" ? (
                           <Button size="sm" variant="ghost" disabled={busyAction !== null} onClick={() => void archiveClassroom(c.id)} aria-label={`Arquivar ${c.name}`}>{busyAction === "archive:"+c.id ? "…" : <Archive className="size-4" />}</Button>
@@ -632,6 +686,62 @@ export function AdminAcademicSetup() {
               </table>
               {!matrixRows.length && <div className="p-8 text-center text-sm text-muted-foreground">Nenhum vínculo encontrado com esses filtros. Vincule disciplinas às turmas para começar a preencher a matriz.</div>}
             </div>
+          </section>
+
+          <section className="rounded-2xl border border-border p-5 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 size-5 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Qualidade dos dados</p>
+                  <h3 className="mt-1 text-lg font-semibold">Pendências acadêmicas detectadas</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">Corrigir estes pontos evita diários, notas e relatórios incompletos.</p>
+                </div>
+              </div>
+              <span className={qualityIssueCount ? "rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300" : "rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary"}>
+                {qualityIssueCount ? qualityIssueCount + " ponto" + (qualityIssueCount === 1 ? "" : "s") : "Tudo certo"}
+              </span>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Alunos sem turma</p>
+                <p className="mt-1 text-2xl font-semibold">{quality?.students_without_class ?? 0}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Precisam de vínculo acadêmico.</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Turmas sem professor</p>
+                <p className="mt-1 text-2xl font-semibold">{quality?.classrooms_without_teacher?.length ?? 0}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{(quality?.classrooms_without_teacher ?? []).slice(0,2).map(item => item.name).join(" · ") || "Nenhuma"}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Turmas sem disciplina</p>
+                <p className="mt-1 text-2xl font-semibold">{quality?.classrooms_without_subject?.length ?? 0}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{(quality?.classrooms_without_subject ?? []).slice(0,2).map(item => item.name).join(" · ") || "Nenhuma"}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Disciplinas sem professor</p>
+                <p className="mt-1 text-2xl font-semibold">{quality?.subject_links_without_teacher?.length ?? 0}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{(quality?.subject_links_without_teacher ?? []).slice(0,2).map(item => item.classroom_name + " · " + item.subject_name).join(" · ") || "Nenhuma"}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Atividades sem disciplina</p>
+                <p className="mt-1 text-2xl font-semibold">{quality?.tasks_without_subject ?? 0}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Registros que precisam de classificação.</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Frequência sem disciplina</p>
+                <p className="mt-1 text-2xl font-semibold">{quality?.attendance_without_subject ?? 0}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Histórico antigo ou incompleto.</p>
+              </div>
+            </div>
+
+            {!!quality?.attendance_without_subject && (
+              <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/5 p-4 text-sm">
+                <p className="font-semibold">Há registros antigos de frequência sem disciplina.</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">O SINA não atribui uma matéria automaticamente quando existem múltiplas disciplinas possíveis. Os novos lançamentos já usam o vínculo turma + disciplina + professor.</p>
+              </div>
+            )}
           </section>
 
           <section className="rounded-2xl border border-border p-5 sm:p-6">
