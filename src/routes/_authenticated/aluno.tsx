@@ -257,7 +257,7 @@ function StudentDashboard() {
               <p className="mt-1 text-sm text-muted-foreground">Uma visão rápida do que merece prioridade antes de você entrar em cada área.</p>
             </div>
             <span className="w-fit rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold">
-              {overdueTasks.length + pending.length + unreadCount} item{overdueTasks.length + pending.length + unreadCount === 1 ? "" : "ns"} para acompanhar
+              {pending.length + unreadCount + upcomingEvents.length} item{pending.length + unreadCount + upcomingEvents.length === 1 ? "" : "s"} para acompanhar
             </span>
           </div>
         </div>
