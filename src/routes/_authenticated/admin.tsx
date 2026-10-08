@@ -42,6 +42,15 @@ function AdminArea() {
       return Boolean(data);
     },
   });
+  const currentUser = useQuery({
+    queryKey: ["admin-current-user"],
+    queryFn: async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return data.user?.id ?? null;
+    },
+  });
+
   const institutions = useQuery({
     queryKey: ["my-institutions"],
     queryFn: async () => {
@@ -882,7 +891,7 @@ function AdminArea() {
                         <ShieldCheck className="mr-2 size-4" />Tornar ADM
                       </Button>
                     )}
-                    {account.is_administrator && account.user_id !== role.data?.toString() && (
+                    {account.is_administrator && account.user_id !== currentUser.data && (
                       <Button
                         size="sm"
                         variant="outline"
