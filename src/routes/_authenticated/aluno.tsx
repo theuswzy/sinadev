@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight, RefreshCw, Clock } from "lucide-react";
+import { ArrowRight, BarChart3, Bell, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Megaphone, UserRound, FileText, ChevronRight, RefreshCw } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
 import { StudentModulePage, type StudentModule } from "@/components/student-module-page";
 import { StudentNotifications } from "@/routes/_authenticated/aluno/notificacoes";
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { errorText, getRole, loadGrades, loadMyStudent, loadStudentAcademicMaterialsDetailed, loadStudentCalendar, loadStudentAssessmentsDetailed, loadStudentSubjects, loadStudentTasksDetailed, loadStudentAnnouncementsDetailed, loadStudentAttendanceDetailed, loadNotifications } from "@/lib/sina-data";
 
-import { loadStudentTimetable } from "@/lib/timetable-data";
 
 export const Route = createFileRoute("/_authenticated/aluno")({
   head: () => ({ meta: [{ title: "Dashboard do aluno — SINA" }, { name: "description", content: "Visão geral da vida acadêmica do aluno." }, { property: "og:title", content: "Dashboard do aluno — SINA" }, { property: "og:description", content: "Dados acadêmicos e cronograma semanal da sua turma no SINA." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -42,16 +41,14 @@ function StudentDashboard() {
   const liveOptions = { refetchOnWindowFocus: true, refetchInterval: 30000 };
   const tasks = useQuery({ queryKey: ["dashboard-tasks"], queryFn: loadStudentTasksDetailed, enabled: !!student.data, ...liveOptions });
   const grades = useQuery({ queryKey: ["dashboard-grades", student.data?.id], queryFn: () => loadGrades(student.data?.id ?? ""), enabled: !!student.data?.id, ...liveOptions });
-  const assessments = useQuery({ queryKey: ["dashboard-assessments"], queryFn: loadStudentAssessmentsDetailed, enabled: !!student.data, ...liveOptions });
   const studentSubjects = useQuery({ queryKey: ["dashboard-student-subjects"], queryFn: loadStudentSubjects, enabled: !!student.data, ...liveOptions });
-  const timetable = useQuery({ queryKey: ["dashboard-timetable", student.data?.institution_id, student.data?.classroom_id], queryFn: loadStudentTimetable, enabled: !!student.data?.classroom_id, ...liveOptions });
   const announcements = useQuery({ queryKey: ["dashboard-announcements"], queryFn: loadStudentAnnouncementsDetailed, enabled: !!student.data, ...liveOptions });
   const attendance = useQuery({ queryKey: ["dashboard-attendance"], queryFn: loadStudentAttendanceDetailed, enabled: !!student.data, ...liveOptions });
   const materials = useQuery({ queryKey: ["dashboard-materials"], queryFn: loadStudentAcademicMaterialsDetailed, enabled: !!student.data, ...liveOptions });
   const calendarRange = { from: new Date().toISOString(), to: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString() };
   const calendar = useQuery({ queryKey: ["dashboard-calendar", calendarRange.from.slice(0,10), calendarRange.to.slice(0,10)], queryFn: () => loadStudentCalendar(calendarRange.from, calendarRange.to), enabled: !!student.data, ...liveOptions });
   const notifications = useQuery({ queryKey: ["dashboard-notifications"], queryFn: () => loadNotifications(true), enabled: !!student.data, ...liveOptions });
-  const dashboardQueries = [tasks, grades, assessments, studentSubjects, timetable, announcements, attendance, materials, calendar, notifications];
+  const dashboardQueries = [tasks, grades, studentSubjects, announcements, attendance, materials, calendar, notifications];
 
   useEffect(() => {
     if (role.data !== "student") return;
@@ -79,7 +76,6 @@ function StudentDashboard() {
           void qc.invalidateQueries({ queryKey: ["dashboard"] });
         },
       )
-      .on("postgres_changes", { event: "*", schema: "public", table: "classroom_timetable", ...(student.data?.classroom_id ? { filter: `classroom_id=eq.${student.data.classroom_id}` } : {}) }, () => { void qc.invalidateQueries({ queryKey: ["dashboard-timetable"] }); })
       .subscribe();
 
     return () => {
@@ -254,46 +250,6 @@ function StudentDashboard() {
 
       <section className="sina-dashboard-section mt-7 sina-card p-5 sm:p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-primary">Cronograma</p>
-            <h2 className="mt-1 text-lg font-semibold">Horários da minha turma</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Veja as aulas da semana, os professores e as salas cadastradas pela escola.</p>
-          </div>
-          <span className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Clock className="size-4" /> Segunda a sexta</span>
-        </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          {timetableDays.map(day => {
-            const dayEntries = (timetable.data ?? [])
-              .filter(item => item.weekday === day.value)
-              .sort((a, b) => a.start_time.localeCompare(b.start_time));
-            return (
-              <div key={day.value} className="rounded-2xl border border-border bg-muted/20 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-semibold">{day.label}</p>
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">{dayEntries.length}</span>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {dayEntries.map(item => (
-                    <div key={item.id} className="rounded-xl border border-border bg-background p-3">
-                      <p className="text-xs font-bold text-primary">{item.start_time.slice(0, 5)}–{item.end_time.slice(0, 5)}</p>
-                      <p className="mt-1 text-sm font-semibold leading-tight">{item.subject_name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Prof. {item.teacher_name || "não informado"}</p>
-                      {item.room && <p className="mt-1 text-[11px] text-muted-foreground">Sala {item.room}</p>}
-                      {item.notes && <p className="mt-2 text-[11px] text-muted-foreground">{item.notes}</p>}
-                    </div>
-                  ))}
-                  {!dayEntries.length && <p className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">{hasClassroomLink && timetable.isPending && hasClassroomLink ? "Carregando…" : timetable.error ? "Cronograma indisponível." : !hasClassroomLink ? "Turma ainda não definida." : "Sem aula cadastrada."}</p>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {hasClassroomLink && timetable.isPending && <p className="mt-3 text-xs text-muted-foreground">Carregando cronograma…</p>}
-        {timetable.error && <p className="mt-3 text-xs text-destructive">Não foi possível carregar o cronograma. Tente atualizar o dashboard.</p>}
-      </section>
-
-      <section className="sina-dashboard-section mt-7 sina-card p-5 sm:p-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Minha turma</p><h2 className="mt-1 text-lg font-semibold">Matérias e professores</h2><p className="mt-1 text-sm text-muted-foreground">Cada vínculo aparece separado para evitar misturar atividades, notas e avisos de professores diferentes.</p></div>
           <Link to="/aluno/disciplinas" className="text-sm font-semibold text-primary">Ver disciplinas</Link>
         </div>
@@ -311,39 +267,6 @@ function StudentDashboard() {
           {studentSubjects.isPending && <p className="text-sm text-muted-foreground">Carregando matérias e professores…</p>}
           {!studentSubjects.isPending && !(studentSubjects.data ?? []).length && <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Nenhuma disciplina foi vinculada à sua turma ainda.</p>}
         </div>
-      </section>
-
-      <section className="sina-dashboard-section mt-7 sina-card p-5 sm:p-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-primary">Frequência</p>
-            <h2 className="mt-1 text-lg font-semibold">Como está sua presença</h2>
-            <p className="mt-1 text-sm text-muted-foreground">O mesmo cálculo da área detalhada: presenças divididas por todos os registros disponíveis.</p>
-          </div>
-          <Link to="/aluno/frequencia" className="text-sm font-semibold text-primary">Ver histórico completo →</Link>
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Presenças</p><p className="mt-1 text-2xl font-semibold">{attendance.isPending ? "—" : presentCount}</p></div>
-          <div className="rounded-2xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Faltas</p><p className="mt-1 text-2xl font-semibold">{attendance.isPending ? "—" : absentCount}</p></div>
-          <div className="rounded-2xl border border-border p-4"><p className="text-xs font-bold uppercase text-muted-foreground">Outros registros</p><p className="mt-1 text-2xl font-semibold">{attendance.isPending ? "—" : lateCount + excusedCount}</p><p className="mt-1 text-[11px] text-muted-foreground">atrasos + justificativas</p></div>
-        </div>
-        {!attendance.isPending && attendanceBySubject.length > 0 && (
-          <div className="mt-5 border-t border-border pt-5">
-            <div className="flex items-center justify-between gap-3">
-              <div><p className="text-sm font-semibold">Por disciplina</p><p className="mt-1 text-xs text-muted-foreground">A mesma turma pode ter vários professores; cada disciplina mantém seu próprio vínculo.</p></div>
-              <Link to="/aluno/frequencia" className="text-xs font-semibold text-primary">Detalhes →</Link>
-            </div>
-            <div className="mt-3 space-y-2">
-              {attendanceBySubject.slice(0, 5).map(item => (
-                <Link key={item.subject + item.teacher} to="/aluno/frequencia" className="flex items-center gap-3 rounded-xl border border-border p-3 transition hover:border-primary/40 hover:bg-primary/5">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><CheckCircle2 className="size-4"/></span>
-                  <span className="min-w-0 flex-1"><b className="block truncate text-sm">{item.subject}</b><span className="text-xs text-muted-foreground">Prof. {item.teacher} · {item.total} registro(s)</span></span>
-                  <span className="shrink-0 text-sm font-semibold">{item.percentage == null ? "—" : item.percentage.toLocaleString("pt-BR",{maximumFractionDigits:0}) + "%"}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </section>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.35fr_.65fr]">
