@@ -261,3 +261,102 @@
   .sina-shell-content { min-height: calc(100vh - 108px); }
   .sina-card { border-radius: 0.8rem; box-shadow: 0 1px 2px color-mix(in oklch, var(--color-foreground) 4%, transparent); }
 }
+
+
+/* SINA workspace polish: stronger hierarchy, quieter surfaces, less "card soup". */
+@layer utilities {
+  .sina-card {
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px color-mix(in oklch, var(--color-foreground) 3%, transparent);
+  }
+
+  .sina-card > header {
+    background: transparent;
+    border-color: color-mix(in oklch, var(--color-border) 72%, transparent);
+  }
+
+  .sina-card > div > h2,
+  .sina-card > div > h3,
+  .sina-card > div > h4 {
+    letter-spacing: -0.015em;
+  }
+
+  .sina-card .rounded-2xl.border,
+  .sina-card .rounded-xl.border {
+    border-radius: 0.625rem;
+    box-shadow: none;
+    background: color-mix(in oklch, var(--color-card) 96%, var(--color-muted));
+  }
+
+  .sina-card .rounded-2xl.border:hover,
+  .sina-card .rounded-xl.border:hover {
+    border-color: color-mix(in oklch, var(--color-primary) 28%, var(--color-border));
+  }
+
+  .sina-card table thead {
+    background: color-mix(in oklch, var(--color-muted) 58%, transparent);
+  }
+
+  .sina-card table th {
+    color: var(--color-muted-foreground);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .sina-card table tbody tr {
+    transition: background-color 140ms ease;
+  }
+
+  .sina-card table tbody tr:hover {
+    background: color-mix(in oklch, var(--color-muted) 34%, transparent);
+  }
+
+  .sina-card input:not([type="checkbox"]):not([type="radio"]),
+  .sina-card select,
+  .sina-card textarea {
+    border-radius: 0.5rem;
+  }
+
+  .sina-card button:not([data-slot="checkbox"]),
+  .sina-card a[class*="bg-primary"] {
+    border-radius: 0.5rem;
+  }
+
+  .sina-page-section {
+    margin-top: 1.5rem;
+  }
+
+  .sina-section-heading {
+    margin-bottom: 0.75rem;
+  }
+
+  .sina-section-heading h2,
+  .sina-section-heading h3 {
+    letter-spacing: -0.02em;
+  }
+
+  .sina-empty-state {
+    border: 1px dashed color-mix(in oklch, var(--color-border) 90%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in oklch, var(--color-muted) 18%, transparent);
+  }
+
+  @media (max-width: 640px) {
+    .sina-card {
+      border-radius: 0.65rem;
+    }
+
+    .sina-card > header {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .sina-card table th,
+    .sina-card table td {
+      padding: 0.7rem 0.85rem;
+    }
+  }
+}
