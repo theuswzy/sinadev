@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, BookOpen, UserCheck, Ban, UserRoundCheck, XCircle, Building2, Power, Trash2, Plus, Pencil, BarChart3, CheckCircle2, RefreshCw } from "lucide-react";
+import { GraduationCap, LogOut, ShieldCheck, Users, LayoutDashboard, Search, BookOpen, UserCheck, Ban, UserRoundCheck, XCircle, Building2, Power, Trash2, Plus, Pencil, BarChart3, CheckCircle2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
@@ -69,7 +69,7 @@ function AdminArea() {
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState<{ id: string; email: string; displayName: string } | null>(null);
   const [adminTab, setAdminTab] = useState<AdminTab>("visao-geral");
   const [accountSearch, setAccountSearch] = useState("");
-  const [accountRoleFilter, setAccountRoleFilter] = useState<"all" | "student" | "teacher">("all");
+  const [accountRoleFilter, setAccountRoleFilter] = useState<"all" | "student" | "teacher" | "admin">("all");
   const [accountStatusFilter, setAccountStatusFilter] = useState<"all" | "active" | "pending" | "suspended">("all");
   const adminStudents = useQuery({ queryKey: ["admin-students"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_student_school_links"); if (error) throw error; return data ?? []; }, enabled: role.data === true, refetchOnWindowFocus: true, refetchInterval: 30000 });
   const adminTeachers = useQuery({ queryKey: ["admin-teachers"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_teacher_school_links"); if (error) throw error; return data ?? []; }, enabled: role.data === true, refetchOnWindowFocus: true, refetchInterval: 30000 });
@@ -89,7 +89,6 @@ function AdminArea() {
   const [editingInstitutionId, setEditingInstitutionId] = useState<string | null>(null);
   const [institutionSchoolSearch, setInstitutionSchoolSearch] = useState("");
   const [selectedInstitutionSchool, setSelectedInstitutionSchool] = useState<SchoolDirectoryEntry | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
 
   const institutionSchools = useQuery({
     queryKey: ["admin-school-directory", institutionSchoolSearch],
@@ -263,6 +262,31 @@ function AdminArea() {
     await queryClient.invalidateQueries({ queryKey: ["admin-accounts"] });
   }
 
+  async function setAdministrator(userId: string, enabled: boolean) {
+    setBusyId("admin-role:" + userId);
+    setMessage("");
+    try {
+      const { data, error } = await supabase.rpc("admin_set_administrator", {
+        _user_id: userId,
+        _enabled: enabled,
+      });
+      if (error) throw error;
+      if (!data) {
+        setMessage("Não foi possível alterar a função administrativa.");
+        return;
+      }
+      setMessage(enabled ? "Administrador adicionado com sucesso." : "Administrador removido com sucesso.");
+      toast.success(enabled ? "Usuário agora é administrador." : "Usuário deixou de ser administrador.");
+      await queryClient.invalidateQueries({ queryKey: ["admin-accounts"] });
+      await queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
+    } catch (error) {
+      setMessage(errorText(error));
+      toast.error(errorText(error));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function setAccountStatus(userId: string, nextStatus: "active" | "suspended") {
     setBusyId(userId);
     setMessage("");
@@ -311,7 +335,7 @@ function AdminArea() {
 
   const filteredAccounts = useMemo(() => accounts.data?.filter(account => {
     const matchesText = `${account.display_name} ${account.email}`.toLowerCase().includes(accountSearch.toLowerCase());
-    const matchesRole = accountRoleFilter === "all" || account.academic_role === accountRoleFilter;
+    const matchesRole = accountRoleFilter === "all" || (accountRoleFilter === "admin" ? account.is_administrator : account.academic_role === accountRoleFilter);
     const matchesStatus = accountStatusFilter === "all" || account.account_status === accountStatusFilter;
     return matchesText && matchesRole && matchesStatus;
   }) ?? [], [accounts.data, accountSearch, accountRoleFilter, accountStatusFilter]);
@@ -340,24 +364,6 @@ function AdminArea() {
     refetchOnWindowFocus: true,
     refetchInterval: 30000,
   });
-
-  async function refreshAdminData() {
-    setRefreshing(true);
-    try {
-      await queryClient.refetchQueries({
-        predicate: (query) => {
-          const key = String(query.queryKey[0] ?? "");
-          return key === "my-institutions" || key.startsWith("admin-");
-        },
-        type: "active",
-      });
-      toast.success("Dados administrativos atualizados.");
-    } catch (error) {
-      toast.error(errorText(error));
-    } finally {
-      setRefreshing(false);
-    }
-  }
 
   async function logout() {
     await supabase.auth.signOut();
@@ -436,10 +442,6 @@ function AdminArea() {
               </select>
             )}
             <span className="hidden rounded-full border border-brand-border bg-brand-panel/70 px-3 py-1.5 text-xs font-medium text-brand-muted lg:inline-flex">Controle de acesso</span>
-            <Button type="button" variant="outline" size="sm" onClick={() => void refreshAdminData()} disabled={refreshing} title="Atualizar dados">
-              <RefreshCw className={"mr-2 size-4 " + (refreshing ? "animate-spin" : "")} />
-              <span className="hidden sm:inline">{refreshing ? "Atualizando…" : "Atualizar"}</span>
-            </Button>
             <ThemeToggle />
             <Button variant="outline" size="sm" onClick={() => void navigate({ to: "/perfil" })} className="border-brand-border bg-transparent text-brand-foreground shadow-none hover:bg-brand-panel"><UserRoundCheck className="mr-2 size-4" /><span className="hidden sm:inline">Perfil</span></Button>
             <Button variant="outline" size="sm" onClick={logout} className="border-brand-border bg-transparent text-brand-foreground shadow-none hover:bg-brand-panel">
@@ -848,7 +850,7 @@ function AdminArea() {
           <div className="flex items-start gap-3"><Users className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Funções acadêmicas</h2><p className="mt-1 text-sm text-muted-foreground">Escolha aluno ou professor para cada conta cadastrada.</p></div></div>
           <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_180px]">
             <div className="relative"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input aria-label="Buscar contas" placeholder="Buscar por nome ou e-mail" className="pl-9" value={accountSearch} onChange={(e) => setAccountSearch(e.target.value)} /></div>
-            <select aria-label="Filtrar por função" value={accountRoleFilter} onChange={e => setAccountRoleFilter(e.target.value as typeof accountRoleFilter)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="all">Todas as funções</option><option value="student">Alunos</option><option value="teacher">Professores</option></select>
+            <select aria-label="Filtrar por função" value={accountRoleFilter} onChange={e => setAccountRoleFilter(e.target.value as typeof accountRoleFilter)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="all">Todas as funções</option><option value="student">Alunos</option><option value="teacher">Professores</option><option value="admin">Administradores</option></select>
             <select aria-label="Filtrar por status" value={accountStatusFilter} onChange={e => setAccountStatusFilter(e.target.value as typeof accountStatusFilter)} className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="all">Todos os status</option><option value="active">Ativas</option><option value="pending">Pendentes</option><option value="suspended">Suspensas</option></select>
           </div>
           {message && <p role="status" className="mt-4 rounded-xl border border-primary/15 bg-primary/5 p-3 text-sm">{message}</p>}
@@ -869,6 +871,28 @@ function AdminArea() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
+                    {!account.is_administrator && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busyId === account.user_id || account.account_status !== "active" || busyId === "admin-role:" + account.user_id}
+                        onClick={() => void setAdministrator(account.user_id, true)}
+                        title="Conceder acesso de administrador"
+                      >
+                        <ShieldCheck className="mr-2 size-4" />Tornar ADM
+                      </Button>
+                    )}
+                    {account.is_administrator && account.user_id !== role.data?.toString() && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busyId === account.user_id || busyId === "admin-role:" + account.user_id}
+                        onClick={() => void setAdministrator(account.user_id, false)}
+                        title="Remover acesso de administrador"
+                      >
+                        <ShieldCheck className="mr-2 size-4" />Remover ADM
+                      </Button>
+                    )}
                     <div className="flex shrink-0 gap-1 rounded-md border border-border p-1" aria-label={`Função acadêmica de ${account.email}`}>
                       <Button size="sm" variant={account.academic_role === "student" ? "default" : "ghost"} disabled={account.is_administrator || account.account_status !== "active" || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "student")} title={account.account_status === "pending" ? "Aprove o cadastro primeiro na área de solicitações." : undefined}>Aluno</Button>
                       <Button size="sm" variant={account.academic_role === "teacher" ? "default" : "ghost"} disabled={account.is_administrator || account.account_status !== "active" || busyId === account.user_id} onClick={() => void setAcademicRole(account.user_id, "teacher")} title={account.account_status === "pending" ? "Aprove o cadastro primeiro na área de solicitações." : undefined}>Professor</Button>
