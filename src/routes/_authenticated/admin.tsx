@@ -406,9 +406,9 @@ function AdminArea() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="sticky top-0 z-40 border-b border-brand-border/80 bg-brand/95 text-brand-foreground shadow-sm backdrop-blur-xl">
-        <div className="mx-auto flex min-h-16 max-w-7xl items-center gap-3 px-5 lg:px-8">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 border-b border-brand-border/80 bg-brand/95 text-brand-foreground shadow-sm backdrop-blur-xl">
+        <div className="mx-auto flex min-h-[70px] max-w-[1440px] items-center gap-3 px-3 sm:px-5 lg:px-8">
           <Link to="/painel" className="group flex shrink-0 items-center gap-2.5 font-display text-xl font-bold tracking-tight" aria-label="SINA — voltar ao painel">
             <span className="flex size-9 items-center justify-center rounded-xl bg-brand-panel text-primary ring-1 ring-brand-border transition-transform group-hover:scale-105">
               <GraduationCap className="size-5" />
@@ -483,16 +483,36 @@ function AdminArea() {
         onConfirm={deleteAccount}
       />
 
-      <main id="inicio" className="mx-auto max-w-6xl space-y-6 px-3 py-5 sm:px-5 sm:py-7 lg:px-8 lg:py-9">
-        <nav aria-label="Seções administrativas" className="sina-card sticky top-[68px] z-30 -mx-1 overflow-x-auto p-2 sm:mx-0">
+      <main id="inicio" className="mx-auto w-full max-w-[1440px] space-y-6 px-3 py-5 sm:px-5 sm:py-7 lg:px-8 lg:py-9">
+        <nav aria-label="Seções administrativas" className="sina-card sticky top-[70px] z-30 overflow-x-auto p-1.5 sm:p-2">
           <div className="flex min-w-max gap-1">
+
             {adminTabs.map(({ id, label, Icon }) => (
-              <button key={id} type="button" onClick={() => setAdminTab(id)} className={adminTab === id ? "inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm" : "inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"}>
+              <button key={id} type="button" onClick={() => setAdminTab(id)} className={adminTab === id ? "inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm" : "inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"}>
                 <Icon className="size-4" />{label}
               </button>
             ))}
           </div>
         </nav>
+        <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Central administrativa</p>
+            <h1 className="mt-1 truncate font-display text-2xl font-bold tracking-tight sm:text-3xl">
+              {adminTab === "visao-geral" ? "Visão geral da instituição" : adminTabs.find(tab => tab.id === adminTab)?.label}
+            </h1>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              {adminTab === "visao-geral"
+                ? "Acompanhe pessoas, estrutura acadêmica, pendências e desempenho em um só lugar."
+                : adminTab === "escolas"
+                  ? "Gerencie instituições, status e dados básicos da rede."
+                  : adminTab === "pessoas"
+                    ? "Aprove cadastros, defina funções e controle acessos."
+                    : adminTab === "academico"
+                      ? "Organize turmas, disciplinas, professores, vínculos e cronogramas."
+                      : "Consulte a rastreabilidade das principais alterações acadêmicas."}
+            </p>
+          </div>
+        </div>
         {institutions.data && institutions.data.length > 0 && (
           <div className="sina-card flex items-center gap-3 p-3 sm:hidden">
             <Building2 className="size-4 shrink-0 text-primary" />
