@@ -162,6 +162,10 @@ as $function$
      set read_at=coalesce(read_at,now())
    where id=_id
      and user_id=auth.uid()
+     and coalesce(
+       (metadata->>'institution_id')::uuid,
+       sina_private.current_institution('teacher'::public.app_role)
+     ) = sina_private.current_institution('teacher'::public.app_role)
   returning true;
 $function$;
 
