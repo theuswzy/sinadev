@@ -359,7 +359,21 @@ function Subjects({d}:{d:ReturnType<typeof useData>}){
   const [name,setName]=useState("");const [code,setCode]=useState("");const [subject,setSubject]=useState("");const [classroom,setClassroom]=useState("");const [busy,setBusy]=useState("");
   const [confirm,setConfirm]=useState<{kind:"unlink"|"delete";id:string;name:string;classroom:string}|null>(null);
   const [edit,setEdit]=useState<{id:string;name:string;code:string}|null>(null);
-  async function create(){try{await createTeacherSubject(name.trim(),code.trim());setName("");setCode("");await d.refresh();toast.success("Disciplina criada.");}catch(e){toast.error(errorText(e))}}
+  async function create(){
+    if(!name.trim()) return;
+    setBusy("create-subject");
+    try{
+      await createTeacherSubject(name.trim(),code.trim());
+      setName("");
+      setCode("");
+      await d.refresh();
+      toast.success("Disciplina criada.");
+    }catch(e){
+      toast.error(errorText(e));
+    }finally{
+      setBusy("");
+    }
+  }
   async function assign(){if(!subject||!classroom)return;setBusy("assign");try{await assignTeacherSubjectToClass(subject,classroom);setSubject("");setClassroom("");await d.refresh();toast.success("Disciplina vinculada à turma.");}catch(e){toast.error(errorText(e))}finally{setBusy("")}}
   async function confirmRemoveAssignment(){
     if(!confirm||confirm.kind!=="unlink")return;
@@ -389,7 +403,7 @@ function Subjects({d}:{d:ReturnType<typeof useData>}){
   }
   return <div className="space-y-5">
     <Card title="Disciplinas" description="Cadastre e distribua as disciplinas que você administra.">
-      <div className="grid gap-3 md:grid-cols-[1fr_160px_auto]"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome"/><Input value={code} onChange={e=>setCode(e.target.value)} placeholder="Código"/><Button disabled={!name.trim()||!!busy} onClick={()=>void create()}><Plus className="mr-2 size-4"/>Criar</Button></div>
+      <div className="grid gap-3 md:grid-cols-[1fr_160px_auto]"><Input value={name} onChange={e=>setName(e.target.value)} placeholder="Nome"/><Input value={code} onChange={e=>setCode(e.target.value)} placeholder="Código"/><Button disabled={!name.trim()||!!busy} onClick={()=>void create()}><Plus className="mr-2 size-4"/>{busy==="create-subject"?"Criando…":"Criar"}</Button></div>
       <div className="mt-4 grid gap-2 sm:grid-cols-2">{(d.subjects.data??[]).map(s=><div key={s.id} className="rounded-xl border border-border p-3"><div className="flex items-start justify-between gap-3"><div><b>{s.name}</b><p className="text-xs text-muted-foreground">{s.code||"Sem código"} · {s.status}</p></div>{s.status==="active"&&s.created_by===currentUser.data&&<div className="flex gap-2"><Button size="sm" variant="outline" disabled={!!busy} onClick={()=>setEdit({id:s.id,name:s.name,code:s.code||""})}>Editar</Button><Button size="sm" variant="ghost" className="text-destructive" disabled={!!busy} onClick={()=>setConfirm({kind:"delete",id:s.id,name:s.name,classroom:""})}>{busy==="delete-subject:"+s.id?"Excluindo…":"Excluir"}</Button></div>}</div></div>)}</div>
     </Card>
     <Card title="Vincular disciplina à turma" description="Uma disciplina precisa estar vinculada à turma antes de receber atividades e materiais.">
