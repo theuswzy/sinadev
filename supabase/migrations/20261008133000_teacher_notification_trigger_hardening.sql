@@ -1,6 +1,7 @@
 -- Harden teacher delivery notifications against duplicate alerts.
--- The earlier task-submission RPC may also create a notification; the trigger
--- therefore checks the submission id before inserting a second alert.
+-- Teacher delivery notifications are generated only by the trigger.
+-- The submission RPC intentionally does not insert a second alert.
+-- The trigger still guards against duplicate rows when a delivery is updated/resubmitted.
 
 create or replace function public.notify_teacher_task_submission()
 returns trigger
