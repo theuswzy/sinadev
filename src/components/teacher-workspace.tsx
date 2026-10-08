@@ -32,7 +32,15 @@ const menu: {id:Section;label:string;Icon:LucideIcon}[]=[
 ];
 
 function Card({title,description,children}:{title:string;description?:string;children:ReactNode}){
-  return <section className="sina-card p-5 sm:p-6"><h2 className="font-semibold">{title}</h2>{description&&<p className="mt-1 text-sm text-muted-foreground">{description}</p>}<div className="mt-5">{children}</div></section>;
+  return (
+    <section className="sina-card overflow-hidden">
+      <header className="border-b border-border/70 bg-muted/20 px-5 py-4 sm:px-6">
+        <h2 className="font-display text-base font-bold tracking-tight">{title}</h2>
+        {description && <p className="mt-1 max-w-3xl text-sm leading-5 text-muted-foreground">{description}</p>}
+      </header>
+      <div className="p-5 sm:p-6">{children}</div>
+    </section>
+  );
 }
 function Select({label,value,onChange,children}:{label:string;value:string;onChange:(v:string)=>void;children:ReactNode}){
   return <label className="grid gap-1.5 text-sm"><span className="font-medium">{label}</span><select value={value} onChange={e=>onChange(e.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">{children}</select></label>;
