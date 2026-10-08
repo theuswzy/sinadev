@@ -156,7 +156,10 @@ function StudentProfile() {
         if (error) throw error;
 
         await supabase.auth.updateUser({
-          data: { display_name: trimmedName },
+          data: {
+            display_name: trimmedName,
+            ...(avatar !== null ? { avatar_url: avatar } : {}),
+          },
         });
 
         queryClient.setQueryData(["my-student"], data);
