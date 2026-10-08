@@ -64,7 +64,7 @@ function useData(section: Section){
       qc.invalidateQueries({queryKey:["teacher-subject-responsibilities"]}),
     ]);
   }
-  return {classes,institutionClasses,students,subjects,assignments,unassignedClasses,refresh};
+  return {classes,institutionClasses,students,subjects,assignments,responsibilities,unassignedClasses,refresh};
 }
 
 function DataError({d}:{d:ReturnType<typeof useData>}) {
@@ -103,7 +103,7 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
     {label:"Sem turma",value:pending.length,desc:"Resolver vínculos pendentes",icon:School,go:"alunos" as Section},
   ];
 
-  const responsibilitySummary = responsibilities.data ?? [];
+  const responsibilitySummary = d.responsibilities.data ?? [];
   const responsibleCount = responsibilitySummary.filter((item:any)=>item.is_primary).length;
   const additionalCount = responsibilitySummary.filter((item:any)=>!item.is_primary).length;
 
@@ -127,7 +127,7 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
           <span className={"mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-semibold "+(item.is_primary?"bg-primary/10 text-primary":"bg-secondary text-muted-foreground")}>{item.is_primary?"Professor responsável":"Professor adicional"}</span>
         </div>)}
       </div>}
-      {responsibilities.error && <p className="mt-3 text-xs text-destructive">Não foi possível atualizar seus vínculos de responsabilidade.</p>}
+      {d.responsibilities.error && <p className="mt-3 text-xs text-destructive">Não foi possível atualizar seus vínculos de responsabilidade.</p>}
     </section>
 
     <section className="overflow-hidden rounded-3xl bg-brand p-6 text-brand-foreground shadow-sm sm:p-8">

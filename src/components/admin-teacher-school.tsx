@@ -50,8 +50,8 @@ export function AdminTeacherSchool() {
 
   function chooseAvatar(file: File | undefined) {
     if (!file) return;
-    if (!file.type.startsWith("image/")) return toast.error("Escolha uma imagem PNG, JPG ou WebP.");
-    if (file.size > 6 * 1024 * 1024) return toast.error("A foto precisa ter no máximo 6 MB.");
+    if (!file.type.startsWith("image/")) { toast.error("Escolha uma imagem PNG, JPG ou WebP."); return; }
+    if (file.size > 6 * 1024 * 1024) { toast.error("A foto precisa ter no máximo 6 MB."); return; }
     setEditAvatarFile(file);
     const reader = new FileReader();
     reader.onload = () => setEditPreview(typeof reader.result === "string" ? reader.result : null);

@@ -533,6 +533,7 @@ export function AdminAcademicSetup() {
                     const items = (rows ?? []).filter(Boolean) as NonNullable<typeof subjectTeacherMatrix.data>;
                     if (!items.length) return null;
                     const first = items[0];
+                    if (!first) return null;
                     if (matrixTeacherFilter !== "all" && !items.some(item => item.teacher_id === matrixTeacherFilter)) return null;
                     const responsible = items.find(item => item.is_primary);
                     const linkedTeacherIds = new Set(items.map(item => item.teacher_id).filter(Boolean));
@@ -564,10 +565,10 @@ export function AdminAcademicSetup() {
                                   </Button>
                                 )}
                                 <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" disabled={busyAction !== null}
-                                  onClick={() => setConfirmRemoveSubjectTeacher({
-                                    classroomId: first.classroom_id, subjectId: first.subject_id, teacherId: item.teacher_id!,
+                                  onClick={() => { if (!item.teacher_id) return; setConfirmRemoveSubjectTeacher({
+                                    classroomId: first.classroom_id, subjectId: first.subject_id, teacherId: item.teacher_id,
                                     teacherName: item.teacher_name, subjectName: first.subject_name,
-                                  })}>
+                                  }); }}>
                                   Remover
                                 </Button>
                               </div>
