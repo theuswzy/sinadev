@@ -106,22 +106,8 @@ begin
   on conflict(task_id,student_id)
   do update set completed=true,updated_at=now();
 
-  insert into public.notifications(user_id,type,title,body,link,metadata)
-  values(
-    task_teacher_id,
-    case when submit_status='submitted_late' then 'task_submission_late' else 'task_submission' end,
-    case when submit_status='submitted_late' then 'Nova entrega em atraso' else 'Nova entrega recebida' end,
-    student_name||' enviou uma entrega para "'||coalesce(task_title,'atividade')||'".',
-    '/professor/atividades',
-    jsonb_build_object(
-      'submission_id',sub_id,
-      'task_id',_task_id,
-      'student_id',sid,
-      'student_name',student_name,
-      'late',submit_status='submitted_late',
-      'institution_id',inst
-    )
-  );
+  -- Teacher delivery notifications are emitted by trg_notify_teacher_task_submission.
+  -- Keeping the submission RPC focused on persistence prevents duplicate alerts.
 
   return sub_id;
 end;
