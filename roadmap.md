@@ -1,5 +1,10 @@
 # SINA — Roadmap
 
+## Restauração do cronograma semanal
+- [ ] Reaplicar somente cronograma do administrador e dashboard do aluno a partir do histórico.
+- [ ] Restaurar migration compatível, permissões e RPCs do cronograma sem alterar registros reais.
+- [ ] Verificar horários, atualização automática, prévia e compilação.
+
 ## Correção da prévia
 - [x] Corrigir erros JSX e de tipagem sem alterar dados reais.
 - [x] Verificar compilação automática e abertura das páginas.
