@@ -638,7 +638,9 @@ export type TaskSubmission = {
   student_name: string;
   enrollment: string;
   content: string;
+  attachment_path?: string | null;
   attachment_name?: string | null;
+  attachment_url?: string | null;
   status: string;
   submitted_at: string;
   score: number | null;
@@ -651,6 +653,9 @@ export type StudentTaskSubmission = {
   content: string;
   attachment_path: string | null;
   attachment_name: string | null;
+  attachment_size?: number | null;
+  attachment_type?: string | null;
+  attachment_url?: string | null;
   status: string;
   submitted_at: string;
   score: number | null;
@@ -1154,8 +1159,21 @@ export async function loadStudentAssessmentsDetailed(): Promise<StudentAssessmen
   return (data ?? []) as StudentAssessmentDetailed[];
 }
 
-export async function submitTask(taskId: string, content: string) {
-  const { data, error } = await supabase.rpc("student_submit_task", { _task_id: taskId, _content: content });
+export async function submitTask(
+  taskId: string,
+  content: string,
+  attachment?: Pick<AcademicAttachment, "path" | "name" | "size" | "type"> | null,
+) {
+  const { data, error } = await supabase.rpc("student_submit_task_with_attachment", {
+    _task_id: taskId,
+    _content: content,
+    ...(attachment ? {
+      _attachment_path: attachment.path,
+      _attachment_name: attachment.name,
+      _attachment_size: attachment.size,
+      _attachment_type: attachment.type,
+    } : {}),
+  });
   if (error) throw error;
   return data;
 }
@@ -1163,13 +1181,27 @@ export async function submitTask(taskId: string, content: string) {
 export async function loadStudentTaskSubmissions(): Promise<StudentTaskSubmission[]> {
   const { data, error } = await supabase.rpc("student_list_task_submissions");
   if (error) throw error;
-  return (data ?? []) as StudentTaskSubmission[];
+  const items = (data ?? []) as StudentTaskSubmission[];
+  return Promise.all(items.map(async item => {
+    if (!item.attachment_path) return { ...item, attachment_url: null };
+    const { data: signed } = await supabase.storage
+      .from(ACADEMIC_ATTACHMENT_BUCKET)
+      .createSignedUrl(item.attachment_path, 60 * 60);
+    return { ...item, attachment_url: signed?.signedUrl ?? null };
+  }));
 }
 
 export async function loadTaskSubmissions(taskId: string): Promise<TaskSubmission[]> {
   const { data, error } = await supabase.rpc("teacher_list_task_submissions", { _task_id: taskId });
   if (error) throw error;
-  return (data ?? []) as TaskSubmission[];
+  const items = (data ?? []) as TaskSubmission[];
+  return Promise.all(items.map(async item => {
+    if (!item.attachment_path) return { ...item, attachment_url: null };
+    const { data: signed } = await supabase.storage
+      .from(ACADEMIC_ATTACHMENT_BUCKET)
+      .createSignedUrl(item.attachment_path, 60 * 60);
+    return { ...item, attachment_url: signed?.signedUrl ?? null };
+  }));
 }
 
 export async function gradeTaskSubmission(submissionId: string, score: number | null, feedback: string) {
@@ -1368,7 +1400,7 @@ const ALLOWED_ACADEMIC_ATTACHMENT_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]);
 
-export async function uploadAcademicAttachment(file: File, folder: "tasks" | "announcements" | "materials"): Promise<AcademicAttachment> {
+export async function uploadAcademicAttachment(file: File, folder: "tasks" | "announcements" | "materials" | "submissions"): Promise<AcademicAttachment> {
   if (!ALLOWED_ACADEMIC_ATTACHMENT_TYPES.has(file.type)) {
     throw new Error("Tipo de arquivo não permitido. Envie PDF, imagem, Word, PowerPoint, Excel ou TXT.");
   }
