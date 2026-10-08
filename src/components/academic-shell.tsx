@@ -119,7 +119,7 @@ export function AcademicShell({
         // A teacher publishing an activity, for example, invalidates the
         // student's dashboard; an admin changing a classroom invalidates the
         // teacher/student academic context as well.
-        const prefixes = ["my-", "dashboard-", "teacher-", "student-", "admin-"];
+        const prefixes = ["my-", "dashboard-", "teacher-", "student-", "admin-", "shell-"];
         void queryClient.invalidateQueries({
           predicate: (query) => {
             const key = (query.queryKey as readonly unknown[])[0];
