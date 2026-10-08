@@ -2,8 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 
-// Migration-defined contracts not yet present in the connected schema.
-// This preserves the existing session and requests; it does not deploy functions.
+// Contracts for the institution-scoped academic RPCs introduced by the
+// period-lock, grade-audit and responsibility migrations. The explicit client
+// type keeps these RPC calls type-safe until Supabase generated types are
+// refreshed from the connected schema.
 type FunctionContract<Args, Returns> = { Args: Args; Returns: Returns };
 type SubjectLinkArgs = { _classroom_id: string; _subject_id: string; _teacher_id: string };
 type PeriodLock = { period: number; is_closed: boolean; closed_at: string | null; closed_by: string | null };
