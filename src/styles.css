@@ -425,3 +425,33 @@
     }
   }
 }
+
+@layer utilities {
+
+  .sina-institution {
+    min-width: 0;
+  }
+  .sina-institution select {
+    min-width: 0;
+    appearance: none;
+    cursor: pointer;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    padding: 0 1.2rem 0 0;
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: calc(100% - 7px) 55%, calc(100% - 3px) 55%;
+    background-size: 4px 4px, 4px 4px;
+    background-repeat: no-repeat;
+  }
+  .sina-institution select:focus-visible {
+    outline: 2px solid color-mix(in oklch, var(--color-primary) 55%, transparent);
+    outline-offset: 4px;
+    border-radius: 6px;
+  }
+  .sina-institution select:disabled {
+    cursor: wait;
+    opacity: 0.62;
+  }
+
+}
