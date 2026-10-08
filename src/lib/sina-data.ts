@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { academicRpcClient } from "@/lib/academic-rpc-contracts";
 import type { Tables, Json } from "@/integrations/supabase/types";
 export type Student = Tables<"students">;
 export type Grade = Tables<"grades">;
@@ -384,7 +385,7 @@ export async function clearTeacherGradebookScores(args: {
   rows: Array<{ student_id: string; absences: number }>;
 }): Promise<number> {
   if (!args.rows.length) return 0;
-  const { data, error } = await supabase.rpc("teacher_clear_gradebook_scores", {
+  const { data, error } = await academicRpcClient.rpc("teacher_clear_gradebook_scores", {
     _classroom_id: args.classroomId,
     _subject_id: args.subjectId,
     _period: args.period,
@@ -695,8 +696,8 @@ export async function adminUpdateStudentProfile(
   const { data, error } = await supabase.rpc("admin_update_student_profile", {
     _student_id: studentId,
     _full_name: fullName,
-    _enrollment: enrollment || null,
-    _avatar_url: avatarUrl,
+    _enrollment: enrollment || undefined,
+    _avatar_url: avatarUrl ?? "",
   });
   if (error) throw error;
   return data;
@@ -705,7 +706,7 @@ export async function adminUpdateProfile(userId: string, displayName: string, av
   const { data, error } = await supabase.rpc("admin_update_profile", {
     _user_id: userId,
     _display_name: displayName,
-    _avatar_url: avatarUrl,
+    _avatar_url: avatarUrl ?? "",
   });
   if (error) throw error;
   return data;
@@ -796,7 +797,7 @@ export async function loadAdminLinkableInstitutions(): Promise<AdminLinkableInst
   return (data ?? []) as AdminLinkableInstitution[];
 }
 
-export type AdminTeacherSchoolLink = { user_id: string; display_name: string; email: string; institution_id: string | null; institution_name: string | null; school_count: number };
+export type AdminTeacherSchoolLink = { user_id: string; display_name: string; email: string; avatar_url?: string | null; institution_id: string | null; institution_name: string | null; school_count: number };
 
 export async function loadAdminTeacherSchoolLinks(): Promise<AdminTeacherSchoolLink[]> {
   const { data, error } = await supabase.rpc("admin_list_teacher_school_links");
@@ -830,7 +831,7 @@ export type AdminSubjectTeacherMatrixEntry = {
 };
 
 export async function loadAdminSubjectTeacherMatrix(): Promise<AdminSubjectTeacherMatrixEntry[]> {
-  const { data, error } = await supabase.rpc("admin_list_subject_teacher_matrix");
+  const { data, error } = await academicRpcClient.rpc("admin_list_subject_teacher_matrix");
   if (error) throw error;
   return (data ?? []) as AdminSubjectTeacherMatrixEntry[];
 }
@@ -840,7 +841,7 @@ export async function adminSetSubjectResponsible(
   subjectId: string,
   teacherId: string | null,
 ) {
-  const { data, error } = await supabase.rpc("admin_set_subject_responsible", {
+  const { data, error } = await academicRpcClient.rpc("admin_set_subject_responsible", {
     _classroom_id: classroomId,
     _subject_id: subjectId,
     _teacher_id: teacherId,
@@ -855,7 +856,7 @@ export async function adminSetSubjectTeacherLink(
   teacherId: string,
   isPrimary = false,
 ) {
-  const { data, error } = await supabase.rpc("admin_set_subject_teacher_link", {
+  const { data, error } = await academicRpcClient.rpc("admin_set_subject_teacher_link", {
     _classroom_id: classroomId,
     _subject_id: subjectId,
     _teacher_id: teacherId,
@@ -870,7 +871,7 @@ export async function adminRemoveSubjectTeacherLink(
   subjectId: string,
   teacherId: string,
 ) {
-  const { data, error } = await supabase.rpc("admin_remove_subject_teacher_link", {
+  const { data, error } = await academicRpcClient.rpc("admin_remove_subject_teacher_link", {
     _classroom_id: classroomId,
     _subject_id: subjectId,
     _teacher_id: teacherId,
@@ -1570,7 +1571,7 @@ export type GradeChangeAuditEntry = {
 };
 
 export async function loadAdminGradeChangeAudit(limit = 50): Promise<GradeChangeAuditEntry[]> {
-  const { data, error } = await supabase.rpc("admin_list_grade_change_audit", { _limit: limit });
+  const { data, error } = await academicRpcClient.rpc("admin_list_grade_change_audit", { _limit: limit });
   if (error) throw error;
   return (data ?? []) as GradeChangeAuditEntry[];
 }
@@ -1583,20 +1584,20 @@ export type AcademicPeriodLock = {
 };
 
 export async function loadTeacherGradebookPeriodStatus(period: number): Promise<AcademicPeriodLock> {
-  const { data, error } = await supabase.rpc("teacher_get_gradebook_period_status", { _period: period });
+  const { data, error } = await academicRpcClient.rpc("teacher_get_gradebook_period_status", { _period: period });
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
   return (row ?? { period, is_closed: false, closed_at: null, closed_by: null }) as AcademicPeriodLock;
 }
 
 export async function loadAdminAcademicPeriodLocks(): Promise<AcademicPeriodLock[]> {
-  const { data, error } = await supabase.rpc("admin_list_academic_period_locks");
+  const { data, error } = await academicRpcClient.rpc("admin_list_academic_period_locks");
   if (error) throw error;
   return (data ?? []) as AcademicPeriodLock[];
 }
 
 export async function setAdminAcademicPeriodLock(period: number, closed: boolean): Promise<boolean> {
-  const { data, error } = await supabase.rpc("admin_set_academic_period_lock", {
+  const { data, error } = await academicRpcClient.rpc("admin_set_academic_period_lock", {
     _period: period,
     _closed: closed,
   });

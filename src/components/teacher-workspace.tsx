@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { academicRpcClient } from "@/lib/academic-rpc-contracts";
 import {
   assignTeacherSubjectToClass, createAssessment, createTeacherAnnouncement,
   createTeacherCalendarEvent, createTeacherClassroom, createTeacherSubject, createTeacherTask, createTeacherAcademicMaterial, deleteTeacherAcademicMaterial,
@@ -50,7 +51,7 @@ function useData(section: Section){
   const students=useQuery({queryKey:["teacher-new-students"],queryFn:loadTeacherInstitutionStudents,staleTime:30000,enabled:needsStudents});
   const subjects=useQuery({queryKey:["teacher-new-subjects"],queryFn:loadTeacherSubjects,staleTime:30000,enabled:needsSubjects});
   const assignments=useQuery({queryKey:["teacher-new-assignments"],queryFn:async()=>{const {data,error}=await supabase.rpc("teacher_list_subject_assignments");if(error)throw error;return data??[]},staleTime:30000,enabled:needsAssignments});
-  const responsibilities=useQuery({queryKey:["teacher-subject-responsibilities"],queryFn:async()=>{const {data,error}=await supabase.rpc("teacher_list_subject_responsibilities");if(error)throw error;return data??[]},staleTime:15000,refetchOnWindowFocus:true});
+  const responsibilities=useQuery({queryKey:["teacher-subject-responsibilities"],queryFn:async()=>{const {data,error}=await academicRpcClient.rpc("teacher_list_subject_responsibilities");if(error)throw error;return data??[]},staleTime:15000,refetchOnWindowFocus:true});
   const unassignedClasses=useQuery({queryKey:["teacher-new-unassigned-classes"],queryFn:loadTeacherUnassignedClassrooms,staleTime:15000,enabled:needsUnassignedClasses});
   async function refresh(){
     await Promise.all([
@@ -483,7 +484,7 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
   const assignments=(d.assignments.data??[]).filter(a=>a.classroom_id===classroom);
   const subjectOptions=assignments.filter((a,index,self)=>self.findIndex(x=>x.subject_id===a.subject_id)===index);
   const selectedSubject=subjectOptions.find(a=>a.subject_id===subject);
-  const responsibility=useQuery({queryKey:["teacher-grade-responsibility",classroom,subject],queryFn:async()=>{const {data,error}=await supabase.rpc("teacher_list_subject_responsibilities");if(error)throw error;return (data??[]).find((item:any)=>item.classroom_id===classroom&&item.subject_id===subject)??null},enabled:!!classroom&&!!subject,staleTime:15000});
+  const responsibility=useQuery({queryKey:["teacher-grade-responsibility",classroom,subject],queryFn:async()=>{const {data,error}=await academicRpcClient.rpc("teacher_list_subject_responsibilities");if(error)throw error;return (data??[]).find((item:any)=>item.classroom_id===classroom&&item.subject_id===subject)??null},enabled:!!classroom&&!!subject,staleTime:15000});
   const selectedResponsibility=responsibility.data;
   const isAdditionalTeacher=selectedResponsibility ? !selectedResponsibility.is_primary : false;
   const configuredTerms=(options.data?.terms??[]).slice(0,4);
