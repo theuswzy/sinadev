@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bell, CheckCheck, ChevronRight } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { AcademicShell } from "@/components/academic-shell";
 import { Button } from "@/components/ui/button";
 import { errorText, loadNotifications, markAllNotificationsRead, markNotificationRead } from "@/lib/sina-data";
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/_authenticated/aluno/notificacoes")({
 
 export function StudentNotifications() {
   const queryClient = useQueryClient();
+  const [busy, setBusy] = useState("");
   const notifications = useQuery({
     queryKey: ["student-notifications-center"],
     queryFn: () => loadNotifications(false),
@@ -21,6 +23,8 @@ export function StudentNotifications() {
   });
 
   async function read(id: string) {
+    if (busy) return;
+    setBusy("read:" + id);
     try {
       await markNotificationRead(id);
       await Promise.all([
@@ -29,10 +33,14 @@ export function StudentNotifications() {
       ]);
     } catch (error) {
       toast.error(errorText(error));
+    } finally {
+      setBusy("");
     }
   }
 
   async function readAll() {
+    if (busy) return;
+    setBusy("all");
     try {
       const count = await markAllNotificationsRead();
       await Promise.all([
@@ -42,6 +50,8 @@ export function StudentNotifications() {
       toast.success(count ? `${count} notificação(ões) marcada(s) como lida(s).` : "Não havia notificações pendentes.");
     } catch (error) {
       toast.error(errorText(error));
+    } finally {
+      setBusy("");
     }
   }
 
@@ -58,8 +68,8 @@ export function StudentNotifications() {
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-full border border-brand-border bg-brand-panel/70 px-3 py-2 text-xs font-semibold">{unread} não lida{unread === 1 ? "" : "s"}</span>
-            <Button variant="outline" onClick={() => void readAll()} disabled={!unread} className="border-brand-border bg-transparent text-brand-foreground hover:bg-brand-panel">
-              <CheckCheck className="mr-2 size-4" /> Marcar todas
+            <Button variant="outline" onClick={() => void readAll()} disabled={!unread || !!busy} className="border-brand-border bg-transparent text-brand-foreground hover:bg-brand-panel">
+              <CheckCheck className="mr-2 size-4" />{busy==="all" ? "Marcando…" : "Marcar todas"}
             </Button>
           </div>
         </div>
@@ -96,7 +106,7 @@ export function StudentNotifications() {
                 </div>
                 <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{item.body}</p>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
-                  {!item.read_at && <Button size="sm" variant="outline" onClick={() => void read(item.id)}>Marcar como lida</Button>}
+                  {!item.read_at && <Button size="sm" variant="outline" disabled={!!busy} onClick={() => void read(item.id)}>Marcar como lida</Button>}
                   {item.link && (
                     <a href={item.link} onClick={() => { if (!item.read_at) void read(item.id); }} className="inline-flex items-center text-sm font-semibold text-primary hover:underline">
                       Abrir relacionado <ChevronRight className="ml-1 size-4" />
