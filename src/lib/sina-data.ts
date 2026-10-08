@@ -921,6 +921,7 @@ export type AdminAcademicSetup = {
   terms: { id: string; name: string; starts_at: string | null; ends_at: string | null; is_current: boolean }[];
   matrix: {
     id: string;
+    classroom_subject_id?: string;
     classroom_id: string;
     classroom_name: string;
     classroom_status: string;

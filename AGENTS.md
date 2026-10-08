@@ -22,3 +22,4 @@
 - Read confirmation URL parameters after hydration and verify only on explicit confirmation; SSR must not access window or consume email tokens.
 - Preserve the recovery page on sign-out so a successful password reset can show its confirmation before the user returns to login.
 - Keep undeployed migration RPC contracts in a typed extension of the existing client, never in generated files; this preserves session handling and exposes deployment gaps without changing records.
+- Keep weekly timetable access in the dedicated timetable data module and reuse classroom_subjects links; this isolates schedule restoration from academic responsibilities and preserves tenant-checked RPC writes.
