@@ -190,6 +190,10 @@ as $function$
        set read_at=now()
      where user_id=auth.uid()
        and read_at is null
+       and coalesce(
+         (metadata->>'institution_id')::uuid,
+         sina_private.current_institution('teacher'::public.app_role)
+       ) = sina_private.current_institution('teacher'::public.app_role)
     returning id
   )
   select count(*)::integer from updated;
