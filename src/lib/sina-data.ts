@@ -1147,6 +1147,39 @@ export async function createAssessment(args: {
   return data;
 }
 
+
+export async function updateAssessment(args: {
+  id: string;
+  classroomId: string;
+  subjectId: string | null;
+  termId: string | null;
+  title: string;
+  type: string;
+  weight: number;
+  maxScore: number;
+  dueAt: string | null;
+}) {
+  const { data, error } = await supabase.rpc("teacher_update_assessment", {
+    _id: args.id,
+    _classroom_id: args.classroomId,
+    _subject_id: args.subjectId as string,
+    _term_id: args.termId as string,
+    _title: args.title,
+    _type: args.type,
+    _weight: args.weight,
+    _max_score: args.maxScore,
+    _due_at: args.dueAt as string,
+  });
+  if (error) throw error;
+  return data ?? false;
+}
+
+export async function deleteAssessment(assessmentId: string) {
+  const { data, error } = await supabase.rpc("teacher_delete_assessment", { _id: assessmentId });
+  if (error) throw error;
+  return data ?? false;
+}
+
 export async function loadStudentAssessments(): Promise<StudentAssessment[]> {
   const { data, error } = await supabase.rpc("student_list_assessments");
   if (error) throw error;
