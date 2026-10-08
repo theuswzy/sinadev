@@ -562,7 +562,7 @@ export function AcademicShell({
       </header>
 
       <main className="sina-shell-main min-h-[calc(100vh-108px)]">
-        <div className="sina-shell-content mx-auto w-full max-w-[1440px] px-3 py-5 sm:px-5 sm:py-7 lg:px-8 lg:py-8">
+        <div className="sina-shell-content mx-auto w-full max-w-[1320px] px-3 py-5 sm:px-5 sm:py-7 lg:px-8 lg:py-8">
           <div className="mb-5 md:hidden">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">{roleLabel}</p>
             <h1 className="mt-1 font-display text-xl font-bold tracking-tight">{subtitle}</h1>
