@@ -118,7 +118,8 @@ begin
       'task_id',_task_id,
       'student_id',sid,
       'student_name',student_name,
-      'late',submit_status='submitted_late'
+      'late',submit_status='submitted_late',
+      'institution_id',inst
     )
   );
 
@@ -155,6 +156,8 @@ as $function$
   select n.id,n.user_id,n.type,n.title,n.body,n.link,n.metadata,n.read_at,n.created_at
   from public.notifications n
   where n.user_id=auth.uid()
+    and coalesce((n.metadata->>'institution_id')::uuid, sina_private.current_institution('teacher'::public.app_role))
+      = sina_private.current_institution('teacher'::public.app_role)
     and (
       not _unread_only
       or n.read_at is null
