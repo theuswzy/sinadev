@@ -435,17 +435,24 @@ export function AcademicShell({
 
           <nav
             aria-label="Navegação principal"
-            className={role.data === "teacher"
+            className={(role.data === "teacher" || role.data === "student")
               ? "relative -mx-3 hidden gap-1 px-3 pb-3 md:mx-0 md:flex md:px-0"
               : "scrollbar-none -mx-3 hidden gap-1 overflow-x-auto px-3 pb-3 md:mx-0 md:flex md:px-0"}
           >
-            {role.data === "teacher" ? (
+            {role.data === "teacher" || role.data === "student" ? (
               <>
                 {sectionLinks.slice(0, 4).map(renderNavItem)}
-                {([
-                  ["academic", "Acadêmico", sectionLinks.slice(4, 7)],
-                  ["content", "Conteúdo", sectionLinks.slice(7)],
-                ] as const).map(([groupKey, label, items]) => {
+                {(
+                  role.data === "teacher"
+                    ? [
+                        ["academic", "Acadêmico", sectionLinks.slice(4, 7)],
+                        ["content", "Conteúdo", sectionLinks.slice(7)],
+                      ]
+                    : [
+                        ["academic", "Acadêmico", sectionLinks.slice(1, 4)],
+                        ["content", "Rotina", sectionLinks.slice(4)],
+                      ]
+                ).map(([groupKey, label, items]) => {
                   const active = items.some(isActive);
                   const open = navGroup === groupKey;
                   return (
