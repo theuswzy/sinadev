@@ -97,6 +97,76 @@ export type Database = {
           },
         ]
       }
+      academic_period_lock_audit: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string
+          id: string
+          institution_id: string
+          period: number
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by: string
+          id?: string
+          institution_id: string
+          period: number
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string
+          id?: string
+          institution_id?: string
+          period?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academic_period_lock_audit_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      academic_period_locks: {
+        Row: {
+          closed_at: string
+          closed_by: string
+          id: string
+          institution_id: string
+          period: number
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string
+          closed_by: string
+          id?: string
+          institution_id: string
+          period: number
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string
+          closed_by?: string
+          id?: string
+          institution_id?: string
+          period?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academic_period_locks_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       academic_terms: {
         Row: {
           created_at: string
@@ -723,6 +793,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "classrooms_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grade_change_audit: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          grade_id: string | null
+          id: string
+          institution_id: string
+          new_absences: number | null
+          new_score: number | null
+          old_absences: number | null
+          old_score: number | null
+          period: number
+          student_id: string
+          subject: string | null
+          subject_id: string | null
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          grade_id?: string | null
+          id?: string
+          institution_id: string
+          new_absences?: number | null
+          new_score?: number | null
+          old_absences?: number | null
+          old_score?: number | null
+          period: number
+          student_id: string
+          subject?: string | null
+          subject_id?: string | null
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          grade_id?: string | null
+          id?: string
+          institution_id?: string
+          new_absences?: number | null
+          new_score?: number | null
+          old_absences?: number | null
+          old_score?: number | null
+          period?: number
+          student_id?: string
+          subject?: string | null
+          subject_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grade_change_audit_institution_id_fkey"
             columns: ["institution_id"]
             isOneToOne: false
             referencedRelation: "institutions"
@@ -1491,6 +1620,15 @@ export type Database = {
         Args: { _institution_id: string; _teacher_id: string }
         Returns: boolean
       }
+      admin_list_academic_period_locks: {
+        Args: never
+        Returns: {
+          closed_at: string
+          closed_by: string
+          is_closed: boolean
+          period: number
+        }[]
+      }
       admin_list_academic_setup: { Args: never; Returns: Json }
       admin_list_accounts: {
         Args: never
@@ -1537,6 +1675,25 @@ export type Database = {
           teacher_id: string
           teacher_name: string
           weekday: number
+        }[]
+      }
+      admin_list_grade_change_audit: {
+        Args: { _limit?: number }
+        Returns: {
+          action: string
+          changed_at: string
+          changed_by: string
+          grade_id: string
+          id: string
+          new_absences: number
+          new_score: number
+          old_absences: number
+          old_score: number
+          period: number
+          student_id: string
+          student_name: string
+          subject: string
+          subject_id: string
         }[]
       }
       admin_list_institution_invitations: {
@@ -1695,12 +1852,20 @@ export type Database = {
         Args: { _id: string }
         Returns: boolean
       }
+      admin_set_academic_period_lock: {
+        Args: { _closed: boolean; _period: number }
+        Returns: boolean
+      }
       admin_set_academic_role: {
         Args: { _role: string; _user_id: string }
         Returns: boolean
       }
       admin_set_account_status: {
         Args: { _status: string; _user_id: string }
+        Returns: boolean
+      }
+      admin_set_administrator: {
+        Args: { _enabled: boolean; _user_id: string }
         Returns: boolean
       }
       admin_set_institution_status: {
@@ -2095,6 +2260,8 @@ export type Database = {
         Returns: {
           attachment_name: string
           attachment_path: string
+          attachment_size: number
+          attachment_type: string
           content: string
           feedback: string
           id: string
@@ -2171,6 +2338,17 @@ export type Database = {
       }
       student_submit_task: {
         Args: { _content: string; _task_id: string }
+        Returns: string
+      }
+      student_submit_task_with_attachment: {
+        Args: {
+          _attachment_name?: string
+          _attachment_path?: string
+          _attachment_size?: number
+          _attachment_type?: string
+          _content: string
+          _task_id: string
+        }
         Returns: string
       }
       student_update_profile: {
@@ -2390,6 +2568,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      teacher_delete_assessment: { Args: { _id: string }; Returns: boolean }
       teacher_delete_calendar_event: { Args: { _id: string }; Returns: boolean }
       teacher_delete_subject: { Args: { _id: string }; Returns: boolean }
       teacher_delete_task: {
@@ -2475,6 +2654,15 @@ export type Database = {
           score: number
           student_id: string
           updated_at: string
+        }[]
+      }
+      teacher_get_gradebook_period_status: {
+        Args: { _period: number }
+        Returns: {
+          closed_at: string
+          closed_by: string
+          is_closed: boolean
+          period: number
         }[]
       }
       teacher_get_student_academic_profile: {
@@ -2706,6 +2894,20 @@ export type Database = {
         }
         Returns: Json
       }
+      teacher_list_notifications: {
+        Args: { _limit?: number; _unread_only?: boolean }
+        Returns: {
+          body: string
+          created_at: string
+          id: string
+          link: string
+          metadata: Json
+          read_at: string
+          title: string
+          type: string
+          user_id: string
+        }[]
+      }
       teacher_list_roster: {
         Args: never
         Returns: {
@@ -2766,6 +2968,8 @@ export type Database = {
       teacher_list_task_submissions: {
         Args: { _task_id: string }
         Returns: {
+          attachment_name: string
+          attachment_path: string
           content: string
           enrollment: string
           feedback: string
@@ -2830,6 +3034,11 @@ export type Database = {
           user_id: string
         }[]
       }
+      teacher_mark_all_notifications_read: { Args: never; Returns: number }
+      teacher_mark_notification_read: {
+        Args: { _id: string }
+        Returns: boolean
+      }
       teacher_remove_student_from_classroom: {
         Args: { _student_id: string }
         Returns: boolean
@@ -2887,6 +3096,20 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      teacher_update_assessment: {
+        Args: {
+          _classroom_id: string
+          _due_at: string
+          _id: string
+          _max_score: number
+          _subject_id: string
+          _term_id: string
+          _title: string
+          _type: string
+          _weight: number
+        }
+        Returns: boolean
       }
       teacher_update_attendance: {
         Args: { _attendance: number; _student_id: string }
