@@ -3,6 +3,7 @@ import { AlertTriangle, BookOpen, CalendarRange, Layers3, Save, Archive, RotateC
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { AdminClassroomTimetable } from "@/components/admin-classroom-timetable";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -314,6 +315,7 @@ export function AdminAcademicSetup() {
   return (
     <section id="academico-setup" className="sina-card sina-card-hover p-6 scroll-mt-28">
       <div className="flex items-start gap-3"><Layers3 className="mt-0.5 size-5 text-primary" /><div><h2 className="font-semibold">Estrutura acadêmica</h2><p className="mt-1 text-sm text-muted-foreground">Cadastre turmas, disciplinas e períodos. Esses dados alimentam diário, avaliações, calendário e relatórios.</p></div></div>
+      <AdminClassroomTimetable />
       {setup.isPending ? <p className="mt-5 text-sm text-muted-foreground">Carregando estrutura…</p> : setup.error ? <p className="mt-5 text-sm text-destructive">{errorText(setup.error)}</p> : (
         <div className="mt-6 space-y-6">
         <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4">
