@@ -324,13 +324,33 @@ function StudentDashboard() {
         </div>
         {timetable.error && <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">Não foi possível carregar o cronograma. <Button size="sm" variant="outline" className="ml-2" onClick={() => void timetable.refetch()}>Tentar novamente</Button></div>}
         {timetable.isPending && <p className="mt-4 text-sm text-muted-foreground">Carregando seus horários…</p>}
-        {!timetable.isPending && !timetable.error && (timetable.data ?? []).length > 0 && <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[...(timetable.data ?? [])].sort((a,b) => a.weekday-b.weekday || a.start_time.localeCompare(b.start_time)).slice(0,6).map(item => <div key={item.id} className="rounded-xl border border-border p-4">
-            <p className="text-xs font-semibold text-primary">{(["","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira"][item.weekday] ?? "Dia não informado")}</p>
-            <p className="mt-1 text-sm font-bold tabular-nums">{item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}</p>
-            <p className="mt-2 font-semibold">{item.subject_name}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{item.teacher_name ? "Prof. "+item.teacher_name : "Professor não informado"}{item.room ? " · Sala "+item.room : ""}</p>
-          </div>)}
+        {!timetable.isPending && !timetable.error && (timetable.data ?? []).length > 0 && <div className="mt-4 overflow-hidden rounded-2xl border border-border">
+          <div className="overflow-x-auto">
+            <div className="min-w-[760px]">
+              <div className="grid grid-cols-[92px_repeat(5,minmax(130px,1fr))] border-b border-border bg-muted/40">
+                <div className="flex items-center px-3 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Horário</div>
+                {["Seg","Ter","Qua","Qui","Sex"].map(day => <div key={day} className="border-l border-border px-2 py-3 text-center text-sm font-bold">{day}</div>)}
+              </div>
+              {Array.from(new Set((timetable.data ?? []).map(item => item.start_time.slice(0,5)))).sort((a,b)=>a.localeCompare(b)).map(start => {
+                const rowItems = (timetable.data ?? []).filter(item => item.start_time.slice(0,5) === start);
+                const end = rowItems.map(item => item.end_time.slice(0,5)).sort().at(-1) ?? "";
+                return <div key={start} className="grid grid-cols-[92px_repeat(5,minmax(130px,1fr))] border-b border-border last:border-b-0">
+                  <div className="flex flex-col justify-center bg-muted/20 px-3 py-3"><span className="text-sm font-bold tabular-nums">{start}</span><span className="mt-1 text-[10px] text-muted-foreground tabular-nums">até {end}</span></div>
+                  {[1,2,3,4,5].map(day => {
+                    const items = rowItems.filter(item => item.weekday === day);
+                    return <div key={day} className="min-h-[92px] border-l border-border p-2">
+                      {items.length ? <div className="space-y-2">{items.map(item => <article key={item.id} className="rounded-xl border border-primary/20 bg-primary/[0.06] p-3">
+                        <p className="text-[11px] font-semibold tabular-nums text-primary">{item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}</p>
+                        <p className="mt-1 break-words text-sm font-bold leading-snug">{item.subject_name}</p>
+                        <p className="mt-1 break-words text-xs text-muted-foreground">{item.teacher_name ? "Prof. "+item.teacher_name : "Professor não informado"}</p>
+                        {item.room && <p className="mt-1 text-xs text-muted-foreground">Sala {item.room}</p>}
+                      </article>)}</div> : <div className="flex min-h-[68px] items-center justify-center rounded-lg border border-dashed border-border/70"><span className="text-[11px] text-muted-foreground/70">—</span></div>}
+                    </div>;
+                  })}
+                </div>;
+              })}
+            </div>
+          </div>
         </div>}
         {!timetable.isPending && !timetable.error && !(timetable.data ?? []).length && <div className="mt-4 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">{hasClassroomLink ? "Ainda não há horários publicados para sua turma. Quando a escola cadastrar o cronograma, ele aparecerá aqui." : "Seu cronograma aparecerá aqui assim que você for vinculado a uma turma."}</div>}
       </section>
