@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Megaphone, BookOpen, Clock3, CheckCircle2, AlertTriangle, UserRound, ClipboardCheck, BarChart3, ArrowRight, FileText, RefreshCw } from "lucide-react";
 import { AcademicShell } from "@/components/academic-shell";
+import { loadStudentTimetable } from "@/lib/timetable-data";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -56,6 +57,12 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
       return loadStudentCalendar(from.toISOString(), to.toISOString());
     },
     enabled: module === "agenda",
+  });
+  const timetable = useQuery({
+    queryKey: ["student-module-timetable"],
+    queryFn: loadStudentTimetable,
+    enabled: module === "agenda",
+    refetchOnWindowFocus: true,
   });
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [submissionFiles, setSubmissionFiles] = useState<Record<string, File | null>>({});
@@ -717,8 +724,46 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
         </section>
       )}
       {module === "agenda" && (
-        <section className="mt-6 space-y-4">
-          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Planejamento</p><h2 className="mt-1 text-xl font-semibold">Agenda acadêmica</h2><p className="mt-1 text-sm text-muted-foreground">Cada evento informa sua origem, turma, tipo e horário.</p></div>
+        <section className="mt-6 space-y-6">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">Planejamento</p>
+            <h2 className="mt-1 text-xl font-semibold">Cronograma semanal de aulas</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Horários vinculados à sua turma, com disciplina, professor e sala.</p>
+          </div>
+          {timetable.isError && <div className="sina-card p-4 text-sm text-destructive">Não foi possível carregar o cronograma. <Button type="button" size="sm" variant="outline" className="ml-2" onClick={() => void timetable.refetch()}>Tentar novamente</Button></div>}
+          {timetable.isPending && <div className="sina-card p-5 text-sm text-muted-foreground">Carregando cronograma semanal…</div>}
+          {!timetable.isPending && !timetable.isError && (timetable.data ?? []).length > 0 && (
+            <div className="sina-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[680px] text-sm">
+                  <thead className="bg-secondary/50"><tr><th className="p-4 text-left">Dia</th><th className="p-4 text-left">Horário</th><th className="p-4 text-left">Disciplina</th><th className="p-4 text-left">Professor</th><th className="p-4 text-left">Sala</th></tr></thead>
+                  <tbody>
+                    {[...(timetable.data ?? [])].sort((a,b) => a.weekday-b.weekday || a.start_time.localeCompare(b.start_time)).map((item) => (
+                      <tr key={item.id} className="border-t border-border">
+                        <td className="whitespace-nowrap p-4 font-medium">{(["","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado","Domingo"][item.weekday] ?? "Dia não definido")}</td>
+                        <td className="whitespace-nowrap p-4 tabular-nums">{item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}</td>
+                        <td className="p-4 font-medium">{item.subject_name}</td>
+                        <td className="p-4 text-muted-foreground">{item.teacher_name || "Não informado"}</td>
+                        <td className="p-4 text-muted-foreground">{item.room || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {!timetable.isPending && !timetable.isError && !(timetable.data ?? []).length && (
+            <div className="sina-card border-dashed p-5">
+              <p className="font-semibold">O cronograma ainda não foi publicado.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Quando a administração cadastrar os horários da sua turma, eles aparecerão aqui automaticamente.</p>
+            </div>
+          )}
+
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-primary">Compromissos</p>
+            <h2 className="mt-1 text-xl font-semibold">Agenda acadêmica</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Provas, eventos e outros compromissos da sua turma.</p>
+          </div>
           {(calendar.data ?? []).map((event) => <article key={event.id} className="sina-card p-5"><div className="flex items-start gap-4"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><CalendarDays className="size-5"/></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">{event.title}</p><span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold">{event.event_type}</span></div><div className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2"><span>Quando: {new Date(event.start_at).toLocaleString("pt-BR")}</span><span>Origem: {event.classroom_name ? "Turma " + event.classroom_name : "Institucional"}</span></div>{event.description && <p className="mt-3 text-sm text-muted-foreground">{event.description}</p>}</div></div></article>)}
           {!calendar.data?.length && <div className="sina-card p-8 text-center text-sm text-muted-foreground">Nenhum evento próximo. Quando houver aulas, provas ou compromissos, eles aparecerão aqui.</div>}
         </section>
