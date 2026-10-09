@@ -458,7 +458,8 @@ function Grades({d}:{d:ReturnType<typeof useData>}){
   const assignments=(d.assignments.data??[]).filter(a=>a.classroom_id===classroom);
   const subjectOptions=assignments.filter((a,index,self)=>self.findIndex(x=>x.subject_id===a.subject_id)===index);
   const selectedSubject=subjectOptions.find(a=>a.subject_id===subject);
-  const responsibility=useQuery({queryKey:["teacher-grade-responsibility",classroom,subject],queryFn:async()=>{const {data,error}=await academicRpcClient.rpc("teacher_list_subject_responsibilities");if(error)throw error;return (data??[]).find((item:any)=>item.classroom_id===classroom&&item.subject_id===subject)??null},enabled:!!classroom&&!!subject,staleTime:15000});
+  type SubjectResponsibility = { classroom_id: string; subject_id: string; is_primary: boolean };
+  const responsibility=useQuery({queryKey:["teacher-grade-responsibility",classroom,subject],queryFn:async()=>{const {data,error}=await academicRpcClient.rpc("teacher_list_subject_responsibilities");if(error)throw error;return ((data??[]) as SubjectResponsibility[]).find(item=>item.classroom_id===classroom&&item.subject_id===subject)??null},enabled:!!classroom&&!!subject,staleTime:15000});
   const selectedResponsibility=responsibility.data;
   const isAdditionalTeacher=selectedResponsibility ? !selectedResponsibility.is_primary : false;
   const configuredTerms=(options.data?.terms??[]).slice(0,4);
