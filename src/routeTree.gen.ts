@@ -38,6 +38,7 @@ import { Route as AuthenticatedProfessorDisciplinasRouteImport } from './routes/
 import { Route as AuthenticatedProfessorFrequenciaRouteImport } from './routes/_authenticated/professor/frequencia'
 import { Route as AuthenticatedProfessorMateriaisRouteImport } from './routes/_authenticated/professor/materiais'
 import { Route as AuthenticatedProfessorNotasRouteImport } from './routes/_authenticated/professor/notas'
+import { Route as AuthenticatedProfessorNotificacoesRouteImport } from './routes/_authenticated/professor/notificacoes'
 import { Route as AuthenticatedProfessorTurmasRouteImport } from './routes/_authenticated/professor/turmas'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
@@ -202,6 +203,12 @@ const AuthenticatedProfessorNotasRoute =
     path: '/notas',
     getParentRoute: () => AuthenticatedProfessorRoute,
   } as any)
+const AuthenticatedProfessorNotificacoesRoute =
+  AuthenticatedProfessorNotificacoesRouteImport.update({
+    id: '/notificacoes',
+    path: '/notificacoes',
+    getParentRoute: () => AuthenticatedProfessorRoute,
+  } as any)
 const AuthenticatedProfessorTurmasRoute =
   AuthenticatedProfessorTurmasRouteImport.update({
     id: '/turmas',
@@ -248,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
   '/professor/materiais': typeof AuthenticatedProfessorMateriaisRoute
   '/professor/notas': typeof AuthenticatedProfessorNotasRoute
+  '/professor/notificacoes': typeof AuthenticatedProfessorNotificacoesRoute
   '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -281,6 +289,7 @@ export interface FileRoutesByTo {
   '/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
   '/professor/materiais': typeof AuthenticatedProfessorMateriaisRoute
   '/professor/notas': typeof AuthenticatedProfessorNotasRoute
+  '/professor/notificacoes': typeof AuthenticatedProfessorNotificacoesRoute
   '/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -316,6 +325,7 @@ export interface FileRoutesById {
   '/_authenticated/professor/frequencia': typeof AuthenticatedProfessorFrequenciaRoute
   '/_authenticated/professor/materiais': typeof AuthenticatedProfessorMateriaisRoute
   '/_authenticated/professor/notas': typeof AuthenticatedProfessorNotasRoute
+  '/_authenticated/professor/notificacoes': typeof AuthenticatedProfessorNotificacoesRoute
   '/_authenticated/professor/turmas': typeof AuthenticatedProfessorTurmasRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -351,6 +361,7 @@ export interface FileRouteTypes {
     | '/professor/frequencia'
     | '/professor/materiais'
     | '/professor/notas'
+    | '/professor/notificacoes'
     | '/professor/turmas'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -384,6 +395,7 @@ export interface FileRouteTypes {
     | '/professor/frequencia'
     | '/professor/materiais'
     | '/professor/notas'
+    | '/professor/notificacoes'
     | '/professor/turmas'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -418,6 +430,7 @@ export interface FileRouteTypes {
     | '/_authenticated/professor/frequencia'
     | '/_authenticated/professor/materiais'
     | '/_authenticated/professor/notas'
+    | '/_authenticated/professor/notificacoes'
     | '/_authenticated/professor/turmas'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -640,6 +653,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfessorNotasRouteImport
       parentRoute: typeof AuthenticatedProfessorRoute
     }
+    '/_authenticated/professor/notificacoes': {
+      id: '/_authenticated/professor/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/professor/notificacoes'
+      preLoaderRoute: typeof AuthenticatedProfessorNotificacoesRouteImport
+      parentRoute: typeof AuthenticatedProfessorRoute
+    }
     '/_authenticated/professor/turmas': {
       id: '/_authenticated/professor/turmas'
       path: '/turmas'
@@ -699,6 +719,7 @@ interface AuthenticatedProfessorRouteChildren {
   AuthenticatedProfessorFrequenciaRoute: typeof AuthenticatedProfessorFrequenciaRoute
   AuthenticatedProfessorMateriaisRoute: typeof AuthenticatedProfessorMateriaisRoute
   AuthenticatedProfessorNotasRoute: typeof AuthenticatedProfessorNotasRoute
+  AuthenticatedProfessorNotificacoesRoute: typeof AuthenticatedProfessorNotificacoesRoute
   AuthenticatedProfessorTurmasRoute: typeof AuthenticatedProfessorTurmasRoute
 }
 
@@ -718,6 +739,8 @@ const AuthenticatedProfessorRouteChildren: AuthenticatedProfessorRouteChildren =
       AuthenticatedProfessorFrequenciaRoute,
     AuthenticatedProfessorMateriaisRoute: AuthenticatedProfessorMateriaisRoute,
     AuthenticatedProfessorNotasRoute: AuthenticatedProfessorNotasRoute,
+    AuthenticatedProfessorNotificacoesRoute:
+      AuthenticatedProfessorNotificacoesRoute,
     AuthenticatedProfessorTurmasRoute: AuthenticatedProfessorTurmasRoute,
   }
 
