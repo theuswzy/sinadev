@@ -8,6 +8,7 @@ import { StudentNotifications } from "@/routes/_authenticated/aluno/notificacoes
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { errorText, getRole, loadGrades, loadMyStudent, loadStudentAcademicMaterialsDetailed, loadStudentCalendar, loadStudentSubjects, loadStudentTasksDetailed, loadStudentAnnouncementsDetailed, loadStudentAttendanceDetailed, loadNotifications } from "@/lib/sina-data";
+import { loadStudentTimetable } from "@/lib/timetable-data";
 
 
 export const Route = createFileRoute("/_authenticated/aluno")({
@@ -48,7 +49,8 @@ function StudentDashboard() {
   const calendarRange = { from: new Date().toISOString(), to: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString() };
   const calendar = useQuery({ queryKey: ["dashboard-calendar", calendarRange.from.slice(0,10), calendarRange.to.slice(0,10)], queryFn: () => loadStudentCalendar(calendarRange.from, calendarRange.to), enabled: !!student.data, ...liveOptions });
   const notifications = useQuery({ queryKey: ["dashboard-notifications"], queryFn: () => loadNotifications(true), enabled: !!student.data, ...liveOptions });
-  const dashboardQueries = [tasks, grades, studentSubjects, announcements, attendance, materials, calendar, notifications];
+  const timetable = useQuery({ queryKey: ["dashboard-timetable"], queryFn: loadStudentTimetable, enabled: !!student.data?.classroom_id, ...liveOptions });
+  const dashboardQueries = [tasks, grades, studentSubjects, announcements, attendance, materials, calendar, notifications, timetable];
 
   useEffect(() => {
     if (role.data !== "student") return;
@@ -313,6 +315,24 @@ function StudentDashboard() {
             </div>
           )}
         </div>
+      </section>
+
+      <section className="sina-dashboard-section mt-7 sina-card p-5 sm:p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div><p className="text-xs font-bold uppercase tracking-wide text-primary">Minha rotina</p><h2 className="mt-1 text-lg font-semibold">Cronograma de aulas</h2><p className="mt-1 text-sm text-muted-foreground">Consulte os horários das aulas sem precisar procurar o papel no caderno.</p></div>
+          <Link to="/aluno/agenda" className="text-sm font-semibold text-primary">Ver semana completa <ArrowRight className="ml-1 inline size-4" /></Link>
+        </div>
+        {timetable.error && <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">Não foi possível carregar o cronograma. <Button size="sm" variant="outline" className="ml-2" onClick={() => void timetable.refetch()}>Tentar novamente</Button></div>}
+        {timetable.isPending && <p className="mt-4 text-sm text-muted-foreground">Carregando seus horários…</p>}
+        {!timetable.isPending && !timetable.error && (timetable.data ?? []).length > 0 && <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[...(timetable.data ?? [])].sort((a,b) => a.weekday-b.weekday || a.start_time.localeCompare(b.start_time)).slice(0,6).map(item => <div key={item.id} className="rounded-xl border border-border p-4">
+            <p className="text-xs font-semibold text-primary">{(["","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira"][item.weekday] ?? "Dia não informado")}</p>
+            <p className="mt-1 text-sm font-bold tabular-nums">{item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}</p>
+            <p className="mt-2 font-semibold">{item.subject_name}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{item.teacher_name ? "Prof. "+item.teacher_name : "Professor não informado"}{item.room ? " · Sala "+item.room : ""}</p>
+          </div>)}
+        </div>}
+        {!timetable.isPending && !timetable.error && !(timetable.data ?? []).length && <div className="mt-4 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">{hasClassroomLink ? "Ainda não há horários publicados para sua turma. Quando a escola cadastrar o cronograma, ele aparecerá aqui." : "Seu cronograma aparecerá aqui assim que você for vinculado a uma turma."}</div>}
       </section>
 
       <section className="sina-dashboard-section mt-7 sina-card p-5 sm:p-6">
