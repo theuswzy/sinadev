@@ -169,26 +169,42 @@ export function AdminClassroomTimetable() {
             {!subjects.length && <p className="text-sm text-amber-700 dark:text-amber-300 md:col-span-2">Esta turma ainda não tem disciplinas vinculadas. Vincule uma disciplina antes de cadastrar horários.</p>}
           </div>}
 
-          <div className="overflow-hidden rounded-xl border border-border">
-            <div className="border-b border-border px-4 py-3"><h3 className="font-semibold">Horários cadastrados</h3><p className="mt-1 text-xs text-muted-foreground">A lista é atualizada depois de cada alteração.</p></div>
+          <div className="overflow-hidden rounded-2xl border border-border bg-background">
+            <div className="border-b border-border bg-muted/30 px-4 py-3"><h3 className="font-semibold">Grade semanal de aulas</h3><p className="mt-1 text-xs text-muted-foreground">Visualize e edite cada aula diretamente na grade.</p></div>
             {timetable.isPending && classroomId && <p className="p-4 text-sm text-muted-foreground">Carregando horários…</p>}
             {timetable.error && <div className="p-4 text-sm text-destructive">{errorText(timetable.error)} <Button size="sm" variant="outline" className="ml-2" onClick={() => void timetable.refetch()}>Tentar novamente</Button></div>}
             {!classroomId && <p className="p-4 text-sm text-muted-foreground">Selecione uma turma para consultar o cronograma.</p>}
             {classroomId && !timetable.isPending && !timetable.error && !(timetable.data ?? []).length && <p className="p-4 text-sm text-muted-foreground">Nenhum horário cadastrado para esta turma.</p>}
-            {!!timetable.data?.length && <div className="divide-y divide-border">
-              {[...timetable.data].sort((a, b) => a.weekday - b.weekday || a.start_time.localeCompare(b.start_time)).map(item => (
-                <div key={item.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="font-semibold">{weekdays.find(day => day.value === item.weekday)?.label ?? "Dia não informado"} · {item.start_time.slice(0, 5)}–{item.end_time.slice(0, 5)}</p>
-                    <p className="mt-1 text-sm">{item.subject_name} <span className="text-muted-foreground">· {item.teacher_name || "Professor não informado"}{item.room ? ` · Sala ${item.room}` : ""}</span></p>
-                    {item.notes && <p className="mt-1 text-xs text-muted-foreground">{item.notes}</p>}
-                  </div>
-                  <div className="flex shrink-0 gap-2">
-                    <Button size="sm" variant="outline" disabled={busy} onClick={() => startEdit(item)}><Pencil className="mr-1.5 size-3.5" />Editar</Button>
-                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" disabled={busy} onClick={() => void remove(item)}><Trash2 className="mr-1.5 size-3.5" />Excluir</Button>
-                  </div>
+            {!!timetable.data?.length && <div className="overflow-x-auto">
+              <div className="min-w-[900px]">
+                <div className="grid grid-cols-[100px_repeat(5,minmax(145px,1fr))] border-b border-border bg-muted/40">
+                  <div className="flex items-center px-3 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Horário</div>
+                  {weekdays.map(day => <div key={day.value} className="border-l border-border px-3 py-3 text-center text-sm font-bold">{day.label.replace("-feira", "")}</div>)}
                 </div>
-              ))}
+                {Array.from(new Set((timetable.data ?? []).map(item => item.start_time.slice(0, 5)))).sort((a, b) => a.localeCompare(b)).map(start => {
+                  const rowItems = (timetable.data ?? []).filter(item => item.start_time.slice(0, 5) === start);
+                  const end = rowItems.map(item => item.end_time.slice(0, 5)).sort().at(-1) ?? "";
+                  return <div key={start} className="grid grid-cols-[100px_repeat(5,minmax(145px,1fr))] border-b border-border last:border-b-0">
+                    <div className="flex flex-col justify-center bg-muted/20 px-3 py-3"><span className="text-sm font-bold tabular-nums">{start}</span><span className="mt-1 text-[11px] text-muted-foreground tabular-nums">até {end}</span></div>
+                    {weekdays.map(day => {
+                      const items = rowItems.filter(item => item.weekday === day.value);
+                      return <div key={day.value} className="min-h-[112px] border-l border-border p-2">
+                        {items.length ? <div className="space-y-2">{items.map(item => <article key={item.id} className="rounded-xl border border-primary/20 bg-primary/[0.06] p-3 shadow-sm">
+                          <p className="text-[11px] font-semibold tabular-nums text-primary">{item.start_time.slice(0, 5)}–{item.end_time.slice(0, 5)}</p>
+                          <p className="mt-1 break-words text-sm font-bold leading-snug">{item.subject_name}</p>
+                          <p className="mt-1 break-words text-xs text-muted-foreground">{item.teacher_name || "Professor não informado"}</p>
+                          {item.room && <p className="mt-1 text-xs text-muted-foreground">Sala {item.room}</p>}
+                          {item.notes && <p className="mt-1 break-words text-[11px] text-muted-foreground">{item.notes}</p>}
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" disabled={busy} onClick={() => startEdit(item)}><Pencil className="mr-1 size-3" />Editar</Button>
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive" disabled={busy} onClick={() => void remove(item)}><Trash2 className="mr-1 size-3" />Excluir</Button>
+                          </div>
+                        </article>)}</div> : <div className="flex min-h-[90px] items-center justify-center rounded-lg border border-dashed border-border/70"><span className="text-[11px] text-muted-foreground/70">—</span></div>}
+                      </div>;
+                    })}
+                  </div>;
+                })}
+              </div>
             </div>}
           </div>
         </div>}
