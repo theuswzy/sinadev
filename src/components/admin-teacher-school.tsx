@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { errorText, loadAdminLinkableInstitutions, loadAdminTeacherSchoolLinks, adminLinkTeacherToInstitution, adminUpdateProfile } from "@/lib/sina-data";
+import { errorText, loadAdminLinkableInstitutions, loadAdminTeacherSchoolLinks, adminLinkTeacherToInstitution, adminUpdateProfile, type AdminTeacherSchoolLink } from "@/lib/sina-data";
 
 export function AdminTeacherSchool() {
   const qc = useQueryClient();
@@ -14,7 +14,7 @@ export function AdminTeacherSchool() {
   const [selectedSchool, setSelectedSchool] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [editingTeacher, setEditingTeacher] = useState<any>(null);
+  const [editingTeacher, setEditingTeacher] = useState<AdminTeacherSchoolLink | null>(null);
   const [editName, setEditName] = useState("");
   const [editAvatar, setEditAvatar] = useState<string | null>(null);
   const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
@@ -32,7 +32,7 @@ export function AdminTeacherSchool() {
   const linkedCount = (teachers.data ?? []).filter(teacher => !!teacher.institution_id).length;
   const unlinkedCount = Math.max(0, (teachers.data ?? []).length - linkedCount);
 
-  function openProfile(teacher: any) {
+  function openProfile(teacher: AdminTeacherSchoolLink) {
     setEditingTeacher(teacher);
     setEditName(teacher.display_name || teacher.email);
     setEditAvatar(teacher.avatar_url ?? null);
