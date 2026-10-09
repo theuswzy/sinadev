@@ -761,7 +761,8 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
                   })}
                 </div>
               </div>
-            </div>}
+            </div>
+          )}
           {!timetable.isPending && !timetable.isError && !(timetable.data ?? []).length && (
             <div className="sina-card border-dashed p-5">
               <p className="font-semibold">O cronograma ainda não foi publicado.</p>
