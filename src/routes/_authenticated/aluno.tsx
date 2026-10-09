@@ -295,7 +295,7 @@ function StudentDashboard() {
               <p className="mt-1 text-xs text-muted-foreground">Avisos e atualizações aguardando leitura.</p>
             </Link>
           )}
-          {upcomingEvents.length > 0 && (
+          {upcomingEvents[0] && (
             <Link to="/aluno/agenda" className="group rounded-xl border border-border p-4 transition hover:border-primary/40 hover:bg-muted/40">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Próximo evento</span>

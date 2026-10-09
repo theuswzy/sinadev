@@ -474,9 +474,9 @@ export function AcademicShell({
               >
                 {(() => {
                   const avatar =
-                    (authUser.data?.user_metadata?.avatar_url as string | undefined) ||
-                    (authUser.data?.user_metadata?.picture as string | undefined) ||
-                    (authUser.data?.user_metadata?.avatar as string | undefined);
+                    (authUser.data?.user_metadata?.['avatar_url'] as string | undefined) ||
+                    (authUser.data?.user_metadata?.['picture'] as string | undefined) ||
+                    (authUser.data?.user_metadata?.['avatar'] as string | undefined);
                   return avatar ? (
                     <img
                       src={avatar}
@@ -538,7 +538,7 @@ export function AcademicShell({
             {role.data === "teacher" || role.data === "student" ? (
               <>
                 {sectionLinks.slice(0, 4).map(renderNavItem)}
-                {(
+                {((
                   role.data === "teacher"
                     ? [
                         ["academic", "Acadêmico", sectionLinks.slice(4, 7)],
@@ -548,7 +548,7 @@ export function AcademicShell({
                         ["academic", "Acadêmico", sectionLinks.slice(1, 4)],
                         ["content", "Rotina", sectionLinks.slice(4)],
                       ]
-                ).map(([groupKey, label, items]) => {
+                ) satisfies ["academic" | "content", string, ShellLink[]][]).map(([groupKey, label, items]) => {
                   const active = items.some(isActive);
                   const open = navGroup === groupKey;
                   return (
