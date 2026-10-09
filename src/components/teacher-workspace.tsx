@@ -179,7 +179,6 @@ function Overview({d,onNavigate}:{d:ReturnType<typeof useData>;onNavigate:(secti
           {!tasks.isPending&&!calendar.isPending&&!upcomingTasks.length&&!upcomingEvents.length&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhuma atividade ou evento próximo.</p>}
         </div>
       </Card>
-    </div>
 
     <Card title="Atalhos operacionais" description="Ações que costumam acontecer todos os dias.">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
