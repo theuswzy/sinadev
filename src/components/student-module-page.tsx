@@ -733,25 +733,35 @@ export function StudentModulePage({ module }: { module: StudentModule }) {
           {timetable.isError && <div className="sina-card p-4 text-sm text-destructive">Não foi possível carregar o cronograma. <Button type="button" size="sm" variant="outline" className="ml-2" onClick={() => void timetable.refetch()}>Tentar novamente</Button></div>}
           {timetable.isPending && <div className="sina-card p-5 text-sm text-muted-foreground">Carregando cronograma semanal…</div>}
           {!timetable.isPending && !timetable.isError && (timetable.data ?? []).length > 0 && (
-            <div className="sina-card overflow-hidden">
+            <div className="sina-card overflow-hidden rounded-2xl">
+              <div className="border-b border-border bg-muted/30 px-4 py-3"><h3 className="font-semibold">Grade semanal</h3><p className="mt-1 text-xs text-muted-foreground">Seus horários organizados por dia e período.</p></div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px] text-sm">
-                  <thead className="bg-secondary/50"><tr><th className="p-4 text-left">Dia</th><th className="p-4 text-left">Horário</th><th className="p-4 text-left">Disciplina</th><th className="p-4 text-left">Professor</th><th className="p-4 text-left">Sala</th></tr></thead>
-                  <tbody>
-                    {[...(timetable.data ?? [])].sort((a,b) => a.weekday-b.weekday || a.start_time.localeCompare(b.start_time)).map((item) => (
-                      <tr key={item.id} className="border-t border-border">
-                        <td className="whitespace-nowrap p-4 font-medium">{(["","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado","Domingo"][item.weekday] ?? "Dia não definido")}</td>
-                        <td className="whitespace-nowrap p-4 tabular-nums">{item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}</td>
-                        <td className="p-4 font-medium">{item.subject_name}</td>
-                        <td className="p-4 text-muted-foreground">{item.teacher_name || "Não informado"}</td>
-                        <td className="p-4 text-muted-foreground">{item.room || "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="min-w-[760px]">
+                  <div className="grid grid-cols-[92px_repeat(5,minmax(130px,1fr))] border-b border-border bg-muted/40">
+                    <div className="flex items-center px-3 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">Horário</div>
+                    {["Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira"].map((day, index) => <div key={day} className="border-l border-border px-2 py-3 text-center text-sm font-bold">{["Seg","Ter","Qua","Qui","Sex"][index]}</div>)}
+                  </div>
+                  {Array.from(new Set((timetable.data ?? []).map(item => item.start_time.slice(0,5)))).sort((a,b)=>a.localeCompare(b)).map(start => {
+                    const rowItems = (timetable.data ?? []).filter(item => item.start_time.slice(0,5) === start);
+                    const end = rowItems.map(item=>item.end_time.slice(0,5)).sort().at(-1) ?? "";
+                    return <div key={start} className="grid grid-cols-[92px_repeat(5,minmax(130px,1fr))] border-b border-border last:border-b-0">
+                      <div className="flex flex-col justify-center bg-muted/20 px-3 py-3"><span className="text-sm font-bold tabular-nums">{start}</span><span className="mt-1 text-[10px] text-muted-foreground tabular-nums">até {end}</span></div>
+                      {[1,2,3,4,5].map(day => {
+                        const items = rowItems.filter(item=>item.weekday===day);
+                        return <div key={day} className="min-h-[100px] border-l border-border p-2">
+                          {items.length ? <div className="space-y-2">{items.map(item=><article key={item.id} className="rounded-xl border border-primary/20 bg-primary/[0.06] p-3">
+                            <p className="text-[11px] font-semibold tabular-nums text-primary">{item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}</p>
+                            <p className="mt-1 break-words text-sm font-bold leading-snug">{item.subject_name}</p>
+                            <p className="mt-1 break-words text-xs text-muted-foreground">{item.teacher_name || "Professor não informado"}</p>
+                            {item.room && <p className="mt-1 text-xs text-muted-foreground">Sala {item.room}</p>}
+                          </article>)}</div> : <div className="flex min-h-[76px] items-center justify-center rounded-lg border border-dashed border-border/70"><span className="text-[11px] text-muted-foreground/70">—</span></div>}
+                        </div>;
+                      })}
+                    </div>;
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            </div>}
           {!timetable.isPending && !timetable.isError && !(timetable.data ?? []).length && (
             <div className="sina-card border-dashed p-5">
               <p className="font-semibold">O cronograma ainda não foi publicado.</p>
