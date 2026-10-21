@@ -52,7 +52,13 @@ export async function getRole(): Promise<UserRole> {
     throw new Error("Sua conta está suspensa. Procure o administrador da instituição.");
   }
 
-  // Resolve the role from the active institution, not from the global role table.
+  // A trusted global administrator must always resolve as admin, even if
+  // legacy data also contains a student/teacher membership or an active school
+  // context. Otherwise the router can send the administrator to /aluno before
+  // reaching the global-admin fallback below.
+  if (isGlobalAdmin) return "admin";
+
+  // Resolve the role from the active institution for non-global accounts.
   // A user can belong to more than one institution and must not inherit another
   // institution's role while switching the active context.
   const { data: institutions, error: institutionError } = await supabase.rpc("account_list_institutions");
