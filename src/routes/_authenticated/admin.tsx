@@ -58,7 +58,7 @@ function AdminArea() {
       if (error) throw error;
       return data?.role === "admin";
     },
-    enabled: role.data === false,
+    enabled: !role.isPending && !role.error,
   });
   const currentUser = useQuery({
     queryKey: ["admin-current-user"],
@@ -103,8 +103,15 @@ function AdminArea() {
   const academicSetup = useQuery<AdminAcademicSetupData>({ queryKey: ["admin-academic-setup"], queryFn: async () => { const { data, error } = await supabase.rpc("admin_list_academic_setup"); if (error) throw error; return (data ?? { classrooms: [], subjects: [], terms: [] }) as AdminAcademicSetupData; }, enabled: role.data === true, refetchOnWindowFocus: true, refetchInterval: 30000 });
   const roleRequests = useQuery({
     queryKey: ["admin-role-requests"],
-    queryFn: loadAccountRoleRequests,
-    enabled: role.data === true,
+    queryFn: async () => {
+      if (bootstrapAdmin.data === true) {
+        const { data, error } = await supabase.rpc("admin_list_bootstrap_role_requests");
+        if (error) throw error;
+        return data ?? [];
+      }
+      return loadAccountRoleRequests();
+    },
+    enabled: role.data === true || bootstrapAdmin.data === true,
     refetchOnWindowFocus: true,
     refetchInterval: 30000,
   });
@@ -120,7 +127,7 @@ function AdminArea() {
   const institutionSchools = useQuery({
     queryKey: ["admin-school-directory", institutionSchoolSearch],
     queryFn: () => searchSchoolDirectory(institutionSchoolSearch),
-    enabled: role.data === true,
+    enabled: role.data === true || bootstrapAdmin.data === true,
   });
 
   useEffect(() => {
