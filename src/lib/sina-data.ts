@@ -82,6 +82,18 @@ export async function getRole(): Promise<UserRole> {
     throw new Error("Selecione a instituição ativa para continuar.");
   }
 
+  // A global administrator without any institutional membership yet must be
+  // recognised as admin (to create the first institution) before any student
+  // fallback. Admin always prevails over a coexisting student role.
+  const { data: globalAdminRole, error: globalAdminRoleError } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", auth.user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (globalAdminRoleError) throw globalAdminRoleError;
+  if (globalAdminRole?.role === "admin") return "admin";
+
   // Student registration is intentionally independent from academic linkage.
   // A student can have a valid student role before an institution/classroom
   // membership exists. Teachers and admins still require institutional context.

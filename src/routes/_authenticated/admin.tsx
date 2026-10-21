@@ -42,6 +42,24 @@ function AdminArea() {
       return Boolean(data);
     },
   });
+  // Global administrator with no institutional membership yet: allow only the
+  // first-institution setup (the database re-checks the global admin role).
+  const bootstrapAdmin = useQuery({
+    queryKey: ["admin-bootstrap-role"],
+    queryFn: async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return false;
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", auth.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (error) throw error;
+      return data?.role === "admin";
+    },
+    enabled: role.data === false,
+  });
   const currentUser = useQuery({
     queryKey: ["admin-current-user"],
     queryFn: async () => {
@@ -58,7 +76,7 @@ function AdminArea() {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: role.data === true,
+    enabled: role.data === true || bootstrapAdmin.data === true,
   });
 
   const accounts = useQuery({
@@ -134,6 +152,8 @@ function AdminArea() {
       setSelectedInstitutionSchool(null);
       toast.success("Escola vinculada à instituição. Ela já está disponível no seletor do cabeçalho.");
       await queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-role"] });
+      await queryClient.invalidateQueries({ queryKey: ["my-role"] });
     } catch (error) {
       toast.error(errorText(error));
     } finally {
@@ -380,7 +400,7 @@ function AdminArea() {
     void navigate({ to: "/auth", replace: true });
   }
 
-  if (role.isPending) {
+  if (role.isPending || (role.data === false && bootstrapAdmin.isPending)) {
     return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Verificando permissões…</div>;
   }
 
@@ -392,7 +412,7 @@ function AdminArea() {
     { id: "historico", label: "Histórico", Icon: ShieldCheck },
   ];
 
-  if (role.error || !role.data) {
+  if (role.error || (!role.data && !bootstrapAdmin.data)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <div className="max-w-md rounded-2xl border border-border bg-card p-7 text-center shadow-sm">

@@ -23,3 +23,4 @@
 - Preserve the recovery page on sign-out so a successful password reset can show its confirmation before the user returns to login.
 - Keep undeployed migration RPC contracts in a typed extension of the existing client, never in generated files; this preserves session handling and exposes deployment gaps without changing records.
 - Keep weekly timetable access in the dedicated timetable data module and reuse classroom_subjects links; this isolates schedule restoration from academic responsibilities and preserves tenant-checked RPC writes.
+- A global admin role in user_roles is recognised before any student fallback and may bootstrap the first institution (sina_private.is_global_admin); all other admin RPCs still require an active institutional admin membership, to keep tenant isolation.
