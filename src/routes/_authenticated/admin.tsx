@@ -400,7 +400,7 @@ function AdminArea() {
     void navigate({ to: "/auth", replace: true });
   }
 
-  if (role.isPending) {
+  if (role.isPending || (role.data === false && bootstrapAdmin.isPending)) {
     return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Verificando permissões…</div>;
   }
 
