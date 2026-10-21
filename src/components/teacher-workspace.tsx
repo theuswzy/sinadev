@@ -331,7 +331,7 @@ function Students({d}:{d:ReturnType<typeof useData>}){
           </div>
         </div>)}
         {roster.isPending && <p className="text-sm text-muted-foreground">Carregando alunos…</p>}
-        {roster.error && <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os alunos. <Button size="sm" variant="outline" onClick={()=>void roster.refetch()}>Tentar novamente</Button></div>}
+        {roster.error && <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">Não foi possível carregar os alunos. <Button type="button" size="sm" variant="outline" disabled={roster.isFetching} onClick={()=>void roster.refetch()}>{roster.isFetching ? "Atualizando…" : "Tentar novamente"}</Button></div>}
         {!roster.isPending && list.length===0&&<p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nenhum aluno encontrado nesta escola.</p>}
       </div>
       {total > 0 && <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
