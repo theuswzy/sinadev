@@ -113,11 +113,22 @@ function AuthPage() {
     const schoolId = explicitSchoolId || window.localStorage.getItem("sina-school-directory-id") || undefined;
     window.localStorage.removeItem("sina-school-directory-id");
 
-    // Students are active immediately, but if they selected a school during
-    // signup we must persist that school/institution link now. The onboarding
-    // RPC accepts a null school for students, so it is also safe for students
-    // who chose to leave the school link for later.
-    if (!explicitRole || explicitRole === "student") {
+    // On ordinary sign-in, resolve the existing trusted account role first.
+    // Do not run student onboarding merely because no signup role was passed:
+    // that used to send administrator/teacher logins through the student
+    // onboarding RPC before their real role was resolved.
+    if (!explicitRole) {
+      const role = await getRole();
+      await navigate({
+        to: role === "admin" ? "/admin" : role === "teacher" ? "/professor" : "/aluno",
+        replace: true,
+      });
+      return;
+    }
+
+    // During student signup, activate the student immediately and persist an
+    // optional school link. An unlinked student is still allowed into /aluno.
+    if (explicitRole === "student") {
       await ensureAccountOnboardingForSchool("student", schoolId ?? null);
       const role = await getRole();
       await navigate({
