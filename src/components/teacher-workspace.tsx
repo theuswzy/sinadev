@@ -85,10 +85,14 @@ function DataError({d}:{d:ReturnType<typeof useData>}) {
     d.institutionClasses.error && "turmas da escola",
   ].filter(Boolean) as string[];
   if (!errors.length) return null;
+  const isRefreshing = [d.classes, d.students, d.subjects, d.assignments, d.unassignedClasses, d.institutionClasses]
+    .some((query) => query.isFetching);
   return <section className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
     <p className="font-semibold">Não foi possível carregar alguns dados</p>
     <p className="mt-1 text-sm text-muted-foreground">Falha ao carregar: {errors.join(", ")}.</p>
-    <Button className="mt-3" variant="outline" onClick={()=>void d.refresh()}>Tentar novamente</Button>
+    <Button className="mt-3" variant="outline" disabled={isRefreshing} onClick={()=>void d.refresh()}>
+      {isRefreshing ? "Atualizando…" : "Tentar novamente"}
+    </Button>
   </section>;
 }
 
