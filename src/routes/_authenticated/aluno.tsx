@@ -114,7 +114,7 @@ function StudentDashboard() {
             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-muted">Área do aluno</p>
             <h2 className="mt-2 font-display text-2xl font-bold md:text-3xl">Olá! 👋</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-muted">
-              Sua conta está ativa. Vamos concluir seu cadastro acadêmico.
+              Sua conta está ativa e aguardando vínculo acadêmico. Você já pode acessar o painel enquanto a instituição e a turma são vinculadas.
             </p>
           </div>
           <div className="grid gap-4 p-6 sm:grid-cols-3 sm:p-8">
