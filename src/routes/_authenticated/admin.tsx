@@ -42,6 +42,24 @@ function AdminArea() {
       return Boolean(data);
     },
   });
+  // Global administrator with no institutional membership yet: allow only the
+  // first-institution setup (the database re-checks the global admin role).
+  const bootstrapAdmin = useQuery({
+    queryKey: ["admin-bootstrap-role"],
+    queryFn: async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return false;
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", auth.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (error) throw error;
+      return data?.role === "admin";
+    },
+    enabled: role.data === false,
+  });
   const currentUser = useQuery({
     queryKey: ["admin-current-user"],
     queryFn: async () => {
@@ -58,7 +76,7 @@ function AdminArea() {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: role.data === true,
+    enabled: role.data === true || bootstrapAdmin.data === true,
   });
 
   const accounts = useQuery({
