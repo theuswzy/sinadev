@@ -97,7 +97,27 @@ function StudentDashboard() {
     return <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico"><div className="sina-card mt-8 p-6">Carregando seu dashboard...</div></AcademicShell>;
   }
   if (role.error || student.error) {
-    return <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico"><div className="sina-card mt-8 p-6 text-sm text-destructive">{errorText(role.error ?? student.error)}</div></AcademicShell>;
+    return (
+      <AcademicShell title="Dashboard" subtitle="Meu espaço acadêmico">
+        <section className="sina-card mt-8 p-6">
+          <h2 className="font-display text-base font-bold">Não foi possível carregar seu painel</h2>
+          <p role="alert" className="mt-2 break-words text-sm text-destructive">
+            {errorText(role.error ?? student.error)}
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Seus dados não foram apagados. Verifique sua conexão e tente carregar novamente.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-4"
+            onClick={() => void Promise.all([role.refetch(), student.refetch()])}
+          >
+            Tentar novamente
+          </Button>
+        </section>
+      </AcademicShell>
+    );
   }
   if (role.data !== "student") {
     const destination = role.data === "teacher" ? "/professor" : "/admin";
