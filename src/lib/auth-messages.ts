@@ -25,6 +25,13 @@ export function authErrorMessage(error: unknown, context: "access" | "recovery" 
   if (normalized.includes("otp_expired") || normalized.includes("token has expired") || normalized.includes("invalid or has expired")) return "Este link de segurança expirou ou já foi usado. Solicite um novo e-mail no SINA.";
   if (normalized.includes("code verifier") || normalized.includes("pkce")) return "Este link foi aberto em outro navegador ou sessão. Solicite um novo e-mail no SINA.";
   if (normalized.includes("redirect") && normalized.includes("not allowed")) return "Não foi possível retornar ao SINA. Solicite um novo link ou contate o suporte da instituição.";
+  if (
+    normalized.includes("unsupported provider") ||
+    normalized.includes("missing oauth secret") ||
+    normalized.includes("provider is not enabled")
+  ) {
+    return "O acesso com Google está temporariamente indisponível porque a integração precisa ser configurada no serviço de autenticação do SINA. Entre com e-mail e senha enquanto o administrador corrige essa configuração.";
+  }
   if (normalized.includes("access_denied") || normalized.includes("cancelled") || normalized.includes("canceled")) return "O acesso com Google não foi concluído. Tente novamente ou entre com e-mail e senha.";
   if (normalized.includes("network") || normalized.includes("fetch")) return "Não foi possível conectar ao SINA. Verifique sua internet e tente novamente.";
   if (normalized.includes("invite") || normalized.includes("convite")) return "Não foi possível aceitar o convite. Confira se entrou com o e-mail convidado ou solicite um novo convite à instituição.";
