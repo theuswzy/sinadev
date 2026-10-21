@@ -303,10 +303,12 @@ export function AcademicShell({
           : "SINA";
 
   const accessBlocked = requiredRole && !role.isPending && !role.error && role.data !== requiredRole;
-  const accessMessage = requiredRole
-    ? accessBlocked
-      ? "Esta área é exclusiva para professores autorizados."
-      : null
+  const accessMessage = accessBlocked
+    ? requiredRole === "admin"
+      ? "Esta área é exclusiva para administradores autorizados."
+      : requiredRole === "teacher"
+        ? "Esta área é exclusiva para professores autorizados."
+        : "Esta área é exclusiva para alunos."
     : null;
 
   async function retryAcademicAccess() {
