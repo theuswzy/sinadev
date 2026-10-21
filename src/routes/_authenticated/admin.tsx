@@ -104,29 +104,37 @@ function AdminArea() {
   const roleRequests = useQuery({
     queryKey: ["admin-role-requests"],
     queryFn: async () => {
-      // Institutional admins keep the complete approval queue. Global admins
-      // additionally receive the limited bootstrap queue for schools not yet
-      // connected to an institution; merge by request ID to avoid duplicates.
-      if (role.data === true && bootstrapAdmin.data === true) {
-        const [regularRequests, bootstrapResult] = await Promise.all([
-          loadAccountRoleRequests(),
-          supabase.rpc("admin_list_bootstrap_role_requests"),
-        ]);
-        if (bootstrapResult.error) throw bootstrapResult.error;
-        const merged = new Map(regularRequests.map((request) => [request.id, request]));
-        for (const request of bootstrapResult.data ?? []) {
-          merged.set(request.id, request as (typeof regularRequests)[number]);
+      // Always load the institutional queue first so a missing optional
+      // bootstrap RPC cannot break the entire administrator screen.
+      const regularRequests = role.data === true ? await loadAccountRoleRequests() : [];
+      if (bootstrapAdmin.data !== true) return regularRequests;
+
+      const { data, error } = await supabase.rpc("admin_list_bootstrap_role_requests");
+      if (error) {
+        // This RPC is introduced by a separate database migration. Older
+        // environments may not have it yet; keep the admin panel usable and
+        // show the regular queue instead of failing the whole route.
+        const missingFunction =
+          error.code === "PGRST202" ||
+          error.code === "42883" ||
+          /admin_list_bootstrap_role_requests.*(not found|does not exist|schema cache)/i.test(error.message);
+        if (missingFunction) {
+          console.warn(
+            "[SINA] A fila global de aprovação ainda não está disponível neste banco. " +
+              "Aplique a migração 20261021193000_global_admin_bootstrap_role_requests.sql.",
+          );
+          return regularRequests;
         }
-        return Array.from(merged.values()).sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-        );
+        throw error;
       }
-      if (bootstrapAdmin.data === true) {
-        const { data, error } = await supabase.rpc("admin_list_bootstrap_role_requests");
-        if (error) throw error;
-        return data ?? [];
+
+      const merged = new Map(regularRequests.map((request) => [request.id, request]));
+      for (const request of data ?? []) {
+        merged.set(request.id, request as (typeof regularRequests)[number]);
       }
-      return loadAccountRoleRequests();
+      return Array.from(merged.values()).sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
     },
     enabled: role.data === true || bootstrapAdmin.data === true,
     refetchOnWindowFocus: true,
