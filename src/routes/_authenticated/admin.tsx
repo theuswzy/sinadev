@@ -650,7 +650,16 @@ function AdminArea() {
             academicOverview.error ? <div className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
               <p className="font-semibold">Não foi possível carregar os indicadores.</p>
               <p className="mt-1 break-words text-xs">{errorText(academicOverview.error)}</p>
-              <Button size="sm" variant="outline" className="mt-3" onClick={()=>void academicOverview.refetch()}>Tentar novamente</Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-3"
+                disabled={academicOverview.isFetching}
+                onClick={()=>void academicOverview.refetch()}
+              >
+                {academicOverview.isFetching ? "Atualizando…" : "Tentar novamente"}
+              </Button>
             </div> :
             <div className="mt-5 space-y-4">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
