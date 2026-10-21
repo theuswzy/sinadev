@@ -307,9 +307,15 @@ export async function teacherRemoveStudentFromClassroom(studentId: string) {
 }
 
 export async function loadMyStudent(): Promise<Student | null> {
+  // Create the student record even before school/classroom linking so that
+  // administrators can find and link newly registered students.
+  // ensure_student_profile is safe for non-student roles and permits a null institution.
+  const { error: ensureError } = await supabase.rpc("ensure_student_profile");
+  if (ensureError) throw ensureError;
+
   // Academic linkage is optional immediately after student registration.
-  // Do not call student RPCs that require an active institution until the
-  // account has at least one institutional membership.
+  // The profile row above is intentionally retained while the student waits
+  // for an institution; these reads require an active institutional context.
   const { data: institutions, error: institutionError } = await supabase.rpc("account_list_institutions");
   if (institutionError) throw institutionError;
   if (!(institutions ?? []).length) return null;
@@ -317,18 +323,7 @@ export async function loadMyStudent(): Promise<Student | null> {
   const { data, error } = await supabase.rpc("student_get_profile");
   if (error) throw error;
 
-  let student = data?.[0] ?? null;
-
-  if (!student) {
-    // A criação é feita apenas quando o perfil ainda não existe.
-    // Isso evita writes repetidos durante a atualização automática do dashboard.
-    const { error: ensureError } = await supabase.rpc("ensure_student_profile");
-    if (ensureError) throw ensureError;
-
-    const { data: refreshed, error: refreshError } = await supabase.rpc("student_get_profile");
-    if (refreshError) throw refreshError;
-    student = refreshed?.[0] ?? null;
-  }
+  const student = data?.[0] ?? null;
 
   if (!student) return null;
 
