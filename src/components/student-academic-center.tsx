@@ -167,7 +167,7 @@ export function StudentAcademicCenter() {
             const absences = rows.filter(item => item.status === "absent").length;
             const present = rows.filter(item => item.status === "present").length;
             const late = rows.filter(item => item.status === "late").length;
-            const percentage = rows.length ? Math.round((present / rows.length) * 100) : null;
+            const percentage = rows.length ? Math.round(((present + late) / rows.length) * 100) : null;
             return (
               <>
                 <div className="mt-4 grid grid-cols-2 gap-2">
