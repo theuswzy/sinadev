@@ -40,22 +40,19 @@ function AdminArea() {
       const { data, error: roleError } = await supabase.rpc("is_admin", { _user_id: auth.user.id });
       if (!roleError && data === true) return true;
 
-      // Some environments do not have the legacy is_admin RPC deployed, while
-      // global admin permissions are stored in user_roles. Fall back only to
-      // that trusted database record; never infer admin access from email or
-      // user metadata. If the RPC succeeded and returned false, let the
-      // separate bootstrap-admin check handle global administrators.
-      if (roleError) {
-        const { data: globalRole, error: globalRoleError } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", auth.user.id)
-          .eq("role", "admin")
-          .maybeSingle();
-        if (globalRoleError) throw globalRoleError;
-        if (globalRole?.role === "admin") return true;
-        throw roleError;
-      }
+      // The RPC can return false when it checks only institutional membership,
+      // even if a trusted global-admin row exists. Always verify the database
+      // role before denying access; never infer admin access from email or
+      // user metadata.
+      const { data: globalRole, error: globalRoleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", auth.user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (globalRoleError) throw globalRoleError;
+      if (globalRole?.role === "admin") return true;
+      if (roleError) throw roleError;
       return false;
     },
   });
