@@ -418,13 +418,20 @@ function AuthPage() {
         setBusy(false);
         return;
       }
-      if (!selectedSchool) {
-        setMessage("Selecione sua instituição antes de continuar.");
+      // Students may register before they know their school/class and must
+      // still be able to access the student panel. A school is required here
+      // only for teacher registration, matching the email/password flow.
+      if (requestedRole === "teacher" && !selectedSchool) {
+        setMessage("Selecione a instituição onde você leciona antes de continuar.");
         setBusy(false);
         return;
       }
       window.localStorage.setItem("sina-requested-role", requestedRole);
-      window.localStorage.setItem("sina-school-directory-id", selectedSchool.id);
+      if (selectedSchool) {
+        window.localStorage.setItem("sina-school-directory-id", selectedSchool.id);
+      } else {
+        window.localStorage.removeItem("sina-school-directory-id");
+      }
     } else {
       window.localStorage.removeItem("sina-requested-role");
       window.localStorage.removeItem("sina-school-directory-id");
