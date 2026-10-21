@@ -129,9 +129,9 @@ export function StudentAcademicCenter() {
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="sina-card p-6">
           <p className="text-xs font-bold uppercase tracking-wide text-primary">Desempenho</p>
-          <h3 className="mt-1 font-semibold">Média ponderada</h3>
+          <h3 className="mt-1 font-semibold">Média das avaliações (escala 0–10)</h3>
           <p className="mt-2 text-3xl font-bold">{weightedAverage == null ? "—" : weightedAverage.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}</p>
-          <p className="mt-1 text-xs text-muted-foreground">Calculada apenas com avaliações que já possuem nota, respeitando o peso de cada avaliação.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Calculada com as avaliações corrigidas, convertendo cada nota para a escala de 0 a 10 e aplicando seu peso. É independente do boletim por período abaixo; as notas do diário não são incorporadas automaticamente a esta média.</p>
         </div>
         <div className="sina-card p-6">
           <div className="flex items-center gap-3"><GraduationCap className="size-5 text-primary" /><div><p className="text-xs font-bold uppercase tracking-wide text-primary">Boletim</p><h3 className="font-semibold">Notas por disciplina</h3></div></div>
