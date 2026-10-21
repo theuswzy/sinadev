@@ -190,8 +190,16 @@ export function TeacherAcademicCenter() {
 
   async function saveScores() {
     if (!selectedAssessment) return;
+    const entries = Object.entries(scores).filter(([, value]) => value.trim() !== "");
+    const invalid = entries.find(([, value]) => {
+      const score = Number(value.replace(",", "."));
+      return !Number.isFinite(score) || score < 0 || score > selectedAssessment.max_score;
+    });
+    if (invalid) {
+      toast.error(`As notas devem estar entre 0 e ${selectedAssessment.max_score}.`);
+      return;
+    }
     try {
-      const entries = Object.entries(scores).filter(([, value]) => value.trim() !== "");
       for (const [studentId, value] of entries) {
         const { error } = await supabase.rpc("teacher_upsert_assessment_score", {
           _assessment_id: selectedAssessment.id,
@@ -202,6 +210,7 @@ export function TeacherAcademicCenter() {
         if (error) throw error;
       }
       toast.success(`${entries.length} nota${entries.length === 1 ? "" : "s"} salva${entries.length === 1 ? "" : "s"}.`);
+      await qc.invalidateQueries({ queryKey: ["teacher-assessments", classroomId] });
     } catch (error) { toast.error(errorText(error)); }
   }
 
