@@ -17,13 +17,9 @@ export async function getRole(): Promise<UserRole> {
     .eq("user_id", auth.user.id)
     .maybeSingle();
   if (profileError) throw profileError;
-  if (!profile) {
-    throw new Error("Finalize seu cadastro para acessar o SINA.");
-  }
-  // Check the trusted database role before applying the onboarding gate.
-  // A legitimate global administrator may have a legacy/pending profile and
-  // must still reach the admin area to repair initial setup. Never use email
-  // or user metadata to grant administrative access.
+  // Check the trusted database role before requiring a profile. A legitimate
+  // global administrator may be missing a legacy profile and still needs
+  // access to repair initial setup. Never grant admin from email or metadata.
   const { data: initialAdminRole, error: initialAdminRoleError } = await supabase
     .from("user_roles")
     .select("role")
@@ -32,6 +28,10 @@ export async function getRole(): Promise<UserRole> {
     .maybeSingle();
   if (initialAdminRoleError) throw initialAdminRoleError;
   const isGlobalAdmin = initialAdminRole?.role === "admin";
+  if (!profile && isGlobalAdmin) return "admin";
+  if (!profile) {
+    throw new Error("Finalize seu cadastro para acessar o SINA.");
+  }
 
   if (profile.status === "pending") {
     // Student registration is never subject to approval. The requested role
