@@ -213,6 +213,22 @@ function AuthPage() {
         url.searchParams.delete("code");
         url.searchParams.delete("type");
         window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+      } else {
+        // Alguns modelos de e-mail do Supabase usam token_hash + type em vez
+        // do fluxo PKCE. Sem verifyOtp, a pessoa pode voltar ao login sem uma
+        // sessão válida mesmo após clicar no link de confirmação.
+        const tokenHash = url.searchParams.get("token_hash");
+        const tokenType = url.searchParams.get("type");
+        if (tokenHash && tokenType === "signup") {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: "signup",
+          });
+          if (error) throw error;
+          url.searchParams.delete("token_hash");
+          url.searchParams.delete("type");
+          window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+        }
       }
 
       const sessionResult = await supabase.auth.getSession();
