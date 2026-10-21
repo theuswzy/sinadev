@@ -959,7 +959,21 @@ function AdminArea() {
           </div>
           {message && <p role="status" className="mt-4 rounded-xl border border-primary/15 bg-primary/5 p-3 text-sm">{message}</p>}
           {accounts.data && <p className="mt-3 text-xs text-muted-foreground">Exibindo {filteredAccounts.length} de {accounts.data.length} contas.</p>}
-          {accounts.isPending ? <p className="mt-5 text-sm text-muted-foreground">Carregando contas…</p> : accounts.error ? <p role="alert" className="mt-5 text-sm text-destructive">{errorText(accounts.error)}</p> : filteredAccounts.length ? (
+          {accounts.isPending ? <p className="mt-5 text-sm text-muted-foreground">Carregando contas…</p> : accounts.error ? (
+            <div className="mt-5 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+              <p role="alert" className="text-sm text-destructive">{errorText(accounts.error)}</p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-3"
+                disabled={accounts.isFetching}
+                onClick={() => void accounts.refetch()}
+              >
+                {accounts.isFetching ? "Atualizando…" : "Tentar carregar contas novamente"}
+              </Button>
+            </div>
+          ) : filteredAccounts.length ? (
             <div className="mt-5 divide-y divide-border border-t border-border">
               {filteredAccounts.map(account => (
                 <div key={account.user_id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
