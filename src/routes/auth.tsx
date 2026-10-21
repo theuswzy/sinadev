@@ -196,10 +196,12 @@ function AuthPage() {
 
       const code = url.searchParams.get("code");
       const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
-      const isAuthCallback =
-        Boolean(code) ||
+      // OAuth sign-in also returns a code or access_token, so those alone
+      // must not be interpreted as a new signup. Only an explicit Supabase
+      // signup confirmation marker allows metadata to supply a requested role;
+      // OAuth signup role is preserved separately in localStorage.
+      const isSignupConfirmation =
         url.searchParams.get("type") === "signup" ||
-        hashParams.has("access_token") ||
         hashParams.get("type") === "signup";
 
       if (code) {
@@ -214,12 +216,12 @@ function AuthPage() {
       }
 
       const sessionResult = await supabase.auth.getSession();
-      return { ...sessionResult, isAuthCallback };
+      return { ...sessionResult, isSignupConfirmation };
     }
 
     // Usa a sessão persistida localmente para evitar uma chamada de rede
     // extra só para descobrir se o usuário já está autenticado.
-    void restoreAuthFromEmailConfirmation().then(async ({ data, error, isAuthCallback }) => {
+    void restoreAuthFromEmailConfirmation().then(async ({ data, error, isSignupConfirmation }) => {
       if (cancelled) return;
       if (error) {
         setMessage(authErrorMessage(error));
@@ -244,11 +246,11 @@ function AuthPage() {
       // session restoration can run student onboarding during an ordinary
       // Google/password login and override the trusted existing role.
       const callbackRole =
-        isAuthCallback && (metadataRole === "teacher" || metadataRole === "student")
+        isSignupConfirmation && (metadataRole === "teacher" || metadataRole === "student")
           ? metadataRole
           : undefined;
       const callbackSchoolId =
-        isAuthCallback && typeof metadataSchoolId === "string" ? metadataSchoolId : undefined;
+        isSignupConfirmation && typeof metadataSchoolId === "string" ? metadataSchoolId : undefined;
 
       try {
         await finishAuth(
