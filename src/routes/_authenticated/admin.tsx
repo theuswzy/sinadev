@@ -104,6 +104,23 @@ function AdminArea() {
   const roleRequests = useQuery({
     queryKey: ["admin-role-requests"],
     queryFn: async () => {
+      // Institutional admins keep the complete approval queue. Global admins
+      // additionally receive the limited bootstrap queue for schools not yet
+      // connected to an institution; merge by request ID to avoid duplicates.
+      if (role.data === true && bootstrapAdmin.data === true) {
+        const [regularRequests, bootstrapResult] = await Promise.all([
+          loadAccountRoleRequests(),
+          supabase.rpc("admin_list_bootstrap_role_requests"),
+        ]);
+        if (bootstrapResult.error) throw bootstrapResult.error;
+        const merged = new Map(regularRequests.map((request) => [request.id, request]));
+        for (const request of bootstrapResult.data ?? []) {
+          merged.set(request.id, request as (typeof regularRequests)[number]);
+        }
+        return Array.from(merged.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        );
+      }
       if (bootstrapAdmin.data === true) {
         const { data, error } = await supabase.rpc("admin_list_bootstrap_role_requests");
         if (error) throw error;
