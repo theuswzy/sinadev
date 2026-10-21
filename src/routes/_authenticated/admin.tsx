@@ -152,6 +152,8 @@ function AdminArea() {
       setSelectedInstitutionSchool(null);
       toast.success("Escola vinculada à instituição. Ela já está disponível no seletor do cabeçalho.");
       await queryClient.invalidateQueries({ queryKey: ["my-institutions"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-role"] });
+      await queryClient.invalidateQueries({ queryKey: ["my-role"] });
     } catch (error) {
       toast.error(errorText(error));
     } finally {
@@ -410,7 +412,7 @@ function AdminArea() {
     { id: "historico", label: "Histórico", Icon: ShieldCheck },
   ];
 
-  if (role.error || !role.data) {
+  if (role.error || (!role.data && !bootstrapAdmin.data)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-6">
         <div className="max-w-md rounded-2xl border border-border bg-card p-7 text-center shadow-sm">
