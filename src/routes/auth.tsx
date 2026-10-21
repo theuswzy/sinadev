@@ -195,6 +195,12 @@ function AuthPage() {
       if (redirectError) throw redirectError;
 
       const code = url.searchParams.get("code");
+      const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+      const isAuthCallback =
+        Boolean(code) ||
+        url.searchParams.get("type") === "signup" ||
+        hashParams.has("access_token") ||
+        hashParams.get("type") === "signup";
 
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -207,12 +213,13 @@ function AuthPage() {
         window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
       }
 
-      return supabase.auth.getSession();
+      const sessionResult = await supabase.auth.getSession();
+      return { ...sessionResult, isAuthCallback };
     }
 
     // Usa a sessão persistida localmente para evitar uma chamada de rede
     // extra só para descobrir se o usuário já está autenticado.
-    void restoreAuthFromEmailConfirmation().then(async ({ data, error }) => {
+    void restoreAuthFromEmailConfirmation().then(async ({ data, error, isAuthCallback }) => {
       if (cancelled) return;
       if (error) {
         setMessage(authErrorMessage(error));
@@ -229,17 +236,24 @@ function AuthPage() {
       setBusy(true);
       const storedRole = window.localStorage.getItem("sina-requested-role");
       const storedSchoolId = window.localStorage.getItem("sina-school-directory-id");
-      const metadataRole = user.user_metadata?.['requested_role'];
-      const metadataSchoolId = user.user_metadata?.['school_directory_id'];
+      const metadataRole = user.user_metadata?.["requested_role"];
+      const metadataSchoolId = user.user_metadata?.["school_directory_id"];
+
+      // User metadata describes how the account was originally created; it is
+      // not proof that the current visit is a signup. Reusing it on every
+      // session restoration can run student onboarding during an ordinary
+      // Google/password login and override the trusted existing role.
+      const callbackRole =
+        isAuthCallback && (metadataRole === "teacher" || metadataRole === "student")
+          ? metadataRole
+          : undefined;
+      const callbackSchoolId =
+        isAuthCallback && typeof metadataSchoolId === "string" ? metadataSchoolId : undefined;
 
       try {
         await finishAuth(
-          storedRole === "teacher" || storedRole === "student"
-            ? storedRole
-            : metadataRole === "teacher" || metadataRole === "student"
-              ? metadataRole
-              : undefined,
-          storedSchoolId || (typeof metadataSchoolId === "string" ? metadataSchoolId : undefined),
+          storedRole === "teacher" || storedRole === "student" ? storedRole : callbackRole,
+          storedSchoolId || callbackSchoolId,
         );
       } catch (error) {
         if (!cancelled) setMessage(authErrorMessage(error));
