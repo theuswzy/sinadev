@@ -159,8 +159,14 @@ function StudentDashboard() {
               <Link to="/perfil" className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
                 Ver meu perfil
               </Link>
-              <Button variant="outline" onClick={() => void student.refetch()}>
-                Atualizar
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void student.refetch()}
+                disabled={student.isFetching}
+                aria-live="polite"
+              >
+                {student.isFetching ? "Atualizando…" : "Atualizar"}
               </Button>
             </div>
           </div>
