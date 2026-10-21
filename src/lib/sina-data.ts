@@ -20,21 +20,35 @@ export async function getRole(): Promise<UserRole> {
   if (!profile) {
     throw new Error("Finalize seu cadastro para acessar o SINA.");
   }
+  // Check the trusted database role before applying the onboarding gate.
+  // A legitimate global administrator may have a legacy/pending profile and
+  // must still reach the admin area to repair initial setup. Never use email
+  // or user metadata to grant administrative access.
+  const { data: initialAdminRole, error: initialAdminRoleError } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", auth.user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (initialAdminRoleError) throw initialAdminRoleError;
+  const isGlobalAdmin = initialAdminRole?.role === "admin";
+
   if (profile.status === "pending") {
     // Student registration is never subject to approval. The requested role
     // is stored in auth metadata during signup, so a confirmed student can be
     // activated even if the role row was not persisted during onboarding.
     const requestedRole = auth.user.user_metadata?.["requested_role"];
     if (requestedRole === "student") {
-      await supabase
+      const { error: activateError } = await supabase
         .from("profiles")
         .update({ status: "active" })
         .eq("user_id", auth.user.id);
-    } else {
+      if (activateError) throw activateError;
+    } else if (!isGlobalAdmin) {
       throw new Error("Sua conta está aguardando aprovação do administrador.");
     }
   }
-  if (profile.status === "suspended") {
+  if (profile.status === "suspended" && !isGlobalAdmin) {
     throw new Error("Sua conta está suspensa. Procure o administrador da instituição.");
   }
 
